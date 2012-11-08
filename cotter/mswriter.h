@@ -50,7 +50,7 @@ class MSWriter
 		void WritePolarizationForLinearPols(bool flagRow);
 		void WriteField(const FieldInfo& field);
 		
-		void WriteRow(double time, size_t antenna1, size_t antenna2, const std::complex<float>* data, const bool* flags);
+		void WriteRow(double time, size_t antenna1, size_t antenna2, double u, double v, double w, const std::complex<float>* data, const bool* flags);
 		
 	private:
 		class MSWriterData *_data;

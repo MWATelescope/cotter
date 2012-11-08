@@ -7,19 +7,36 @@ class BaselineBuffer
 {
 	public:
 		BaselineBuffer() :
-			realXX(0), imagXX(0),
-			realXY(0), imagXY(0),
-			realYX(0), imagYX(0),
-			realYY(0), imagYY(0),
 			nElementsPerRow(0)
 		{
+			for(size_t p=0; p!=4; ++p)
+			{
+				real[p] = 0; imag[p] = 0;
+			}
 		}
 		
-		float
-			*realXX, *imagXX,
-			*realXY, *imagXY,
-			*realYX, *imagYX,
-			*realYY, *imagYY;
+		BaselineBuffer(const BaselineBuffer &source) :
+			nElementsPerRow(source.nElementsPerRow)
+		{
+			for(size_t p=0; p!=4; ++p)
+			{
+				real[p] = source.real[p];
+				imag[p] = source.imag[p];
+			}
+		}
+		
+		BaselineBuffer& operator=(const BaselineBuffer &source)
+		{
+			nElementsPerRow = source.nElementsPerRow;
+			for(size_t p=0; p!=4; ++p)
+			{
+				real[p] = source.real[p];
+				imag[p] = source.imag[p];
+			}
+			return *this;
+		}
+		
+		float *real[4], *imag[4];
 		size_t nElementsPerRow;
 };
 

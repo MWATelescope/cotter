@@ -8,6 +8,7 @@
 
 struct MWAInput
 {
+	size_t inputIndex;
 	size_t antennaIndex;
 	double cableLenDelta;
 	unsigned polarizationIndex;
@@ -85,11 +86,11 @@ class MWAConfig
 		
 		const MWAHeader &Header() const { return _header; }
 		
-		double ChannelFrequency(size_t channelIndex) const
+		double ChannelFrequencyHz(size_t channelIndex) const
 		{
 			const double invertFactor = _header.invertFrequency ? -1.0 : 1.0;
-			return _header.centralFrequency +
-				invertFactor * (channelIndex - _header.nChannels*0.5) * _header.bandwidth / _header.nChannels;
+			return (_header.centralFrequency +
+				invertFactor * (channelIndex - _header.nChannels*0.5) * _header.bandwidth / _header.nChannels) * 1000000.0;
 		}
 		
 		static double ArrayLattitudeRad();

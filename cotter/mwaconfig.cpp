@@ -46,7 +46,7 @@ MWAHeader::MWAHeader() :
 	refSecond(0.0),
 	invertFrequency(false),    // correlators have now been fixed
 	conjugate(false),
-	geomCorrection(false),
+	geomCorrection(true),
 	fieldName(),
 	polProducts("XXXYYXYY")
 {
@@ -134,7 +134,7 @@ void MWAConfig::ReadHeader(const char *filename, bool lockPointing)
 	if(_header.haHrsStart == -99.0 && lockPointing)
 		throw std::runtime_error("HA must be specified in header when locking pointing.");
 	
-	std::cout << "Observation covers " << ChannelFrequency(0) << '-' << ChannelFrequency(_header.nChannels-1)
+	std::cout << "Observation covers " << (ChannelFrequencyHz(0)/1000000.0) << '-' << (ChannelFrequencyHz(_header.nChannels-1)/1000000.0)
 		<< " MHz.\n";
 		
 	_header.dateFirstScanMJD = 0.5*(_header.integrationTime/86400.0) + Geometry::GetMJD(
@@ -180,8 +180,9 @@ void MWAConfig::ReadInputConfig(const char *filename)
 				input.cableLenDelta = std::atof(cableLen.c_str()) * VEL_FACTOR;
 
 			input.polarizationIndex = polCharToIndex(polChar);
+			input.inputIndex = _inputs.size();
 			
-			//std::cout << "input: " << _inputs.size() << " is antenna " << antennaIndex << " with pol " << input.polarizationIndex <<
+			//std::cout << "input: " << input.inputIndex << " is antenna " << antennaIndex << " with pol " << input.polarizationIndex <<
 			//	". Length delta: " << input.cableLenDelta << '\n';
 				
 			_inputs.push_back(input);

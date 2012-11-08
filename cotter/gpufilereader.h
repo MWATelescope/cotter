@@ -3,6 +3,7 @@
 
 #include <fitsio.h>
 #include <stdexcept>
+#include <iostream>
 
 #include "baselinebuffer.h"
 
@@ -16,6 +17,7 @@
  *   by calling AddFile()
  * - Then, call Initialize() to read the required metadata, such as the antenna count.
  * - Allocate destination buffers and set them with SetDestBaselineBuffer()
+ * - Set the input-to-antenna mapping for all inputs with SetCorrInputToOutput().
  * - Finally, call Read() to start reading all data.
  * 
  * The MWA correlator produces multiple GPU files that need to be combined. Each
@@ -35,7 +37,11 @@ class GPUFileReader
 		
 		void AddFile(const char *filename) { _filenames.push_back(std::string(filename)); }
 		
-		void Initialize() { _buffers.resize(_nAntenna * _nAntenna); }
+		void Initialize() {
+			_buffers.resize(_nAntenna * _nAntenna);
+			_mappedBuffers.resize(_nAntenna * _nAntenna);
+			_corrInputToOutput.resize(_nAntenna*2);
+		}
 		
 		size_t AntennaCount() { return _nAntenna; }
 		size_t ChannelCount() { return _nChannelsInTotal; }
@@ -50,9 +56,20 @@ class GPUFileReader
 			}
 			getBuffer(antenna1, antenna2) = buffer;
 		}
+		void SetCorrInputToOutput(size_t input, size_t outputAnt, size_t outputPol)
+		{
+			_corrInputToOutput[input] = outputAnt*2 + outputPol;
+			std::cout << outputAnt << ':' << outputPol << " <- " << (input/2) << ':' << (input%2) << '(' << input << ")\n";
+		}
 		
 		bool Read(size_t &bufferPos);
+		bool IsConjugated(size_t ant1, size_t ant2, size_t pol1, size_t pol2) const
+		{
+			return _isConjugated[(ant1 * 2 + pol1) * _nAntenna * 2 + (ant2 * 2 + pol2)];
+		}
 	private:
+		const static int pfb_output_to_input[64];
+		
 		GPUFileReader(const GPUFileReader &) { }
 		void operator=(const GPUFileReader &) { }
 		void checkStatus(int status);
@@ -60,9 +77,14 @@ class GPUFileReader
 		void openFiles();
 		void closeFiles();
 		void findStopHDU();
+		void initMapping();
 		BaselineBuffer &getBuffer(size_t antenna1, size_t antenna2)
 		{
 			return _buffers[_nAntenna*antenna1 + antenna2];
+		}
+		BaselineBuffer &getMappedBuffer(size_t antenna1, size_t antenna2)
+		{
+			return _mappedBuffers[_nAntenna*antenna1 + antenna2];
 		}
 		
 		bool _isOpen;
@@ -72,4 +94,7 @@ class GPUFileReader
 		std::vector<fitsfile *> _fitsFiles;
 		
 		std::vector<BaselineBuffer> _buffers;
+		std::vector<BaselineBuffer> _mappedBuffers;
+		std::vector<size_t> _corrInputToOutput;
+		std::vector<bool> _isConjugated;
 };

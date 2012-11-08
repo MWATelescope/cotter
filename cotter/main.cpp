@@ -15,6 +15,7 @@
 
 using namespace aoflagger;
 
+void correctConjugated(ImageSet& imageSet, size_t imageIndex);
 void correctCableLength(ImageSet& imageSet, size_t polarization, double cableDelay, const double *channelFrequencies);
 void writeAntennae(const MWAConfig &mwaConfig, MSWriter &msWriter);
 void writeSPW(const MWAConfig &mwaConfig, MSWriter &msWriter, const double *channelFrequencies);
@@ -59,57 +60,82 @@ int main(int argc, char **argv)
 	mwaConfig.ReadAntennaPositions("antenna_locations.txt");
 	mwaConfig.CheckSetup();
 	
-	GPUFileReader reader;
-	std::vector<std::vector<std::string> >::const_iterator currentFileSetPtr = fileSets.begin();
-	for(std::vector<std::string>::const_iterator i=currentFileSetPtr->begin(); i!=currentFileSetPtr->end(); ++i)
-	{
-		reader.AddFile(i->c_str());
-	}
-	reader.Initialize();
-	
 	AOFlagger flagger;
 	
-	size_t antennaCount = reader.AntennaCount();
-	double channelFrequencies[mwaConfig.Header().nChannels];
-	for(size_t ch=0; ch!=mwaConfig.Header().nChannels; ++ch)
-		channelFrequencies[ch] = mwaConfig.ChannelFrequency(ch);
-	
-	/// TODO initialize casa measurement set
-	MSWriter msWriter("flagged.ms");
-	writeAntennae(mwaConfig, msWriter);
-	writeSPW(mwaConfig, msWriter, channelFrequencies);
-	writeField(mwaConfig, msWriter);
-	msWriter.WritePolarizationForLinearPols(false);
-	
-	/// TODO calculate available memory and use that for the buffers
-	
 	// Initialize buffers
+	const size_t antennaCount = mwaConfig.NAntennae();
 	std::map<std::pair<size_t, size_t>, ImageSet*> buffers;
 	for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
 	{
 		for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
 		{
-			ImageSet *imageSet = new ImageSet(flagger.MakeImageSet(mwaConfig.Header().nScans, reader.ChannelCount(), 8));
+			/// TODO calculate available memory and use that for the buffers
+			ImageSet *imageSet = new ImageSet(flagger.MakeImageSet(mwaConfig.Header().nScans, mwaConfig.Header().nChannels, 8));
 			buffers.insert(std::pair<std::pair<size_t,size_t>, ImageSet*>(
 				std::pair<size_t,size_t>(antenna1, antenna2), imageSet
 			));
-			
-			BaselineBuffer buffer;
-			buffer.realXX = imageSet->ImageBuffer(0);
-			buffer.imagXX = imageSet->ImageBuffer(1);
-			buffer.realXY = imageSet->ImageBuffer(2);
-			buffer.imagXY = imageSet->ImageBuffer(3);
-			buffer.realYX = imageSet->ImageBuffer(4);
-			buffer.imagYX = imageSet->ImageBuffer(5);
-			buffer.realYY = imageSet->ImageBuffer(6);
-			buffer.imagYY = imageSet->ImageBuffer(7);
-			buffer.nElementsPerRow = imageSet->HorizontalStride();
-			reader.SetDestBaselineBuffer(antenna1, antenna2, buffer);
 		}
 	}
 	
+	double channelFrequenciesHz[mwaConfig.Header().nChannels];
+	for(size_t ch=0; ch!=mwaConfig.Header().nChannels; ++ch)
+		channelFrequenciesHz[ch] = mwaConfig.ChannelFrequencyHz(ch);
+		
+	MSWriter msWriter("flagged.ms");
+	writeAntennae(mwaConfig, msWriter);
+	writeSPW(mwaConfig, msWriter, channelFrequenciesHz);
+	writeField(mwaConfig, msWriter);
+	msWriter.WritePolarizationForLinearPols(false);
+
+	std::vector<std::vector<std::string> >::const_iterator currentFileSetPtr = fileSets.begin();
+	
+	GPUFileReader *reader;
 	size_t bufferPos = 0;
-	bool moreAvailable = reader.Read(bufferPos);
+	bool continueWithNextFile;
+	do {
+		reader = new GPUFileReader();
+		
+		for(std::vector<std::string>::const_iterator i=currentFileSetPtr->begin(); i!=currentFileSetPtr->end(); ++i)
+			reader->AddFile(i->c_str());
+		
+		reader->Initialize();
+		if(reader->AntennaCount() != antennaCount)
+			throw std::runtime_error("nAntennae in GPU files do not match nAntennae in config");
+		if(reader->ChannelCount() != mwaConfig.Header().nChannels)
+			throw std::runtime_error("nChannels in GPU files do not match nChannels in config");
+		
+		for(size_t i=0; i!=mwaConfig.Header().nInputs; ++i)
+			reader->SetCorrInputToOutput(i, mwaConfig.Input(i).antennaIndex, mwaConfig.Input(i).polarizationIndex);
+		
+		// Initialize buffers of reader
+		for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
+		{
+			for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
+			{
+				ImageSet &imageSet = *buffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
+				BaselineBuffer buffer;
+				for(size_t p=0; p!=4; ++p)
+				{
+					buffer.real[p] = imageSet.ImageBuffer(p*2);
+					buffer.imag[p] = imageSet.ImageBuffer(p*2+1);
+				}
+				buffer.nElementsPerRow = imageSet.HorizontalStride();
+				reader->SetDestBaselineBuffer(antenna1, antenna2, buffer);
+			}
+		}
+		
+		bool moreAvailableInCurrentFile = reader->Read(bufferPos);
+		
+		if(!moreAvailableInCurrentFile && bufferPos < mwaConfig.Header().nScans)
+		{
+			// Go to the next set of GPU files and add them to the buffer
+			delete reader;
+			++currentFileSetPtr;
+			continueWithNextFile = (currentFileSetPtr!=fileSets.end());
+		} else {
+			continueWithNextFile = false;
+		}
+	} while(continueWithNextFile);
 	
 	std::map<std::pair<size_t, size_t>, FlagMask*> flagBuffers;
 	Strategy strategy = flagger.MakeStrategy(MWA_TELESCOPE);
@@ -123,13 +149,31 @@ int main(int argc, char **argv)
 				&input1Y = mwaConfig.AntennaXInput(antenna1),
 				&input2X = mwaConfig.AntennaXInput(antenna2),
 				&input2Y = mwaConfig.AntennaYInput(antenna2);
+				
+			// Correct conjugated baselines
+			if(reader->IsConjugated(antenna1, antenna2, 0, 0)) {
+				std::cout << "Conjugating " << antenna1 << 'x' << antenna2 << '\n';
+				correctConjugated(*imageSet, 1);
+			}
+			if(reader->IsConjugated(antenna1, antenna2, 0, 1)) {
+				std::cout << "Conjugating " << antenna1 << 'x' << antenna2 << '\n';
+				correctConjugated(*imageSet, 1);
+			}
+			if(reader->IsConjugated(antenna1, antenna2, 1, 0)) {
+				std::cout << "Conjugating " << antenna1 << 'x' << antenna2 << '\n';
+				correctConjugated(*imageSet, 1);
+			}
+			if(reader->IsConjugated(antenna1, antenna2, 1, 1)) {
+				std::cout << "Conjugating " << antenna1 << 'x' << antenna2 << '\n';
+				correctConjugated(*imageSet, 1);
+			}
 			
 			// Correct cable delay
 			std::cout << "Correcting cable length for " << antenna1 << " x " << antenna2 << '\n';
-			correctCableLength(*imageSet, 0, input2X.cableLenDelta - input1X.cableLenDelta, channelFrequencies);
-			correctCableLength(*imageSet, 1, input2Y.cableLenDelta - input1X.cableLenDelta, channelFrequencies);
-			correctCableLength(*imageSet, 2, input2X.cableLenDelta - input1Y.cableLenDelta, channelFrequencies);
-			correctCableLength(*imageSet, 3, input2Y.cableLenDelta - input1Y.cableLenDelta, channelFrequencies);
+			correctCableLength(*imageSet, 0, input2X.cableLenDelta - input1X.cableLenDelta, channelFrequenciesHz);
+			correctCableLength(*imageSet, 1, input2Y.cableLenDelta - input1X.cableLenDelta, channelFrequenciesHz);
+			correctCableLength(*imageSet, 2, input2X.cableLenDelta - input1Y.cableLenDelta, channelFrequenciesHz);
+			correctCableLength(*imageSet, 3, input2Y.cableLenDelta - input1Y.cableLenDelta, channelFrequenciesHz);
 			
 			/// TODO correct passband
 			
@@ -145,7 +189,7 @@ int main(int argc, char **argv)
 			if(antenna1 == 29) //testing
 				flagMask = new FlagMask(flagger.Run(strategy, *imageSet));
 			else
-				flagMask = new FlagMask(flagger.MakeFlagMask(mwaConfig.Header().nScans, reader.ChannelCount(), true));
+				flagMask = new FlagMask(flagger.MakeFlagMask(mwaConfig.Header().nScans, reader->ChannelCount(), false));
 			
 			flagBuffers.insert(std::pair<std::pair<size_t, size_t>, FlagMask*>(
 					std::pair<size_t,size_t>(antenna1, antenna2), flagMask));
@@ -155,6 +199,9 @@ int main(int argc, char **argv)
 			/// TODO flag MWA side and centre channels
 		}
 	}
+	
+	if(mwaConfig.Header().geomCorrection)
+		std::cout << "Will apply geometric delay correction.\n";
 	
 	const size_t nChannels = mwaConfig.Header().nChannels;
 	double antU[antennaCount], antV[antennaCount], antW[antennaCount];
@@ -189,6 +236,11 @@ int main(int argc, char **argv)
 				// TODO these statements should be more efficient
 				const ImageSet &imageSet = *buffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
 				const FlagMask &flagMask = *flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
+				bool isConj[4];
+				isConj[0] = reader->IsConjugated(antenna1, antenna2, 0, 0);
+				isConj[1] = reader->IsConjugated(antenna1, antenna2, 0, 1);
+				isConj[2] = reader->IsConjugated(antenna1, antenna2, 1, 0);
+				isConj[3] = reader->IsConjugated(antenna1, antenna2, 1, 1);
 				
 				const size_t stride = imageSet.HorizontalStride();
 				const size_t flagStride = flagMask.HorizontalStride();
@@ -197,11 +249,18 @@ int main(int argc, char **argv)
 					v = antV[antenna1] - antV[antenna2],
 					w = antW[antenna1] - antW[antenna2];
 					
-				// Calculate rotation coefficients for geometric phase delay correction
-				for(size_t ch=0; ch!=nChannels; ++ch)
+				// Pre-calculate rotation coefficients for geometric phase delay correction
+				if(mwaConfig.Header().geomCorrection)
 				{
-					double angle = -2.0*M_PI*w*SPEED_OF_LIGHT / channelFrequencies[ch];
-					sincos(angle, &sinAngles[ch], &cosAngles[ch]);
+					for(size_t ch=0; ch!=nChannels; ++ch)
+					{
+						double angle = -2.0*M_PI*w*channelFrequenciesHz[ch] / SPEED_OF_LIGHT;
+						double sinAng, cosAng;
+						sincos(angle, &sinAng, &cosAng);
+						sinAngles[ch] = sinAng; cosAngles[ch] = cosAng;
+							if((ch == nChannels/2 || ch ==0) && antenna1==0 && antenna2==1)
+								std::cout << "Rotation=" << (angle/(2.0*M_PI)) << " for freq " << channelFrequenciesHz[ch] << ",w=" << w << ",lambda=" << (SPEED_OF_LIGHT/channelFrequenciesHz[ch]) << '\n';
+					}
 				}
 					
 				for(size_t p=0; p!=4; ++p)
@@ -215,11 +274,23 @@ int main(int argc, char **argv)
 					for(size_t ch=0; ch!=nChannels; ++ch)
 					{
 						// Apply geometric phase delay (for w)
-						float rtmp = *realPtr, itmp = *imagPtr;
-						*outDataPtr = std::complex<float>(
-							cosAngles[ch] * rtmp - sinAngles[ch] * itmp,
-							sinAngles[ch] * rtmp + cosAngles[ch] * itmp
-						);
+						if(mwaConfig.Header().geomCorrection)
+						{
+							const float rtmp = *realPtr, itmp = *imagPtr;
+							if(isConj[p]) {
+								*outDataPtr = std::complex<float>(
+									cosAngles[ch] * rtmp + sinAngles[ch] * itmp,
+									-sinAngles[ch] * rtmp + cosAngles[ch] * itmp
+								);
+							} else {
+								*outDataPtr = std::complex<float>(
+									cosAngles[ch] * rtmp - sinAngles[ch] * itmp,
+									sinAngles[ch] * rtmp + cosAngles[ch] * itmp
+								);
+							}
+						} else {
+							*outDataPtr = std::complex<float>(*realPtr, *imagPtr);
+						}
 						*outputFlagPtr = *flagPtr;
 						
 						realPtr += stride;
@@ -232,7 +303,7 @@ int main(int argc, char **argv)
 				/// TODO average
 				
 				/// TODO write to casa file.
-				msWriter.WriteRow(dateMJD, antenna1, antenna2, outputData, outputFlags);
+				msWriter.WriteRow(dateMJD, antenna1, antenna2, u, v, w, outputData, outputFlags);
 			}
 		}
 	}
@@ -241,15 +312,30 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-void correctCableLength(ImageSet& imageSet, size_t polarization, double cableDelay, const double *channelFrequencies)
+void correctConjugated(ImageSet& imageSet, size_t imgImageIndex)
+{
+	float *imags = imageSet.ImageBuffer(imgImageIndex);
+	for(size_t y=0; y!=imageSet.Height(); ++y)
+	{
+		for(size_t x=0; x!=imageSet.HorizontalStride(); ++x)
+		{
+			*imags = -*imags;
+			++imags;
+		}
+	}
+}
+
+void correctCableLength(ImageSet& imageSet, size_t polarization, double cableDelay, const double *channelFrequenciesHz)
 {
 	float *reals = imageSet.ImageBuffer(polarization*2);
 	float *imags = imageSet.ImageBuffer(polarization*2+1);
 	
 	for(size_t y=0; y!=imageSet.Height(); ++y)
 	{
-		double angle = -2.0 * M_PI * cableDelay * SPEED_OF_LIGHT / channelFrequencies[y];
-		float rotSin = sin(angle), rotCos = cos(angle);
+		double angle = -2.0 * M_PI * cableDelay * channelFrequenciesHz[y] / SPEED_OF_LIGHT;
+		double rotSinl, rotCosl;
+		sincos(angle, &rotSinl, &rotCosl);
+		float rotSin = rotSinl, rotCos = rotCosl;
 		
 		/// @todo This should use actual time step count in window
 		float *realPtr = reals + y * imageSet.HorizontalStride();
@@ -287,7 +373,7 @@ void writeAntennae(const MWAConfig &mwaConfig, MSWriter &msWriter)
 	msWriter.WriteAntennae(antennae);
 }
 
-void writeSPW(const MWAConfig &mwaConfig, MSWriter &msWriter, const double *channelFrequencies)
+void writeSPW(const MWAConfig &mwaConfig, MSWriter &msWriter, const double *channelFrequenciesHz)
 {
 	std::vector<MSWriter::ChannelInfo> channels(mwaConfig.Header().nChannels);
 	std::ostringstream str;
@@ -295,8 +381,8 @@ void writeSPW(const MWAConfig &mwaConfig, MSWriter &msWriter, const double *chan
 	for(size_t ch=0;ch!=mwaConfig.Header().nChannels;++ch)
 	{
 		MSWriter::ChannelInfo &channel = channels[ch];
-		channel.chanFreq = channelFrequencies[ch]*1000000.0;
-		channel.chanWidth = mwaConfig.Header().bandwidth*1000000.0 / mwaConfig.Header().nChannels;
+		channel.chanFreq = channelFrequenciesHz[ch];
+		channel.chanWidth = mwaConfig.Header().bandwidth / mwaConfig.Header().nChannels;
 		channel.effectiveBW = channel.chanWidth;
 		channel.resolution = channel.chanWidth;
 	}

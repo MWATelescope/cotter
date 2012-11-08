@@ -191,13 +191,17 @@ void MSWriter::WriteField(const FieldInfo& field)
 	flagRowCol.put(index, field.flagRow);
 }
 
-void MSWriter::WriteRow(double time, size_t antenna1, size_t antenna2, const std::complex<float>* data, const bool* flags)
+void MSWriter::WriteRow(double time, size_t antenna1, size_t antenna2, double u, double v, double w, const std::complex<float>* data, const bool* flags)
 {
 	_data->ms->addRow();
 	_data->_timeCol->put(_rowIndex, time);
 	_data->_antenna1Col->put(_rowIndex, antenna1);
 	_data->_antenna2Col->put(_rowIndex, antenna2);
 	_data->_dataDescIdCol->put(_rowIndex, 0);
+	
+	casa::Vector<double> uvwVec(3);
+	uvwVec[0] = u; uvwVec[1] = v; uvwVec[2] = w;
+	_data->_uvwCol->put(_rowIndex, uvwVec);
 	
 	size_t nPol = 4;
 	size_t valCount = _nChannels * nPol;
