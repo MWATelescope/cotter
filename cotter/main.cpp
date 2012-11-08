@@ -194,9 +194,30 @@ int main(int argc, char **argv)
 			flagBuffers.insert(std::pair<std::pair<size_t, size_t>, FlagMask*>(
 					std::pair<size_t,size_t>(antenna1, antenna2), flagMask));
 			
-			/// TODO collect statistics
+			// Flag MWA side and centre channels
+			const size_t nSubbands = 24;
+			for(size_t sb=0; sb!=nSubbands; ++sb)
+			{
+				bool *sbStart = flagMask->Buffer() + (sb*flagMask->Height()/nSubbands)*mwaConfig.Header().nScans;
+				bool *channelPtr = sbStart;
+				bool *endPtr = sbStart + flagMask->HorizontalStride();
+				
+				// Flag first channel of sb
+				while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
+				
+				// Flag centre channel of sb
+				size_t halfBand = flagMask->Height()/(nSubbands*2);
+				channelPtr = sbStart + halfBand*mwaConfig.Header().nScans;
+				endPtr = sbStart + (halfBand + 1)*mwaConfig.Header().nScans;
+				while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
+				
+				// Flag last channel of sb
+				channelPtr = sbStart + (flagMask->Height()/nSubbands-1)*mwaConfig.Header().nScans;
+				endPtr = sbStart + (flagMask->Height()/nSubbands)*mwaConfig.Header().nScans;
+				while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
+			}
 			
-			/// TODO flag MWA side and centre channels
+			/// TODO collect statistics
 		}
 	}
 	
@@ -290,7 +311,6 @@ int main(int argc, char **argv)
 				}
 				/// TODO average
 				
-				/// TODO write to casa file.
 				msWriter.WriteRow(dateMJD*86400.0, antenna1, antenna2, u, v, w, outputData, outputFlags);
 			}
 		}
