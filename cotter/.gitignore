@@ -1,3 +1,4 @@
 .kdev4/
 build/
 libsla.a
+.gpufilereader.cpp.kate-swp

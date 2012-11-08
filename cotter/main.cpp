@@ -157,15 +157,15 @@ int main(int argc, char **argv)
 			}
 			if(reader->IsConjugated(antenna1, antenna2, 0, 1)) {
 				std::cout << "Conjugating " << antenna1 << 'x' << antenna2 << '\n';
-				correctConjugated(*imageSet, 1);
+				correctConjugated(*imageSet, 3);
 			}
 			if(reader->IsConjugated(antenna1, antenna2, 1, 0)) {
 				std::cout << "Conjugating " << antenna1 << 'x' << antenna2 << '\n';
-				correctConjugated(*imageSet, 1);
+				correctConjugated(*imageSet, 5);
 			}
 			if(reader->IsConjugated(antenna1, antenna2, 1, 1)) {
 				std::cout << "Conjugating " << antenna1 << 'x' << antenna2 << '\n';
-				correctConjugated(*imageSet, 1);
+				correctConjugated(*imageSet, 7);
 			}
 			
 			// Correct cable delay
@@ -236,11 +236,6 @@ int main(int argc, char **argv)
 				// TODO these statements should be more efficient
 				const ImageSet &imageSet = *buffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
 				const FlagMask &flagMask = *flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
-				bool isConj[4];
-				isConj[0] = reader->IsConjugated(antenna1, antenna2, 0, 0);
-				isConj[1] = reader->IsConjugated(antenna1, antenna2, 0, 1);
-				isConj[2] = reader->IsConjugated(antenna1, antenna2, 1, 0);
-				isConj[3] = reader->IsConjugated(antenna1, antenna2, 1, 1);
 				
 				const size_t stride = imageSet.HorizontalStride();
 				const size_t flagStride = flagMask.HorizontalStride();
@@ -277,17 +272,10 @@ int main(int argc, char **argv)
 						if(mwaConfig.Header().geomCorrection)
 						{
 							const float rtmp = *realPtr, itmp = *imagPtr;
-							if(isConj[p]) {
-								*outDataPtr = std::complex<float>(
-									cosAngles[ch] * rtmp + sinAngles[ch] * itmp,
-									-sinAngles[ch] * rtmp + cosAngles[ch] * itmp
-								);
-							} else {
-								*outDataPtr = std::complex<float>(
-									cosAngles[ch] * rtmp - sinAngles[ch] * itmp,
-									sinAngles[ch] * rtmp + cosAngles[ch] * itmp
-								);
-							}
+							*outDataPtr = std::complex<float>(
+								cosAngles[ch] * rtmp - sinAngles[ch] * itmp,
+								sinAngles[ch] * rtmp + cosAngles[ch] * itmp
+							);
 						} else {
 							*outDataPtr = std::complex<float>(*realPtr, *imagPtr);
 						}
@@ -303,7 +291,7 @@ int main(int argc, char **argv)
 				/// TODO average
 				
 				/// TODO write to casa file.
-				msWriter.WriteRow(dateMJD, antenna1, antenna2, u, v, w, outputData, outputFlags);
+				msWriter.WriteRow(dateMJD*86400.0, antenna1, antenna2, u, v, w, outputData, outputFlags);
 			}
 		}
 	}

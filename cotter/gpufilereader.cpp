@@ -178,7 +178,6 @@ bool GPUFileReader::Read(size_t &bufferPos) {
 							destChanIndex += _bufferSize;
 						}
 						++correlationIndex;
-						
 					}
 				}
 			}
@@ -238,13 +237,14 @@ void GPUFileReader::initMapping()
 					// Note that while reading, the antenna indices are reversed
 					// again. Therefore, if the antenna indices are in the right
 					// order here, we need to conjugate the visibility.
-					size_t conjIndex = (actA1 * 2 + actP1) * _nAntenna * 2 + (actA2 * 2 + actP2);
 					if(actA1 <= actA2)
 					{
+						size_t conjIndex = (actA1 * 2 + actP1) * _nAntenna * 2 + (actA2 * 2 + actP2);
 						_isConjugated[conjIndex] = (a1!=a2);
 						getMappedBuffer(a1, a2).real[p1 * 2 + p2] = getBuffer(actA1, actA2).real[actP1 * 2 + actP2];
 						getMappedBuffer(a1, a2).imag[p1 * 2 + p2] = getBuffer(actA1, actA2).imag[actP1 * 2 + actP2];
 					} else {
+						size_t conjIndex = (actA2 * 2 + actP2) * _nAntenna * 2 + (actA1 * 2 + actP1);
 						_isConjugated[conjIndex] = false;
 						getMappedBuffer(a1, a2).real[p1 * 2 + p2] = getBuffer(actA2, actA1).real[actP2 * 2 + actP1];
 						getMappedBuffer(a1, a2).imag[p1 * 2 + p2] = getBuffer(actA2, actA1).imag[actP2 * 2 + actP1];
