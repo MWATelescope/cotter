@@ -8,6 +8,7 @@
 
 #include <boost/thread/thread.hpp>
 
+#include <fstream>
 #include <iostream>
 #include <map>
 #include <cmath>
@@ -22,7 +23,8 @@ Cotter::Cotter() :
 	_reader(0),
 	_flagger(0),
 	_strategy(0),
-	_threadCount(1)
+	_threadCount(1),
+	_subbandCount(24)
 {
 }
 
@@ -42,6 +44,8 @@ void Cotter::Run()
 	_mwaConfig.ReadInputConfig("instr_config.txt");
 	_mwaConfig.ReadAntennaPositions("antenna_locations.txt");
 	_mwaConfig.CheckSetup();
+	
+	readSubbandPassbandFile();
 	
 	_flagger = new AOFlagger();
 	
@@ -280,7 +284,24 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2)
 	correctCableLength(*imageSet, 2, input2X.cableLenDelta - input1Y.cableLenDelta);
 	correctCableLength(*imageSet, 3, input2Y.cableLenDelta - input1Y.cableLenDelta);
 	
-	/// TODO correct passband
+	// Correct passband
+	for(size_t i=0; i!=8; ++i)
+	{
+		const size_t channelsPerSubband = imageSet->Height()/_subbandCount;
+		for(size_t sb=0; sb!=_subbandCount; ++sb)
+		{
+			for(size_t ch=0; ch!=channelsPerSubband; ++ch)
+			{
+				float *channelPtr = imageSet->ImageBuffer(i) + (ch+sb*channelsPerSubband) * imageSet->HorizontalStride();
+				const float correctionFactor = _subbandCorrectionFactors[i/2][ch];
+				for(size_t x=0; x!=imageSet->Width(); ++x)
+				{
+					*channelPtr *= correctionFactor;
+					++channelPtr;
+				}
+			}
+		}
+	}
 	
 	// Perform RFI detection, if baseline is not flagged.
 	bool is1Flagged = input1X.isFlagged || input1Y.isFlagged;
@@ -299,10 +320,9 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2)
 		flagMask = new FlagMask(_flagger->Run(*_strategy, *imageSet));
 		
 		// Flag MWA side and centre channels
-		const size_t nSubbands = 24;
-		for(size_t sb=0; sb!=nSubbands; ++sb)
+		for(size_t sb=0; sb!=_subbandCount; ++sb)
 		{
-			bool *sbStart = flagMask->Buffer() + (sb*flagMask->Height()/nSubbands)*_mwaConfig.Header().nScans;
+			bool *sbStart = flagMask->Buffer() + (sb*flagMask->Height()/_subbandCount)*_mwaConfig.Header().nScans;
 			bool *channelPtr = sbStart;
 			bool *endPtr = sbStart + flagMask->HorizontalStride();
 			
@@ -310,14 +330,14 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2)
 			while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
 			
 			// Flag centre channel of sb
-			size_t halfBand = flagMask->Height()/(nSubbands*2);
+			size_t halfBand = flagMask->Height()/(_subbandCount*2);
 			channelPtr = sbStart + halfBand*_mwaConfig.Header().nScans;
 			endPtr = sbStart + (halfBand + 1)*_mwaConfig.Header().nScans;
 			while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
 			
 			// Flag last channel of sb
-			channelPtr = sbStart + (flagMask->Height()/nSubbands-1)*_mwaConfig.Header().nScans;
-			endPtr = sbStart + (flagMask->Height()/nSubbands)*_mwaConfig.Header().nScans;
+			channelPtr = sbStart + (flagMask->Height()/_subbandCount-1)*_mwaConfig.Header().nScans;
+			endPtr = sbStart + (flagMask->Height()/_subbandCount)*_mwaConfig.Header().nScans;
 			while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
 		}
 	}
@@ -428,4 +448,26 @@ void Cotter::writeField()
 	field.sourceId = 0;
 	field.flagRow = false;
 	_msWriter->WriteField(field);
+}
+
+void Cotter::readSubbandPassbandFile()
+{
+	std::ifstream passbandFile("subband-passband.txt");
+	while(passbandFile.good())
+	{
+		size_t rowIndex;
+		passbandFile >> rowIndex;
+		if(!passbandFile.good()) break;
+		for(size_t p=0; p!=4; ++p) {
+			double passbandGain;
+			passbandFile >> passbandGain;
+			_subbandCorrectionFactors[p].push_back(1.0/passbandGain);
+		}
+	}
+	size_t
+		channelsPerSubband = _subbandCorrectionFactors[0].size(),
+		subBandCount = _mwaConfig.Header().nChannels / channelsPerSubband;
+	std::cout << "Read subband passband, using " << channelsPerSubband << " gains to correct for " << subBandCount << " channels/subband\n";
+	if(subBandCount != _subbandCount)
+		throw std::runtime_error("Unexpected number of channels in subband passband correction file");
 }

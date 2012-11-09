@@ -38,8 +38,11 @@ class Cotter
 		aoflagger::AOFlagger *_flagger;
 		aoflagger::Strategy *_strategy;
 		
+		std::vector<double> _subbandCorrectionFactors[4];
+		
 		std::vector<std::vector<std::string> > _fileSets;
 		size_t _threadCount;
+		size_t _subbandCount;
 		
 		std::map<std::pair<size_t, size_t>, aoflagger::ImageSet*> _imageSetBuffers;
 		std::map<std::pair<size_t, size_t>, aoflagger::FlagMask*> _flagBuffers;
@@ -55,6 +58,7 @@ class Cotter
 		void writeAntennae();
 		void writeSPW();
 		void writeField();
+		void readSubbandPassbandFile();
 
 		Cotter(const Cotter&) { }
 		void operator=(const Cotter&) { }
