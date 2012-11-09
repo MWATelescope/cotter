@@ -149,7 +149,7 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		}
 	}
 	
-	std::cout << "Conjugating, flagging and correcting cable lengths" << std::flush;
+	std::cout << "RFI detection, conjugations and cable length corrections" << std::flush;
 	boost::thread_group threadGroup;
 	for(size_t i=0; i!=_threadCount; ++i)
 		threadGroup.create_thread(boost::bind(&Cotter::baselineProcessThreadFunc, this));
@@ -159,6 +159,8 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	if(_mwaConfig.Header().geomCorrection)
 		std::cout << "Will apply geometric delay correction.\n";
 	
+	
+	std::cout << "Writing" << std::flush;
 	const size_t nChannels = _mwaConfig.Header().nChannels;
 	double antU[antennaCount], antV[antennaCount], antW[antennaCount];
 	for(size_t t=0; t!=_mwaConfig.Header().nScans; ++t)
@@ -168,8 +170,6 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		Geometry::UVWTimestepInfo uvwInfo;
 		Geometry::PrepareTimestepUVW(uvwInfo, dateMJD, _mwaConfig.ArrayLongitudeRad(), _mwaConfig.ArrayLattitudeRad(), _mwaConfig.Header().raHrs, _mwaConfig.Header().decDegs);
 		
-		std::cout << uvwInfo.lmst << '\n';
- 
 		for(size_t antenna=0; antenna!=antennaCount; ++antenna)
 		{
 			const double
@@ -177,10 +177,9 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 				y = _mwaConfig.Antenna(antenna).position[1],
 				z = _mwaConfig.Antenna(antenna).position[2];
 			Geometry::CalcUVW(uvwInfo, x, y, z, antU[antenna],antV[antenna], antW[antenna]);
-			if(antenna==5)
-			std::cout << "Pos: " << x << ',' << y << ',' << z <<
-				", Uvw: " << antU[antenna] << ',' << antV[antenna] << ',' << antW[antenna] << '\n';
 		}
+		
+		_writer->AddRows(antennaCount*(antennaCount+1)/2);
 		
 		double cosAngles[nChannels], sinAngles[nChannels];
 		std::complex<float> outputData[nChannels*4];
@@ -210,8 +209,6 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 						double sinAng, cosAng;
 						sincos(angle, &sinAng, &cosAng);
 						sinAngles[ch] = sinAng; cosAngles[ch] = cosAng;
-							if((ch == nChannels/2 || ch ==0) && antenna1==0 && antenna2==1)
-								std::cout << "Rotation=" << (angle/(2.0*M_PI)) << " for freq " << _channelFrequenciesHz[ch] << ",w=" << w << ",lambda=" << (SPEED_OF_LIGHT/_channelFrequenciesHz[ch]) << '\n';
 					}
 				}
 					
@@ -249,12 +246,13 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 						outWeightsPtr += 4;
 					}
 				}
-				/// TODO average
 				
-				_writer->WriteRow(dateMJD*86400.0, antenna1, antenna2, u, v, w, outputData, outputFlags, outputWeights);
+				_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, u, v, w, outputData, outputFlags, outputWeights);
 			}
 		}
+		std::cout << '.' << std::flush;
 	}
+	std::cout << '\n';
 	
 	delete _writer;
 	_writer = 0;

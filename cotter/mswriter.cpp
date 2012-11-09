@@ -14,7 +14,7 @@ class MSWriterData
 	public:
 		MeasurementSet *ms;
 		
-		ScalarColumn<double> *_timeCol;
+		ScalarColumn<double> *_timeCol, *_timeCentroidCol;
 		ScalarColumn<int> *_antenna1Col, *_antenna2Col;
 		ScalarColumn<int> *_dataDescIdCol;
 		ArrayColumn<double> *_uvwCol;
@@ -40,6 +40,7 @@ MSWriter::MSWriter(const char* filename) :
 	ms.createDefaultSubtables(Table::New);
 	
 	_data->_timeCol = new ScalarColumn<double>(ms, MS::columnName(casa::MSMainEnums::TIME));
+	_data->_timeCentroidCol = new ScalarColumn<double>(ms, MS::columnName(casa::MSMainEnums::TIME_CENTROID));
 	_data->_antenna1Col = new ScalarColumn<int>(ms, MS::columnName(casa::MSMainEnums::ANTENNA1));
 	_data->_antenna2Col = new ScalarColumn<int>(ms, MS::columnName(casa::MSMainEnums::ANTENNA2));
 	_data->_dataDescIdCol = new ScalarColumn<int>(ms, MS::columnName(casa::MSMainEnums::DATA_DESC_ID));
@@ -53,6 +54,7 @@ MSWriter::MSWriter(const char* filename) :
 MSWriter::~MSWriter()
 {
 	delete _data->_timeCol;
+	delete _data->_timeCentroidCol;
 	delete _data->_antenna1Col;
 	delete _data->_antenna2Col;
 	delete _data->_dataDescIdCol;
@@ -199,10 +201,15 @@ void MSWriter::WriteField(const FieldInfo& field)
 	flagRowCol.put(index, field.flagRow);
 }
 
-void MSWriter::WriteRow(double time, size_t antenna1, size_t antenna2, double u, double v, double w, const std::complex<float>* data, const bool* flags, const float *weights)
+void MSWriter::AddRows(size_t count)
 {
-	_data->ms->addRow();
+	_data->ms->addRow(count);
+}
+
+void MSWriter::WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, const std::complex<float>* data, const bool* flags, const float *weights)
+{
 	_data->_timeCol->put(_rowIndex, time);
+	_data->_timeCentroidCol->put(_rowIndex, timeCentroid);
 	_data->_antenna1Col->put(_rowIndex, antenna1);
 	_data->_antenna2Col->put(_rowIndex, antenna2);
 	_data->_dataDescIdCol->put(_rowIndex, 0);

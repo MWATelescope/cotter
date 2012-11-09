@@ -93,11 +93,11 @@ bool GPUFileReader::Read(size_t &bufferPos) {
 	}
 
 	findStopHDU();
-	std::cout << "Start HDU: " << _currentHDU << ", stop HDU: " << _stopHDU << '\n';
 
+	std::cout << "Reading GPU files" << std::flush;
 	while (_currentHDU <= _stopHDU && bufferPos < _bufferSize) {
 		for (size_t iFile = 0; iFile != _filenames.size(); ++iFile) {
-			std::cout << "Reading file " << _filenames[iFile] << " for HDU " << _currentHDU << '\n';
+			std::cout << '.' << std::flush;
 
 			fitsfile *fptr = _fitsFiles[iFile];
 
@@ -186,6 +186,7 @@ bool GPUFileReader::Read(size_t &bufferPos) {
 		++_currentHDU;
 		++bufferPos;
 	}
+	std::cout << '\n';
 	
 	closeFiles();
 	return false; // TODO
@@ -229,10 +230,10 @@ void GPUFileReader::initMapping()
 					size_t actP1 = actualOut1%2;
 					size_t actP2 = actualOut2%2;
 					
-					std::cout
-					<< a1 << 'x' << a2 << ':' << p1 << 'x' << p2 << " -> "
-					<< (pfbInp1/2) << 'x' << (pfbInp2/2) << ':' << (pfbInp1%2) << 'x' << (pfbInp2%2) << " -> " 
-					<< actA1 << 'x' << actA2 << ':' << actP1 << 'x' << actP2 << '\n';
+					//std::cout
+					//<< a1 << 'x' << a2 << ':' << p1 << 'x' << p2 << " -> "
+					//<< (pfbInp1/2) << 'x' << (pfbInp2/2) << ':' << (pfbInp1%2) << 'x' << (pfbInp2%2) << " -> " 
+					//<< actA1 << 'x' << actA2 << ':' << actP1 << 'x' << actP2 << '\n';
 					
 					// Note that while reading, the antenna indices are reversed
 					// again. Therefore, if the antenna indices are in the right

@@ -85,7 +85,12 @@ class AveragingMSWriter : public Writer
 			_writer.WriteField(field);
 		}
 		
-		void WriteRow(double time, size_t antenna1, size_t antenna2, double u, double v, double w, const std::complex<float>* data, const bool* flags, const float *weights)
+		void AddRows(size_t rowCount)
+		{
+			_writer.AddRows(rowCount);
+		}
+		
+		void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, const std::complex<float>* data, const bool* flags, const float *weights)
 		{
 			Buffer &buffer = getBuffer(antenna1, antenna2);
 			for(size_t ch=0; ch!=_avgChannelCount*_freqAvgFactor; ++ch)
@@ -174,7 +179,7 @@ class AveragingMSWriter : public Writer
 				}
 			}
 			
-			_writer.WriteRow(time, antenna1, antenna2, u, v, w, buffer._rowData, buffer._rowFlags, buffer._rowWeights);
+			_writer.WriteRow(time, time, antenna1, antenna2, u, v, w, buffer._rowData, buffer._rowFlags, buffer._rowWeights);
 			
 			buffer.initZero(_avgChannelCount);
 		}

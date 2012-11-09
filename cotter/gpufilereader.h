@@ -3,7 +3,6 @@
 
 #include <fitsio.h>
 #include <stdexcept>
-#include <iostream>
 
 #include "baselinebuffer.h"
 
@@ -59,7 +58,6 @@ class GPUFileReader
 		void SetCorrInputToOutput(size_t input, size_t outputAnt, size_t outputPol)
 		{
 			_corrInputToOutput[input] = outputAnt*2 + outputPol;
-			std::cout << outputAnt << ':' << outputPol << " <- " << (input/2) << ':' << (input%2) << '(' << input << ")\n";
 		}
 		
 		bool Read(size_t &bufferPos);
