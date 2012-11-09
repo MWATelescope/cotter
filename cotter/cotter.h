@@ -43,6 +43,7 @@ class Cotter : private UVWCalculater
 		aoflagger::Strategy *_strategy;
 		
 		std::vector<double> _subbandCorrectionFactors[4];
+		std::vector<double> _subbandGainCorrection;
 		
 		std::vector<std::vector<std::string> > _fileSets;
 		size_t _threadCount;
@@ -67,6 +68,7 @@ class Cotter : private UVWCalculater
 		void writeAntennae();
 		void writeSPW();
 		void writeField();
+		void readSubbandGainsFile();
 		void readSubbandPassbandFile();
 		void flagBadCorrelatorSamples(aoflagger::FlagMask &flagMask);
 		void initializeWeights(float *outputWeights);

@@ -53,7 +53,12 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	_mwaConfig.ReadAntennaPositions("antenna_locations.txt");
 	_mwaConfig.CheckSetup();
 	
+	_channelFrequenciesHz.resize(_mwaConfig.Header().nChannels);
+	for(size_t ch=0; ch!=_mwaConfig.Header().nChannels; ++ch)
+		_channelFrequenciesHz[ch] = _mwaConfig.ChannelFrequencyHz(ch);
+	
 	readSubbandPassbandFile();
+	readSubbandGainsFile();
 	
 	_flagger = new AOFlagger();
 	
@@ -70,10 +75,6 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 			));
 		}
 	}
-	
-	_channelFrequenciesHz.resize(_mwaConfig.Header().nChannels);
-	for(size_t ch=0; ch!=_mwaConfig.Header().nChannels; ++ch)
-		_channelFrequenciesHz[ch] = _mwaConfig.ChannelFrequencyHz(ch);
 	
 	if(freqAvgFactor == 1 && timeAvgFactor == 1)
 		_writer = new MSWriter(outputFilename);
@@ -365,7 +366,7 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 			for(size_t ch=0; ch!=channelsPerSubband; ++ch)
 			{
 				float *channelPtr = imageSet->ImageBuffer(i) + (ch+sb*channelsPerSubband) * imageSet->HorizontalStride();
-				const float correctionFactor = _subbandCorrectionFactors[i/2][ch];
+				const float correctionFactor = _subbandCorrectionFactors[i/2][ch] * _subbandGainCorrection[sb];
 				for(size_t x=0; x!=imageSet->Width(); ++x)
 				{
 					*channelPtr *= correctionFactor;
@@ -388,7 +389,7 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 	}
 	else 
 	{
-		if(_rfiDetection)
+		if(_rfiDetection && (antenna1 != antenna2))
 			flagMask = new FlagMask(_flagger->Run(*_strategy, *imageSet));
 		else
 			flagMask = new FlagMask(_flagger->MakeFlagMask(_mwaConfig.Header().nScans, _reader->ChannelCount(), false));
@@ -524,9 +525,42 @@ void Cotter::readSubbandPassbandFile()
 	size_t
 		channelsPerSubband = _subbandCorrectionFactors[0].size(),
 		subBandCount = _mwaConfig.Header().nChannels / channelsPerSubband;
-	std::cout << "Read subband passband, using " << channelsPerSubband << " gains to correct for " << subBandCount << " channels/subband\n";
+	std::cout << "Read subband passband, using " << channelsPerSubband << " gains to correct for " << subBandCount << " channels/subband.\n";
 	if(subBandCount != _subbandCount)
 		throw std::runtime_error("Unexpected number of channels in subband passband correction file");
+}
+
+void Cotter::readSubbandGainsFile()
+{
+	std::ifstream gainsFile("subband-gains.txt");
+	
+	std::map<double, double> subbandGainCorrection;
+	while(gainsFile.good())
+	{
+		size_t index;
+		double centralFrequency, gain;
+		gainsFile >> index >> centralFrequency >> gain;
+		if(gainsFile.fail()) break;
+		subbandGainCorrection.insert(std::pair<double,double>(centralFrequency, gain));
+	}
+	std::cout << "Subband gain file contains " << subbandGainCorrection.size() << " entries, used: ";
+	for(size_t sb=0; sb!=_subbandCount; ++sb)
+	{
+		double channelFreq = _channelFrequenciesHz[sb * _mwaConfig.Header().nChannels / _subbandCount];
+		std::map<double, double>::const_iterator i = subbandGainCorrection.lower_bound(channelFreq/1000000.0);
+		if(sb != 0) std::cout << ',';
+		if(i == subbandGainCorrection.end())
+		{
+			std::cout << '1';
+			_subbandGainCorrection.push_back(1.0);
+		}
+		else
+		{
+			std::cout << i->second;
+			_subbandGainCorrection.push_back(1.0/i->second);
+		}
+	}
+	std::cout << '\n';
 }
 
 void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask)
@@ -575,7 +609,7 @@ void Cotter::initializeWeights(float *outputWeights)
 		for(size_t ch=0; ch!=channelsPerSubband; ++ch)
 		{
 			for(size_t p=0; p!=4; ++p)
-				outputWeights[(ch+channelsPerSubband*sb)*4 + p] = weightFactor * (1.0 / _subbandCorrectionFactors[p][ch]);
+				outputWeights[(ch+channelsPerSubband*sb)*4 + p] = weightFactor / (_subbandCorrectionFactors[p][ch]);
 		}
 	}
 }
