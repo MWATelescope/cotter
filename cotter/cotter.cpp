@@ -25,7 +25,8 @@ Cotter::Cotter() :
 	_strategy(0),
 	_threadCount(1),
 	_subbandCount(24),
-	_quackSampleCount(4)
+	_quackSampleCount(4),
+	_statistics(0)
 {
 }
 
@@ -35,9 +36,10 @@ Cotter::~Cotter()
 	delete _reader;
 	delete _flagger;
 	delete _strategy;
+	delete _statistics;
 }
 
-void Cotter::Run()
+void Cotter::Run(const char *outputFilename)
 {
 	bool lockPointing = false;
 	
@@ -68,7 +70,7 @@ void Cotter::Run()
 	for(size_t ch=0; ch!=_mwaConfig.Header().nChannels; ++ch)
 		_channelFrequenciesHz[ch] = _mwaConfig.ChannelFrequencyHz(ch);
 		
-	_msWriter = new MSWriter("flagged.ms");
+	_msWriter = new MSWriter(outputFilename);
 	writeAntennae();
 	writeSPW();
 	writeField();
@@ -122,6 +124,13 @@ void Cotter::Run()
 			continueWithNextFile = false;
 		}
 	} while(continueWithNextFile);
+	
+	_scanTimes.resize(_mwaConfig.Header().nScans);
+	for(size_t t=0; t!=_mwaConfig.Header().nScans; ++t)
+	{
+		double dateMJD = _mwaConfig.Header().dateFirstScanMJD * 86400.0 + t * _mwaConfig.Header().integrationTime;
+		_scanTimes[t] = dateMJD;
+	}
 	
 	_strategy = new Strategy(_flagger->MakeStrategy(MWA_TELESCOPE));
 	for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
@@ -235,10 +244,18 @@ void Cotter::Run()
 			}
 		}
 	}
+	
+	delete _msWriter;
+	_msWriter = 0;
+	
+	_flagger->WriteStatistics(*_statistics, outputFilename);
 }
 
 void Cotter::baselineProcessThreadFunc()
 {
+	QualityStatistics threadStatistics =
+		_flagger->MakeQualityStatistics(&_scanTimes[0], _mwaConfig.Header().nScans, &_channelFrequenciesHz[0], _channelFrequenciesHz.size(), 4);
+	
 	boost::mutex::scoped_lock lock(_mutex);
 	while(!_baselinesToProcess.empty())
 	{
@@ -246,12 +263,18 @@ void Cotter::baselineProcessThreadFunc()
 		_baselinesToProcess.pop();
 		lock.unlock();
 		
-		processBaseline(baseline.first, baseline.second);
+		processBaseline(baseline.first, baseline.second, threadStatistics);
 		lock.lock();
 	}
+	
+	// Mutex needs to be still locked
+	if(_statistics == 0)
+		_statistics = new QualityStatistics(threadStatistics);
+	else
+		(*_statistics) += threadStatistics;
 }
 
-void Cotter::processBaseline(size_t antenna1, size_t antenna2)
+void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics &statistics)
 {
 	ImageSet *imageSet = _imageSetBuffers.find(std::pair<size_t,size_t>(antenna1, antenna2))->second;
 	const MWAInput
@@ -313,50 +336,24 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2)
 	else
 		std::cout << "Flagging " << antenna1 << " x " << antenna2 << '\n';
 
-	FlagMask *flagMask;
+	FlagMask *flagMask, *correlatorMask;
 	if(skipFlagging)
+	{
 		flagMask = new FlagMask(_flagger->MakeFlagMask(_mwaConfig.Header().nScans, _reader->ChannelCount(), true));
+		correlatorMask = new FlagMask(*flagMask);
+	}
 	else 
 	{
 		flagMask = new FlagMask(_flagger->Run(*_strategy, *imageSet));
-		
-		// Flag MWA side and centre channels
-		for(size_t sb=0; sb!=_subbandCount; ++sb)
-		{
-			bool *sbStart = flagMask->Buffer() + (sb*flagMask->Height()/_subbandCount)*_mwaConfig.Header().nScans;
-			bool *channelPtr = sbStart;
-			bool *endPtr = sbStart + flagMask->HorizontalStride();
-			
-			// Flag first channel of sb
-			while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
-			
-			// Flag centre channel of sb
-			size_t halfBand = flagMask->Height()/(_subbandCount*2);
-			channelPtr = sbStart + halfBand*_mwaConfig.Header().nScans;
-			endPtr = sbStart + (halfBand + 1)*_mwaConfig.Header().nScans;
-			while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
-			
-			// Flag last channel of sb
-			channelPtr = sbStart + (flagMask->Height()/_subbandCount-1)*_mwaConfig.Header().nScans;
-			endPtr = sbStart + (flagMask->Height()/_subbandCount)*_mwaConfig.Header().nScans;
-			while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
-		}
-		
-		// Drop first samples
-		for(size_t ch=0; ch!=flagMask->Height(); ++ch)
-		{
-			bool *channelPtr = flagMask->Buffer() + ch*flagMask->HorizontalStride();
-			for(size_t x=0; x!=_quackSampleCount;++x)
-			{
-				*channelPtr = true;
-				++channelPtr;
-			}
-		}
+		correlatorMask = new FlagMask(_flagger->MakeFlagMask(_mwaConfig.Header().nScans, _reader->ChannelCount(), false));
+		flagBadCorrelatorSamples(*flagMask);
+		flagBadCorrelatorSamples(*correlatorMask);
 	}
 	
 	_flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second = flagMask;
 	
-	/// TODO collect statistics
+	// Collect statistics
+	_flagger->CollectStatistics(statistics, *imageSet, *flagMask, *correlatorMask, antenna1, antenna2);
 }	
 
 void Cotter::correctConjugated(ImageSet& imageSet, size_t imgImageIndex)
@@ -482,4 +479,40 @@ void Cotter::readSubbandPassbandFile()
 	std::cout << "Read subband passband, using " << channelsPerSubband << " gains to correct for " << subBandCount << " channels/subband\n";
 	if(subBandCount != _subbandCount)
 		throw std::runtime_error("Unexpected number of channels in subband passband correction file");
+}
+
+void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask)
+{
+	// Flag MWA side and centre channels
+	for(size_t sb=0; sb!=_subbandCount; ++sb)
+	{
+		bool *sbStart = flagMask.Buffer() + (sb*flagMask.Height()/_subbandCount)*_mwaConfig.Header().nScans;
+		bool *channelPtr = sbStart;
+		bool *endPtr = sbStart + flagMask.HorizontalStride();
+		
+		// Flag first channel of sb
+		while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
+		
+		// Flag centre channel of sb
+		size_t halfBand = flagMask.Height()/(_subbandCount*2);
+		channelPtr = sbStart + halfBand*_mwaConfig.Header().nScans;
+		endPtr = sbStart + (halfBand + 1)*_mwaConfig.Header().nScans;
+		while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
+		
+		// Flag last channel of sb
+		channelPtr = sbStart + (flagMask.Height()/_subbandCount-1)*_mwaConfig.Header().nScans;
+		endPtr = sbStart + (flagMask.Height()/_subbandCount)*_mwaConfig.Header().nScans;
+		while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
+	}
+	
+	// Drop first samples
+	for(size_t ch=0; ch!=flagMask.Height(); ++ch)
+	{
+		bool *channelPtr = flagMask.Buffer() + ch*flagMask.HorizontalStride();
+		for(size_t x=0; x!=_quackSampleCount;++x)
+		{
+			*channelPtr = true;
+			++channelPtr;
+		}
+	}
 }

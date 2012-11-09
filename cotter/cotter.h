@@ -14,6 +14,7 @@ namespace aoflagger {
 	class AOFlagger;
 	class FlagMask;
 	class ImageSet;
+	class QualityStatistics;
 	class Strategy;
 }
 
@@ -26,7 +27,7 @@ class Cotter
 		Cotter();
 		~Cotter();
 		
-		void Run();
+		void Run(const char *outputFilename);
 		
 		void SetFileSets(const std::vector<std::vector<std::string> >& fileSets) { _fileSets = fileSets; }
 		void SetThreadCount(size_t threadCount) { _threadCount = threadCount; }
@@ -48,18 +49,21 @@ class Cotter
 		std::map<std::pair<size_t, size_t>, aoflagger::ImageSet*> _imageSetBuffers;
 		std::map<std::pair<size_t, size_t>, aoflagger::FlagMask*> _flagBuffers;
 		std::vector<double> _channelFrequenciesHz;
+		std::vector<double> _scanTimes;
 		std::queue<std::pair<size_t,size_t> > _baselinesToProcess;
 		
 		boost::mutex _mutex;
+		aoflagger::QualityStatistics *_statistics;
 		
 		void baselineProcessThreadFunc();
-		void processBaseline(size_t antenna1, size_t antenna2);
+		void processBaseline(size_t antenna1, size_t antenna2, aoflagger::QualityStatistics &statistics);
 		void correctConjugated(aoflagger::ImageSet& imageSet, size_t imageIndex);
 		void correctCableLength(aoflagger::ImageSet& imageSet, size_t polarization, double cableDelay);
 		void writeAntennae();
 		void writeSPW();
 		void writeField();
 		void readSubbandPassbandFile();
+		void flagBadCorrelatorSamples(aoflagger::FlagMask &flagMask);
 
 		Cotter(const Cotter&) { }
 		void operator=(const Cotter&) { }
