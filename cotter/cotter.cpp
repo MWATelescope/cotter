@@ -26,12 +26,17 @@ Cotter::Cotter() :
 	_threadCount(1),
 	_subbandCount(24),
 	_quackSampleCount(4),
-	_statistics(0)
+	_rfiDetection(true),
+	_statistics(0),
+	_correlatorMask(0),
+	_fullysetMask(0)
 {
 }
 
 Cotter::~Cotter()
 {
+	delete _correlatorMask;
+	delete _fullysetMask;
 	delete _writer;
 	delete _reader;
 	delete _flagger;
@@ -136,6 +141,10 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	}
 	
 	_strategy = new Strategy(_flagger->MakeStrategy(MWA_TELESCOPE));
+	_fullysetMask = new FlagMask(_flagger->MakeFlagMask(_mwaConfig.Header().nScans, _reader->ChannelCount(), true));
+	_correlatorMask = new FlagMask(_flagger->MakeFlagMask(_mwaConfig.Header().nScans, _reader->ChannelCount(), false));
+	flagBadCorrelatorSamples(*_correlatorMask);
+
 	for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
 	{
 		for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
@@ -148,8 +157,20 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 			std::pair<size_t,size_t>(antenna1, antenna2), 0));
 		}
 	}
-	
-	std::cout << "RFI detection, conjugations and cable length corrections" << std::flush;
+	if(_rfiDetection)
+	{
+		if(_collectStatistics)
+			std::cout << "RFI detection, stats, conjugations and cable length corrections" << std::flush;
+		else
+			std::cout << "RFI detection, conjugations and cable length corrections" << std::flush;
+	}
+	else
+	{
+		if(_collectStatistics)
+			std::cout << "Stats, conjugations and cable length corrections" << std::flush;
+		else
+			std::cout << "Conjugations and cable length corrections" << std::flush;
+	}
 	boost::thread_group threadGroup;
 	for(size_t i=0; i!=_threadCount; ++i)
 		threadGroup.create_thread(boost::bind(&Cotter::baselineProcessThreadFunc, this));
@@ -185,6 +206,7 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		std::complex<float> outputData[nChannels*4];
 		bool outputFlags[nChannels*4];
 		float outputWeights[nChannels*4];
+		initializeWeights(outputWeights);
 		for(size_t antenna1=0; antenna1!=antennaCount; ++antenna1)
 		{
 			for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
@@ -219,7 +241,6 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 						*imagPtr = imageSet.ImageBuffer(p*2+1)+t;
 					const bool *flagPtr = flagMask.Buffer()+t;
 					std::complex<float> *outDataPtr = &outputData[p];
-					float *outWeightsPtr = &outputWeights[p];
 					bool *outputFlagPtr = &outputFlags[p];
 					for(size_t ch=0; ch!=nChannels; ++ch)
 					{
@@ -235,15 +256,11 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 							*outDataPtr = std::complex<float>(*realPtr, *imagPtr);
 						}
 						*outputFlagPtr = *flagPtr;
-						// Weights are normalized so that default res of 10 kHz, 1s has weight of "1" per sample
-						*outWeightsPtr = _mwaConfig.Header().integrationTime * (100.0*_mwaConfig.Header().bandwidth/_mwaConfig.Header().nChannels);
-						
 						realPtr += stride;
 						imagPtr += stride;
 						flagPtr += flagStride;
 						outDataPtr += 4;
 						outputFlagPtr += 4;
-						outWeightsPtr += 4;
 					}
 				}
 				
@@ -256,8 +273,13 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	
 	delete _writer;
 	_writer = 0;
+	delete _correlatorMask;
+	_correlatorMask = 0;
+	delete _fullysetMask;
+	_fullysetMask = 0;
 	
-	_flagger->WriteStatistics(*_statistics, outputFilename);
+	if(_collectStatistics)
+		_flagger->WriteStatistics(*_statistics, outputFilename);
 }
 
 void Cotter::CalculateUVW(double date, size_t antenna1, size_t antenna2, double &u, double &v, double &w)
@@ -361,21 +383,25 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 	FlagMask *flagMask, *correlatorMask;
 	if(skipFlagging)
 	{
-		flagMask = new FlagMask(_flagger->MakeFlagMask(_mwaConfig.Header().nScans, _reader->ChannelCount(), true));
-		correlatorMask = new FlagMask(*flagMask);
+		flagMask = new FlagMask(*_fullysetMask);
+		correlatorMask = _fullysetMask;
 	}
 	else 
 	{
-		flagMask = new FlagMask(_flagger->Run(*_strategy, *imageSet));
-		correlatorMask = new FlagMask(_flagger->MakeFlagMask(_mwaConfig.Header().nScans, _reader->ChannelCount(), false));
+		if(_rfiDetection)
+			flagMask = new FlagMask(_flagger->Run(*_strategy, *imageSet));
+		else
+			flagMask = new FlagMask(_flagger->MakeFlagMask(_mwaConfig.Header().nScans, _reader->ChannelCount(), false));
+		correlatorMask = _correlatorMask;
+		
 		flagBadCorrelatorSamples(*flagMask);
-		flagBadCorrelatorSamples(*correlatorMask);
 	}
 	
 	_flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second = flagMask;
 	
 	// Collect statistics
-	_flagger->CollectStatistics(statistics, *imageSet, *flagMask, *correlatorMask, antenna1, antenna2);
+	if(_collectStatistics)
+		_flagger->CollectStatistics(statistics, *imageSet, *flagMask, *correlatorMask, antenna1, antenna2);
 }	
 
 void Cotter::correctConjugated(ImageSet& imageSet, size_t imgImageIndex)
@@ -535,6 +561,21 @@ void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask)
 		{
 			*channelPtr = true;
 			++channelPtr;
+		}
+	}
+}
+
+void Cotter::initializeWeights(float *outputWeights)
+{
+	// Weights are normalized so that default res of 10 kHz, 1s has weight of "1" per sample
+	size_t weightFactor = _mwaConfig.Header().integrationTime * (100.0*_mwaConfig.Header().bandwidth/_mwaConfig.Header().nChannels);
+	for(size_t sb=0; sb!=_subbandCount; ++sb)
+	{
+		size_t channelsPerSubband = _mwaConfig.Header().nChannels / _subbandCount;
+		for(size_t ch=0; ch!=channelsPerSubband; ++ch)
+		{
+			for(size_t p=0; p!=4; ++p)
+				outputWeights[(ch+channelsPerSubband*sb)*4 + p] = weightFactor * (1.0 / _subbandCorrectionFactors[p][ch]);
 		}
 	}
 }

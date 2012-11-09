@@ -15,7 +15,7 @@ class AveragingMSWriter : public Writer
 {
 	public:
 		AveragingMSWriter(const char *filename, size_t timeCount, size_t freqAvgFactor, UVWCalculater &uvwCalculater)
-		: _writer(filename), _timeAvgFactor(timeCount), _freqAvgFactor(freqAvgFactor),
+		: _writer(filename), _timeAvgFactor(timeCount), _freqAvgFactor(freqAvgFactor), _rowsAdded(0),
 		_originalChannelCount(0), _avgChannelCount(0), _antennaCount(0), _uvwCalculater(uvwCalculater)
 		{
 		}
@@ -87,7 +87,11 @@ class AveragingMSWriter : public Writer
 		
 		void AddRows(size_t rowCount)
 		{
-			_writer.AddRows(rowCount);
+			if(_rowsAdded == 0)
+				_writer.AddRows(rowCount);
+			_rowsAdded++;
+			if(_rowsAdded == _timeAvgFactor)
+				_rowsAdded=0;
 		}
 		
 		void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, const std::complex<float>* data, const bool* flags, const float *weights)
@@ -225,7 +229,7 @@ class AveragingMSWriter : public Writer
 		}
 		
 		MSWriter _writer;
-		size_t _timeAvgFactor, _freqAvgFactor;
+		size_t _timeAvgFactor, _freqAvgFactor, _rowsAdded;
 		size_t _originalChannelCount, _avgChannelCount, _antennaCount;
 		UVWCalculater &_uvwCalculater;
 		std::vector<Buffer*> _buffers;

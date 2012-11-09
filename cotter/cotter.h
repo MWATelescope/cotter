@@ -32,6 +32,8 @@ class Cotter : private UVWCalculater
 		
 		void SetFileSets(const std::vector<std::vector<std::string> >& fileSets) { _fileSets = fileSets; }
 		void SetThreadCount(size_t threadCount) { _threadCount = threadCount; }
+		void SetRFIDetection(bool performRFIDetection) { _rfiDetection = performRFIDetection; }
+		void SetCollectStatistics(bool collectStatistics) { _collectStatistics = collectStatistics; }
 		
 	private:
 		MWAConfig _mwaConfig;
@@ -46,6 +48,7 @@ class Cotter : private UVWCalculater
 		size_t _threadCount;
 		size_t _subbandCount;
 		size_t _quackSampleCount;
+		bool _rfiDetection, _collectStatistics;
 		
 		std::map<std::pair<size_t, size_t>, aoflagger::ImageSet*> _imageSetBuffers;
 		std::map<std::pair<size_t, size_t>, aoflagger::FlagMask*> _flagBuffers;
@@ -55,6 +58,7 @@ class Cotter : private UVWCalculater
 		
 		boost::mutex _mutex;
 		aoflagger::QualityStatistics *_statistics;
+		aoflagger::FlagMask *_correlatorMask, *_fullysetMask;
 		
 		void baselineProcessThreadFunc();
 		void processBaseline(size_t antenna1, size_t antenna2, aoflagger::QualityStatistics &statistics);
@@ -65,6 +69,7 @@ class Cotter : private UVWCalculater
 		void writeField();
 		void readSubbandPassbandFile();
 		void flagBadCorrelatorSamples(aoflagger::FlagMask &flagMask);
+		void initializeWeights(float *outputWeights);
 		
 		// Implementing UVWCalculater
 		virtual void CalculateUVW(double date, size_t antenna1, size_t antenna2, double &u, double &v, double &w);
