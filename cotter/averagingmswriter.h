@@ -158,8 +158,14 @@ class AveragingMSWriter : public Writer
 			
 			for(size_t ch=0;ch!=_avgChannelCount*4;++ch)
 			{
-				buffer._rowData[ch] /= buffer._rowCounts[ch];
-				buffer._rowFlags[ch] = (buffer._rowCounts[ch]==0);
+				if(buffer._rowCounts[ch]==0)
+				{
+					buffer._rowData[ch] /= buffer._rowTimestepCount;
+					buffer._rowFlags[ch] = true;
+				} else {
+					buffer._rowData[ch] /= buffer._rowCounts[ch];
+					buffer._rowFlags[ch] = false;
+				}
 			}
 			
 			_writer.WriteRow(time, antenna1, antenna2, u, v, w, buffer._rowData, buffer._rowFlags);
