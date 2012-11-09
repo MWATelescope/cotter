@@ -43,6 +43,7 @@ class Cotter
 		std::vector<std::vector<std::string> > _fileSets;
 		size_t _threadCount;
 		size_t _subbandCount;
+		size_t _quackSampleCount;
 		
 		std::map<std::pair<size_t, size_t>, aoflagger::ImageSet*> _imageSetBuffers;
 		std::map<std::pair<size_t, size_t>, aoflagger::FlagMask*> _flagBuffers;

@@ -24,7 +24,8 @@ Cotter::Cotter() :
 	_flagger(0),
 	_strategy(0),
 	_threadCount(1),
-	_subbandCount(24)
+	_subbandCount(24),
+	_quackSampleCount(4)
 {
 }
 
@@ -339,6 +340,17 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2)
 			channelPtr = sbStart + (flagMask->Height()/_subbandCount-1)*_mwaConfig.Header().nScans;
 			endPtr = sbStart + (flagMask->Height()/_subbandCount)*_mwaConfig.Header().nScans;
 			while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
+		}
+		
+		// Drop first samples
+		for(size_t ch=0; ch!=flagMask->Height(); ++ch)
+		{
+			bool *channelPtr = flagMask->Buffer() + ch*flagMask->HorizontalStride();
+			for(size_t x=0; x!=_quackSampleCount;++x)
+			{
+				*channelPtr = true;
+				++channelPtr;
+			}
 		}
 	}
 	
