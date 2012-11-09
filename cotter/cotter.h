@@ -1,6 +1,7 @@
 #ifndef COTTER_H
 #define COTTER_H
 
+#include "averagingmswriter.h"
 #include "gpufilereader.h"
 #include "mwaconfig.h"
 
@@ -21,20 +22,20 @@ namespace aoflagger {
 class GPUFileReader;
 class MSWriter;
 
-class Cotter
+class Cotter : private UVWCalculater
 {
 	public:
 		Cotter();
 		~Cotter();
 		
-		void Run(const char *outputFilename);
+		void Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAvgFactor);
 		
 		void SetFileSets(const std::vector<std::vector<std::string> >& fileSets) { _fileSets = fileSets; }
 		void SetThreadCount(size_t threadCount) { _threadCount = threadCount; }
 		
 	private:
 		MWAConfig _mwaConfig;
-		MSWriter *_msWriter;
+		Writer *_writer;
 		GPUFileReader *_reader;
 		aoflagger::AOFlagger *_flagger;
 		aoflagger::Strategy *_strategy;
@@ -64,6 +65,9 @@ class Cotter
 		void writeField();
 		void readSubbandPassbandFile();
 		void flagBadCorrelatorSamples(aoflagger::FlagMask &flagMask);
+		
+		// Implementing UVWCalculater
+		virtual void CalculateUVW(double date, size_t antenna1, size_t antenna2, double &u, double &v, double &w);
 
 		Cotter(const Cotter&) { }
 		void operator=(const Cotter&) { }

@@ -36,7 +36,7 @@ int main(int argc, char **argv)
 	Cotter cotter;
 	cotter.SetFileSets(fileSets);
 	cotter.SetThreadCount(sysconf(_SC_NPROCESSORS_ONLN));
-	cotter.Run("flagged.ms");
+	cotter.Run("flagged.ms", 4, 4);
 	
 	return 0;
 }

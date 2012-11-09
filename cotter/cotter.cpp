@@ -19,7 +19,7 @@
 using namespace aoflagger;
 
 Cotter::Cotter() :
-	_msWriter(0),
+	_writer(0),
 	_reader(0),
 	_flagger(0),
 	_strategy(0),
@@ -32,14 +32,14 @@ Cotter::Cotter() :
 
 Cotter::~Cotter()
 {
-	delete _msWriter;
+	delete _writer;
 	delete _reader;
 	delete _flagger;
 	delete _strategy;
 	delete _statistics;
 }
 
-void Cotter::Run(const char *outputFilename)
+void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAvgFactor)
 {
 	bool lockPointing = false;
 	
@@ -69,12 +69,15 @@ void Cotter::Run(const char *outputFilename)
 	_channelFrequenciesHz.resize(_mwaConfig.Header().nChannels);
 	for(size_t ch=0; ch!=_mwaConfig.Header().nChannels; ++ch)
 		_channelFrequenciesHz[ch] = _mwaConfig.ChannelFrequencyHz(ch);
-		
-	_msWriter = new MSWriter(outputFilename);
+	
+	if(freqAvgFactor == 1 && timeAvgFactor == 1)
+		_writer = new MSWriter(outputFilename);
+	else
+		_writer = new AveragingMSWriter(outputFilename, timeAvgFactor, freqAvgFactor, *this);
 	writeAntennae();
 	writeSPW();
 	writeField();
-	_msWriter->WritePolarizationForLinearPols(false);
+	_writer->WritePolarizationForLinearPols(false);
 
 	std::vector<std::vector<std::string> >::const_iterator currentFileSetPtr = _fileSets.begin();
 	
@@ -240,15 +243,36 @@ void Cotter::Run(const char *outputFilename)
 				}
 				/// TODO average
 				
-				_msWriter->WriteRow(dateMJD*86400.0, antenna1, antenna2, u, v, w, outputData, outputFlags);
+				_writer->WriteRow(dateMJD*86400.0, antenna1, antenna2, u, v, w, outputData, outputFlags);
 			}
 		}
 	}
 	
-	delete _msWriter;
-	_msWriter = 0;
+	delete _writer;
+	_writer = 0;
 	
 	_flagger->WriteStatistics(*_statistics, outputFilename);
+}
+
+void Cotter::CalculateUVW(double date, size_t antenna1, size_t antenna2, double &u, double &v, double &w)
+{
+	// TODO we could cache the station uvw per timestep for improved performance
+	
+	Geometry::UVWTimestepInfo uvwInfo;
+	Geometry::PrepareTimestepUVW(uvwInfo, date/86400.0, _mwaConfig.ArrayLongitudeRad(), _mwaConfig.ArrayLattitudeRad(), _mwaConfig.Header().raHrs, _mwaConfig.Header().decDegs);
+	const double
+		x1 = _mwaConfig.Antenna(antenna1).position[0],
+		y1 = _mwaConfig.Antenna(antenna1).position[1],
+		z1 = _mwaConfig.Antenna(antenna1).position[2],
+		x2 = _mwaConfig.Antenna(antenna2).position[0],
+		y2 = _mwaConfig.Antenna(antenna2).position[1],
+		z2 = _mwaConfig.Antenna(antenna2).position[2];
+	double u1, v1, w1, u2, v2, w2;
+	Geometry::CalcUVW(uvwInfo, x1, y1, z1, u1, v1, w1);
+	Geometry::CalcUVW(uvwInfo, x2, y2, z2, u2, v2, w2);
+	u = u1 - u2,
+	v = v1 - v2,
+	w = w1 - w2;
 }
 
 void Cotter::baselineProcessThreadFunc()
@@ -414,7 +438,7 @@ void Cotter::writeAntennae()
 		
 		antennae.push_back(antennaInfo);
 	}
-	_msWriter->WriteAntennae(antennae);
+	_writer->WriteAntennae(antennae);
 }
 
 void Cotter::writeSPW()
@@ -430,7 +454,7 @@ void Cotter::writeSPW()
 		channel.effectiveBW = channel.chanWidth;
 		channel.resolution = channel.chanWidth;
 	}
-	_msWriter->WriteBandInfo(str.str(),
+	_writer->WriteBandInfo(str.str(),
 		channels,
 		_mwaConfig.Header().centralFrequency*1000000.0,
 		_mwaConfig.Header().bandwidth*1000000.0,
@@ -456,7 +480,7 @@ void Cotter::writeField()
 	field.referenceDirDec = field.referenceDirDec;
 	field.sourceId = 0;
 	field.flagRow = false;
-	_msWriter->WriteField(field);
+	_writer->WriteField(field);
 }
 
 void Cotter::readSubbandPassbandFile()
