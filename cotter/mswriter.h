@@ -48,7 +48,7 @@ class Writer
 		virtual void WritePolarizationForLinearPols(bool flagRow) = 0;
 		virtual void WriteField(const Writer::FieldInfo& field) = 0;
 		
-		virtual void WriteRow(double time, size_t antenna1, size_t antenna2, double u, double v, double w, const std::complex<float>* data, const bool* flags) = 0;
+		virtual void WriteRow(double time, size_t antenna1, size_t antenna2, double u, double v, double w, const std::complex<float>* data, const bool* flags, const float *weights) = 0;
 };
 
 class MSWriter : public Writer
@@ -62,7 +62,7 @@ class MSWriter : public Writer
 		void WritePolarizationForLinearPols(bool flagRow);
 		void WriteField(const FieldInfo& field);
 		
-		void WriteRow(double time, size_t antenna1, size_t antenna2, double u, double v, double w, const std::complex<float>* data, const bool* flags);
+		void WriteRow(double time, size_t antenna1, size_t antenna2, double u, double v, double w, const std::complex<float>* data, const bool* flags, const float *weights);
 		
 	private:
 		class MSWriterData *_data;

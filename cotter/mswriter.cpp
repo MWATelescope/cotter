@@ -20,6 +20,8 @@ class MSWriterData
 		ArrayColumn<double> *_uvwCol;
 		ArrayColumn<std::complex<float> > *_dataCol;
 		ArrayColumn<bool> *_flagCol;
+		ArrayColumn<float> *_weightCol;
+		ArrayColumn<float> *_weightSpectrumCol;
 };
 
 MSWriter::MSWriter(const char* filename) :
@@ -30,6 +32,8 @@ MSWriter::MSWriter(const char* filename) :
 	TableDesc tableDesc = MS::requiredTableDesc();
 	ArrayColumnDesc<std::complex<float> > dataColumnDesc = ArrayColumnDesc<std::complex<float> >(MS::columnName(casa::MSMainEnums::DATA));
 	tableDesc.addColumn(dataColumnDesc);
+	ArrayColumnDesc<float> weightSpectrumColumnDesc = ArrayColumnDesc<float>(MS::columnName(casa::MSMainEnums::WEIGHT_SPECTRUM));
+	tableDesc.addColumn(weightSpectrumColumnDesc);
 	SetupNewTable newTab(filename, tableDesc, Table::New);
 	_data->ms = new MeasurementSet(newTab);
 	MeasurementSet &ms = *_data->ms;
@@ -41,6 +45,8 @@ MSWriter::MSWriter(const char* filename) :
 	_data->_dataDescIdCol = new ScalarColumn<int>(ms, MS::columnName(casa::MSMainEnums::DATA_DESC_ID));
 	_data->_uvwCol = new ArrayColumn<double>(ms, MS::columnName(casa::MSMainEnums::UVW));
 	_data->_dataCol = new ArrayColumn<std::complex<float> >(ms, MS::columnName(casa::MSMainEnums::DATA));
+	_data->_weightCol = new ArrayColumn<float>(ms, MS::columnName(casa::MSMainEnums::WEIGHT));
+	_data->_weightSpectrumCol = new ArrayColumn<float>(ms, MS::columnName(casa::MSMainEnums::WEIGHT_SPECTRUM));
 	_data->_flagCol = new ArrayColumn<bool>(ms, MS::columnName(casa::MSMainEnums::FLAG));
 }
 
@@ -52,6 +58,8 @@ MSWriter::~MSWriter()
 	delete _data->_dataDescIdCol;
 	delete _data->_uvwCol;
 	delete _data->_dataCol;
+	delete _data->_weightCol;
+	delete _data->_weightSpectrumCol;
 	delete _data->_flagCol;
 	delete _data->ms;
 	delete _data;
@@ -191,7 +199,7 @@ void MSWriter::WriteField(const FieldInfo& field)
 	flagRowCol.put(index, field.flagRow);
 }
 
-void MSWriter::WriteRow(double time, size_t antenna1, size_t antenna2, double u, double v, double w, const std::complex<float>* data, const bool* flags)
+void MSWriter::WriteRow(double time, size_t antenna1, size_t antenna2, double u, double v, double w, const std::complex<float>* data, const bool* flags, const float *weights)
 {
 	_data->ms->addRow();
 	_data->_timeCol->put(_rowIndex, time);
@@ -208,18 +216,31 @@ void MSWriter::WriteRow(double time, size_t antenna1, size_t antenna2, double u,
 	casa::IPosition shape(2, nPol, _nChannels);
 	casa::Array<std::complex<float> > dataArr(shape);
 	casa::Array<bool> flagArr(shape);
+	casa::Array<float> weightSpectrumArr(shape);
 	
 	// Fill the casa arrays
 	casa::Array<std::complex<float> >::iterator dataPtr = dataArr.begin();
 	casa::Array<bool>::iterator flagPtr = flagArr.begin();
+	casa::Array<float>::iterator weightSpectrumPtr = weightSpectrumArr.begin();
 	for(size_t i=0; i!=valCount; ++i)
 	{
 		*dataPtr = data[i]; ++dataPtr;
 		*flagPtr = flags[i]; ++flagPtr;
+		*weightSpectrumPtr = weights[i]; ++weightSpectrumPtr;
+	}
+	
+	casa::Vector<float> weightsArr(nPol);
+	for(size_t p=0; p!=nPol; ++p) weightsArr[p] = 0.0;
+	for(size_t ch=0; ch!=_nChannels; ++ch)
+	{
+		for(size_t p=0; p!=nPol; ++p)
+			weightsArr[p] += weights[ch*nPol + p];
 	}
 	
 	_data->_dataCol->put(_rowIndex, dataArr);
 	_data->_flagCol->put(_rowIndex, flagArr);
+	_data->_weightCol->put(_rowIndex, weightsArr);
+	_data->_weightSpectrumCol->put(_rowIndex, weightSpectrumArr);
 	
 	++_rowIndex;
 }

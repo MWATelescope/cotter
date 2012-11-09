@@ -148,10 +148,13 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 			std::pair<size_t,size_t>(antenna1, antenna2), 0));
 		}
 	}
+	
+	std::cout << "Conjugating, flagging and correcting cable lengths" << std::flush;
 	boost::thread_group threadGroup;
 	for(size_t i=0; i!=_threadCount; ++i)
 		threadGroup.create_thread(boost::bind(&Cotter::baselineProcessThreadFunc, this));
 	threadGroup.join_all();
+	std::cout << '\n';
 	
 	if(_mwaConfig.Header().geomCorrection)
 		std::cout << "Will apply geometric delay correction.\n";
@@ -182,6 +185,7 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		double cosAngles[nChannels], sinAngles[nChannels];
 		std::complex<float> outputData[nChannels*4];
 		bool outputFlags[nChannels*4];
+		float outputWeights[nChannels*4];
 		for(size_t antenna1=0; antenna1!=antennaCount; ++antenna1)
 		{
 			for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
@@ -218,6 +222,7 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 						*imagPtr = imageSet.ImageBuffer(p*2+1)+t;
 					const bool *flagPtr = flagMask.Buffer()+t;
 					std::complex<float> *outDataPtr = &outputData[p];
+					float *outWeightsPtr = &outputWeights[p];
 					bool *outputFlagPtr = &outputFlags[p];
 					for(size_t ch=0; ch!=nChannels; ++ch)
 					{
@@ -233,17 +238,20 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 							*outDataPtr = std::complex<float>(*realPtr, *imagPtr);
 						}
 						*outputFlagPtr = *flagPtr;
+						// Weights are normalized so that default res of 10 kHz, 1s has weight of "1" per sample
+						*outWeightsPtr = _mwaConfig.Header().integrationTime * (100.0*_mwaConfig.Header().bandwidth/_mwaConfig.Header().nChannels);
 						
 						realPtr += stride;
 						imagPtr += stride;
 						flagPtr += flagStride;
 						outDataPtr += 4;
 						outputFlagPtr += 4;
+						outWeightsPtr += 4;
 					}
 				}
 				/// TODO average
 				
-				_writer->WriteRow(dateMJD*86400.0, antenna1, antenna2, u, v, w, outputData, outputFlags);
+				_writer->WriteRow(dateMJD*86400.0, antenna1, antenna2, u, v, w, outputData, outputFlags, outputWeights);
 			}
 		}
 	}
@@ -288,6 +296,7 @@ void Cotter::baselineProcessThreadFunc()
 		lock.unlock();
 		
 		processBaseline(baseline.first, baseline.second, threadStatistics);
+		std::cout << '.' << std::flush;
 		lock.lock();
 	}
 	
@@ -309,24 +318,19 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 		
 	// Correct conjugated baselines
 	if(_reader->IsConjugated(antenna1, antenna2, 0, 0)) {
-		std::cout << "Conjugating " << antenna1 << 'x' << antenna2 << '\n';
 		correctConjugated(*imageSet, 1);
 	}
 	if(_reader->IsConjugated(antenna1, antenna2, 0, 1)) {
-		std::cout << "Conjugating " << antenna1 << 'x' << antenna2 << '\n';
 		correctConjugated(*imageSet, 3);
 	}
 	if(_reader->IsConjugated(antenna1, antenna2, 1, 0)) {
-		std::cout << "Conjugating " << antenna1 << 'x' << antenna2 << '\n';
 		correctConjugated(*imageSet, 5);
 	}
 	if(_reader->IsConjugated(antenna1, antenna2, 1, 1)) {
-		std::cout << "Conjugating " << antenna1 << 'x' << antenna2 << '\n';
 		correctConjugated(*imageSet, 7);
 	}
 	
 	// Correct cable delay
-	std::cout << "Correcting cable length for " << antenna1 << " x " << antenna2 << '\n';
 	correctCableLength(*imageSet, 0, input2X.cableLenDelta - input1X.cableLenDelta);
 	correctCableLength(*imageSet, 1, input2Y.cableLenDelta - input1X.cableLenDelta);
 	correctCableLength(*imageSet, 2, input2X.cableLenDelta - input1Y.cableLenDelta);
@@ -355,10 +359,6 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 	bool is1Flagged = input1X.isFlagged || input1Y.isFlagged;
 	bool is2Flagged = input2X.isFlagged || input2Y.isFlagged;
 	bool skipFlagging = is1Flagged || is2Flagged;
-	if(skipFlagging)
-		std::cout << "Skipping " << antenna1 << " x " << antenna2 << '\n';
-	else
-		std::cout << "Flagging " << antenna1 << " x " << antenna2 << '\n';
 
 	FlagMask *flagMask, *correlatorMask;
 	if(skipFlagging)
