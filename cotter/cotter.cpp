@@ -6,6 +6,8 @@
 
 #include <aoflagger.h>
 
+#include <boost/thread/thread.hpp>
+
 #include <iostream>
 #include <map>
 #include <cmath>
@@ -14,6 +16,23 @@
 #define SPEED_OF_LIGHT 299792458.0        // speed of light in m/s
 
 using namespace aoflagger;
+
+Cotter::Cotter() :
+	_msWriter(0),
+	_reader(0),
+	_flagger(0),
+	_strategy(0),
+	_threadCount(1)
+{
+}
+
+Cotter::~Cotter()
+{
+	delete _msWriter;
+	delete _reader;
+	delete _flagger;
+	delete _strategy;
+}
 
 void Cotter::Run()
 {
@@ -24,59 +43,57 @@ void Cotter::Run()
 	_mwaConfig.ReadAntennaPositions("antenna_locations.txt");
 	_mwaConfig.CheckSetup();
 	
-	AOFlagger flagger;
+	_flagger = new AOFlagger();
 	
 	// Initialize buffers
 	const size_t antennaCount = _mwaConfig.NAntennae();
-	std::map<std::pair<size_t, size_t>, ImageSet*> buffers;
 	for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
 	{
 		for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
 		{
 			/// TODO calculate available memory and use that for the buffers
-			ImageSet *imageSet = new ImageSet(flagger.MakeImageSet(_mwaConfig.Header().nScans, _mwaConfig.Header().nChannels, 8));
-			buffers.insert(std::pair<std::pair<size_t,size_t>, ImageSet*>(
+			ImageSet *imageSet = new ImageSet(_flagger->MakeImageSet(_mwaConfig.Header().nScans, _mwaConfig.Header().nChannels, 8));
+			_imageSetBuffers.insert(std::pair<std::pair<size_t,size_t>, ImageSet*>(
 				std::pair<size_t,size_t>(antenna1, antenna2), imageSet
 			));
 		}
 	}
 	
-	double channelFrequenciesHz[_mwaConfig.Header().nChannels];
+	_channelFrequenciesHz.resize(_mwaConfig.Header().nChannels);
 	for(size_t ch=0; ch!=_mwaConfig.Header().nChannels; ++ch)
-		channelFrequenciesHz[ch] = _mwaConfig.ChannelFrequencyHz(ch);
+		_channelFrequenciesHz[ch] = _mwaConfig.ChannelFrequencyHz(ch);
 		
 	_msWriter = new MSWriter("flagged.ms");
 	writeAntennae();
-	writeSPW(channelFrequenciesHz);
+	writeSPW();
 	writeField();
 	_msWriter->WritePolarizationForLinearPols(false);
 
 	std::vector<std::vector<std::string> >::const_iterator currentFileSetPtr = _fileSets.begin();
 	
-	GPUFileReader *reader;
 	size_t bufferPos = 0;
 	bool continueWithNextFile;
 	do {
-		reader = new GPUFileReader();
+		_reader = new GPUFileReader();
 		
 		for(std::vector<std::string>::const_iterator i=currentFileSetPtr->begin(); i!=currentFileSetPtr->end(); ++i)
-			reader->AddFile(i->c_str());
+			_reader->AddFile(i->c_str());
 		
-		reader->Initialize();
-		if(reader->AntennaCount() != antennaCount)
+		_reader->Initialize();
+		if(_reader->AntennaCount() != antennaCount)
 			throw std::runtime_error("nAntennae in GPU files do not match nAntennae in config");
-		if(reader->ChannelCount() != _mwaConfig.Header().nChannels)
+		if(_reader->ChannelCount() != _mwaConfig.Header().nChannels)
 			throw std::runtime_error("nChannels in GPU files do not match nChannels in config");
 		
 		for(size_t i=0; i!=_mwaConfig.Header().nInputs; ++i)
-			reader->SetCorrInputToOutput(i, _mwaConfig.Input(i).antennaIndex, _mwaConfig.Input(i).polarizationIndex);
+			_reader->SetCorrInputToOutput(i, _mwaConfig.Input(i).antennaIndex, _mwaConfig.Input(i).polarizationIndex);
 		
 		// Initialize buffers of reader
 		for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
 		{
 			for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
 			{
-				ImageSet &imageSet = *buffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
+				ImageSet &imageSet = *_imageSetBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
 				BaselineBuffer buffer;
 				for(size_t p=0; p!=4; ++p)
 				{
@@ -84,16 +101,16 @@ void Cotter::Run()
 					buffer.imag[p] = imageSet.ImageBuffer(p*2+1);
 				}
 				buffer.nElementsPerRow = imageSet.HorizontalStride();
-				reader->SetDestBaselineBuffer(antenna1, antenna2, buffer);
+				_reader->SetDestBaselineBuffer(antenna1, antenna2, buffer);
 			}
 		}
 		
-		bool moreAvailableInCurrentFile = reader->Read(bufferPos);
+		bool moreAvailableInCurrentFile = _reader->Read(bufferPos);
 		
 		if(!moreAvailableInCurrentFile && bufferPos < _mwaConfig.Header().nScans)
 		{
 			// Go to the next set of GPU files and add them to the buffer
-			delete reader;
+			delete _reader;
 			++currentFileSetPtr;
 			continueWithNextFile = (currentFileSetPtr!=_fileSets.end());
 		} else {
@@ -101,89 +118,23 @@ void Cotter::Run()
 		}
 	} while(continueWithNextFile);
 	
-	std::map<std::pair<size_t, size_t>, FlagMask*> flagBuffers;
-	Strategy strategy = flagger.MakeStrategy(MWA_TELESCOPE);
+	_strategy = new Strategy(_flagger->MakeStrategy(MWA_TELESCOPE));
 	for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
 	{
 		for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
 		{
-			ImageSet *imageSet = buffers.find(std::pair<size_t,size_t>(antenna1, antenna2))->second;
-			const MWAInput
-				&input1X = _mwaConfig.AntennaXInput(antenna1),
-				&input1Y = _mwaConfig.AntennaXInput(antenna1),
-				&input2X = _mwaConfig.AntennaXInput(antenna2),
-				&input2Y = _mwaConfig.AntennaYInput(antenna2);
-				
-			// Correct conjugated baselines
-			if(reader->IsConjugated(antenna1, antenna2, 0, 0)) {
-				std::cout << "Conjugating " << antenna1 << 'x' << antenna2 << '\n';
-				correctConjugated(*imageSet, 1);
-			}
-			if(reader->IsConjugated(antenna1, antenna2, 0, 1)) {
-				std::cout << "Conjugating " << antenna1 << 'x' << antenna2 << '\n';
-				correctConjugated(*imageSet, 3);
-			}
-			if(reader->IsConjugated(antenna1, antenna2, 1, 0)) {
-				std::cout << "Conjugating " << antenna1 << 'x' << antenna2 << '\n';
-				correctConjugated(*imageSet, 5);
-			}
-			if(reader->IsConjugated(antenna1, antenna2, 1, 1)) {
-				std::cout << "Conjugating " << antenna1 << 'x' << antenna2 << '\n';
-				correctConjugated(*imageSet, 7);
-			}
+			_baselinesToProcess.push(std::pair<size_t,size_t>(antenna1, antenna2));
 			
-			// Correct cable delay
-			std::cout << "Correcting cable length for " << antenna1 << " x " << antenna2 << '\n';
-			correctCableLength(*imageSet, 0, input2X.cableLenDelta - input1X.cableLenDelta, channelFrequenciesHz);
-			correctCableLength(*imageSet, 1, input2Y.cableLenDelta - input1X.cableLenDelta, channelFrequenciesHz);
-			correctCableLength(*imageSet, 2, input2X.cableLenDelta - input1Y.cableLenDelta, channelFrequenciesHz);
-			correctCableLength(*imageSet, 3, input2Y.cableLenDelta - input1Y.cableLenDelta, channelFrequenciesHz);
-			
-			/// TODO correct passband
-			
-			// Perform RFI detection, if baseline is not flagged.
-			bool is1Flagged = input1X.isFlagged || input1Y.isFlagged;
-			bool is2Flagged = input2X.isFlagged || input2Y.isFlagged;
-			if(is1Flagged || is2Flagged)
-				std::cout << "Skipping " << antenna1 << " x " << antenna2 << '\n';
-			else
-				std::cout << "Flagging " << antenna1 << " x " << antenna2 << '\n';
-
-			FlagMask *flagMask;
-			if(antenna1 == 29) //testing
-				flagMask = new FlagMask(flagger.Run(strategy, *imageSet));
-			else
-				flagMask = new FlagMask(flagger.MakeFlagMask(_mwaConfig.Header().nScans, reader->ChannelCount(), false));
-			
-			flagBuffers.insert(std::pair<std::pair<size_t, size_t>, FlagMask*>(
-					std::pair<size_t,size_t>(antenna1, antenna2), flagMask));
-			
-			// Flag MWA side and centre channels
-			const size_t nSubbands = 24;
-			for(size_t sb=0; sb!=nSubbands; ++sb)
-			{
-				bool *sbStart = flagMask->Buffer() + (sb*flagMask->Height()/nSubbands)*_mwaConfig.Header().nScans;
-				bool *channelPtr = sbStart;
-				bool *endPtr = sbStart + flagMask->HorizontalStride();
-				
-				// Flag first channel of sb
-				while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
-				
-				// Flag centre channel of sb
-				size_t halfBand = flagMask->Height()/(nSubbands*2);
-				channelPtr = sbStart + halfBand*_mwaConfig.Header().nScans;
-				endPtr = sbStart + (halfBand + 1)*_mwaConfig.Header().nScans;
-				while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
-				
-				// Flag last channel of sb
-				channelPtr = sbStart + (flagMask->Height()/nSubbands-1)*_mwaConfig.Header().nScans;
-				endPtr = sbStart + (flagMask->Height()/nSubbands)*_mwaConfig.Header().nScans;
-				while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
-			}
-			
-			/// TODO collect statistics
+			// We will put a place holder in the flagbuffer map, so we don't have to write (and lock)
+			// during multi threaded processing.
+			_flagBuffers.insert(std::pair<std::pair<size_t, size_t>, FlagMask*>(
+			std::pair<size_t,size_t>(antenna1, antenna2), 0));
 		}
 	}
+	boost::thread_group threadGroup;
+	for(size_t i=0; i!=_threadCount; ++i)
+		threadGroup.create_thread(boost::bind(&Cotter::baselineProcessThreadFunc, this));
+	threadGroup.join_all();
 	
 	if(_mwaConfig.Header().geomCorrection)
 		std::cout << "Will apply geometric delay correction.\n";
@@ -219,8 +170,8 @@ void Cotter::Run()
 			for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
 			{
 				// TODO these statements should be more efficient
-				const ImageSet &imageSet = *buffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
-				const FlagMask &flagMask = *flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
+				const ImageSet &imageSet = *_imageSetBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
+				const FlagMask &flagMask = *_flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
 				
 				const size_t stride = imageSet.HorizontalStride();
 				const size_t flagStride = flagMask.HorizontalStride();
@@ -234,12 +185,12 @@ void Cotter::Run()
 				{
 					for(size_t ch=0; ch!=nChannels; ++ch)
 					{
-						double angle = -2.0*M_PI*w*channelFrequenciesHz[ch] / SPEED_OF_LIGHT;
+						double angle = -2.0*M_PI*w*_channelFrequenciesHz[ch] / SPEED_OF_LIGHT;
 						double sinAng, cosAng;
 						sincos(angle, &sinAng, &cosAng);
 						sinAngles[ch] = sinAng; cosAngles[ch] = cosAng;
 							if((ch == nChannels/2 || ch ==0) && antenna1==0 && antenna2==1)
-								std::cout << "Rotation=" << (angle/(2.0*M_PI)) << " for freq " << channelFrequenciesHz[ch] << ",w=" << w << ",lambda=" << (SPEED_OF_LIGHT/channelFrequenciesHz[ch]) << '\n';
+								std::cout << "Rotation=" << (angle/(2.0*M_PI)) << " for freq " << _channelFrequenciesHz[ch] << ",w=" << w << ",lambda=" << (SPEED_OF_LIGHT/_channelFrequenciesHz[ch]) << '\n';
 					}
 				}
 					
@@ -281,6 +232,101 @@ void Cotter::Run()
 	}
 }
 
+void Cotter::baselineProcessThreadFunc()
+{
+	boost::mutex::scoped_lock lock(_mutex);
+	while(!_baselinesToProcess.empty())
+	{
+		std::pair<size_t, size_t> baseline = _baselinesToProcess.front();
+		_baselinesToProcess.pop();
+		lock.unlock();
+		
+		processBaseline(baseline.first, baseline.second);
+		lock.lock();
+	}
+}
+
+void Cotter::processBaseline(size_t antenna1, size_t antenna2)
+{
+	ImageSet *imageSet = _imageSetBuffers.find(std::pair<size_t,size_t>(antenna1, antenna2))->second;
+	const MWAInput
+		&input1X = _mwaConfig.AntennaXInput(antenna1),
+		&input1Y = _mwaConfig.AntennaXInput(antenna1),
+		&input2X = _mwaConfig.AntennaXInput(antenna2),
+		&input2Y = _mwaConfig.AntennaYInput(antenna2);
+		
+	// Correct conjugated baselines
+	if(_reader->IsConjugated(antenna1, antenna2, 0, 0)) {
+		std::cout << "Conjugating " << antenna1 << 'x' << antenna2 << '\n';
+		correctConjugated(*imageSet, 1);
+	}
+	if(_reader->IsConjugated(antenna1, antenna2, 0, 1)) {
+		std::cout << "Conjugating " << antenna1 << 'x' << antenna2 << '\n';
+		correctConjugated(*imageSet, 3);
+	}
+	if(_reader->IsConjugated(antenna1, antenna2, 1, 0)) {
+		std::cout << "Conjugating " << antenna1 << 'x' << antenna2 << '\n';
+		correctConjugated(*imageSet, 5);
+	}
+	if(_reader->IsConjugated(antenna1, antenna2, 1, 1)) {
+		std::cout << "Conjugating " << antenna1 << 'x' << antenna2 << '\n';
+		correctConjugated(*imageSet, 7);
+	}
+	
+	// Correct cable delay
+	std::cout << "Correcting cable length for " << antenna1 << " x " << antenna2 << '\n';
+	correctCableLength(*imageSet, 0, input2X.cableLenDelta - input1X.cableLenDelta);
+	correctCableLength(*imageSet, 1, input2Y.cableLenDelta - input1X.cableLenDelta);
+	correctCableLength(*imageSet, 2, input2X.cableLenDelta - input1Y.cableLenDelta);
+	correctCableLength(*imageSet, 3, input2Y.cableLenDelta - input1Y.cableLenDelta);
+	
+	/// TODO correct passband
+	
+	// Perform RFI detection, if baseline is not flagged.
+	bool is1Flagged = input1X.isFlagged || input1Y.isFlagged;
+	bool is2Flagged = input2X.isFlagged || input2Y.isFlagged;
+	bool skipFlagging = is1Flagged || is2Flagged;
+	if(skipFlagging)
+		std::cout << "Skipping " << antenna1 << " x " << antenna2 << '\n';
+	else
+		std::cout << "Flagging " << antenna1 << " x " << antenna2 << '\n';
+
+	FlagMask *flagMask;
+	if(skipFlagging)
+		flagMask = new FlagMask(_flagger->MakeFlagMask(_mwaConfig.Header().nScans, _reader->ChannelCount(), true));
+	else 
+	{
+		flagMask = new FlagMask(_flagger->Run(*_strategy, *imageSet));
+		
+		// Flag MWA side and centre channels
+		const size_t nSubbands = 24;
+		for(size_t sb=0; sb!=nSubbands; ++sb)
+		{
+			bool *sbStart = flagMask->Buffer() + (sb*flagMask->Height()/nSubbands)*_mwaConfig.Header().nScans;
+			bool *channelPtr = sbStart;
+			bool *endPtr = sbStart + flagMask->HorizontalStride();
+			
+			// Flag first channel of sb
+			while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
+			
+			// Flag centre channel of sb
+			size_t halfBand = flagMask->Height()/(nSubbands*2);
+			channelPtr = sbStart + halfBand*_mwaConfig.Header().nScans;
+			endPtr = sbStart + (halfBand + 1)*_mwaConfig.Header().nScans;
+			while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
+			
+			// Flag last channel of sb
+			channelPtr = sbStart + (flagMask->Height()/nSubbands-1)*_mwaConfig.Header().nScans;
+			endPtr = sbStart + (flagMask->Height()/nSubbands)*_mwaConfig.Header().nScans;
+			while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
+		}
+	}
+	
+	_flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second = flagMask;
+	
+	/// TODO collect statistics
+}	
+
 void Cotter::correctConjugated(ImageSet& imageSet, size_t imgImageIndex)
 {
 	float *imags = imageSet.ImageBuffer(imgImageIndex);
@@ -294,14 +340,14 @@ void Cotter::correctConjugated(ImageSet& imageSet, size_t imgImageIndex)
 	}
 }
 
-void Cotter::correctCableLength(ImageSet& imageSet, size_t polarization, double cableDelay, const double *channelFrequenciesHz)
+void Cotter::correctCableLength(ImageSet& imageSet, size_t polarization, double cableDelay)
 {
 	float *reals = imageSet.ImageBuffer(polarization*2);
 	float *imags = imageSet.ImageBuffer(polarization*2+1);
 	
 	for(size_t y=0; y!=imageSet.Height(); ++y)
 	{
-		double angle = -2.0 * M_PI * cableDelay * channelFrequenciesHz[y] / SPEED_OF_LIGHT;
+		double angle = -2.0 * M_PI * cableDelay * _channelFrequenciesHz[y] / SPEED_OF_LIGHT;
 		double rotSinl, rotCosl;
 		sincos(angle, &rotSinl, &rotCosl);
 		float rotSin = rotSinl, rotCos = rotCosl;
@@ -342,7 +388,7 @@ void Cotter::writeAntennae()
 	_msWriter->WriteAntennae(antennae);
 }
 
-void Cotter::writeSPW(const double *channelFrequenciesHz)
+void Cotter::writeSPW()
 {
 	std::vector<MSWriter::ChannelInfo> channels(_mwaConfig.Header().nChannels);
 	std::ostringstream str;
@@ -350,7 +396,7 @@ void Cotter::writeSPW(const double *channelFrequenciesHz)
 	for(size_t ch=0;ch!=_mwaConfig.Header().nChannels;++ch)
 	{
 		MSWriter::ChannelInfo &channel = channels[ch];
-		channel.chanFreq = channelFrequenciesHz[ch];
+		channel.chanFreq = _channelFrequenciesHz[ch];
 		channel.chanWidth = _mwaConfig.Header().bandwidth / _mwaConfig.Header().nChannels;
 		channel.effectiveBW = channel.chanWidth;
 		channel.resolution = channel.chanWidth;
