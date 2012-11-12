@@ -239,9 +239,11 @@ void GPUFileReader::initMapping()
 					// Note that while reading, the antenna indices are reversed
 					// again. Therefore, if the antenna indices are in the right
 					// order here, we need to conjugate the visibility.
+					size_t sourceIndex1 = a1*2 + p1;
+					size_t sourceIndex2 = a2*2 + p2;
 					bool isConjugated = 
-						(actualOut1 < actualOut2 && pfbInp1 < pfbInp2) ||
-						(actualOut1 > actualOut2 && pfbInp1 > pfbInp2);
+						(actualOut1 < actualOut2 && sourceIndex1 < sourceIndex2) ||
+						(actualOut1 > actualOut2 && sourceIndex1 > sourceIndex2);
 					
 					if(actA1 <= actA2)
 					{
