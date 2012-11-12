@@ -230,6 +230,7 @@ void GPUFileReader::initMapping()
 					size_t actP1 = actualOut1%2;
 					size_t actP2 = actualOut2%2;
 					
+					
 					//std::cout
 					//<< a1 << 'x' << a2 << ':' << p1 << 'x' << p2 << " -> "
 					//<< (pfbInp1/2) << 'x' << (pfbInp2/2) << ':' << (pfbInp1%2) << 'x' << (pfbInp2%2) << " -> " 
@@ -238,15 +239,19 @@ void GPUFileReader::initMapping()
 					// Note that while reading, the antenna indices are reversed
 					// again. Therefore, if the antenna indices are in the right
 					// order here, we need to conjugate the visibility.
+					bool isConjugated = 
+						(actualOut1 < actualOut2 && pfbInp1 < pfbInp2) ||
+						(actualOut1 > actualOut2 && pfbInp1 > pfbInp2);
+					
 					if(actA1 <= actA2)
 					{
 						size_t conjIndex = (actA1 * 2 + actP1) * _nAntenna * 2 + (actA2 * 2 + actP2);
-						_isConjugated[conjIndex] = (a1!=a2);
+						_isConjugated[conjIndex] = isConjugated;
 						getMappedBuffer(a1, a2).real[p1 * 2 + p2] = getBuffer(actA1, actA2).real[actP1 * 2 + actP2];
 						getMappedBuffer(a1, a2).imag[p1 * 2 + p2] = getBuffer(actA1, actA2).imag[actP1 * 2 + actP2];
 					} else {
 						size_t conjIndex = (actA2 * 2 + actP2) * _nAntenna * 2 + (actA1 * 2 + actP1);
-						_isConjugated[conjIndex] = false;
+						_isConjugated[conjIndex] = isConjugated;
 						getMappedBuffer(a1, a2).real[p1 * 2 + p2] = getBuffer(actA2, actA1).real[actP2 * 2 + actP1];
 						getMappedBuffer(a1, a2).imag[p1 * 2 + p2] = getBuffer(actA2, actA1).imag[actP2 * 2 + actP1];
 					}
