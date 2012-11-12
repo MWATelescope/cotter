@@ -198,7 +198,27 @@ public:
 		*ra2 = slaDranrm(*ra2);
 	}
 
+	/* constants for WGS84 Geoid model for the Earth */
+	#define EARTH_RAD_WGS84 6378137.0 /* meters */
+	#define E_SQUARED 6.69437999014e-3
 
+	/**
+		* Convert Geodetic lat/lon/height to XYZ coords
+		* uses constants from WGS84 system
+		*/
+	static void Geodetic2XYZ(double lat_rad, double lon_rad, double height_meters, double &X, double &Y, double &Z) {
+		double s_lat,s_lon,c_lat,c_lon;
+		double chi;
+
+		s_lat = sin(lat_rad); c_lat = cos(lat_rad);
+		s_lon = sin(lon_rad); c_lon = cos(lon_rad);
+		chi = sqrt(1.0 - E_SQUARED*s_lat*s_lat);
+
+		X = (EARTH_RAD_WGS84/chi + height_meters)*c_lat*c_lon;
+		Y = (EARTH_RAD_WGS84/chi + height_meters)*c_lat*s_lon;
+		Z = (EARTH_RAD_WGS84*(1.0-E_SQUARED)/chi + height_meters)*s_lat;
+	}
+	
 };
 
 #endif

@@ -101,6 +101,7 @@ class MWAConfig
 		
 		static double ArrayLattitudeRad();
 		static double ArrayLongitudeRad();
+		static double ArrayHeightMeters();
 	private:
 		std::vector<MWAInput> _inputs;
 		std::vector<MWAAntenna> _antennae;

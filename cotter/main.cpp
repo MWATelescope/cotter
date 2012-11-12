@@ -17,7 +17,7 @@ void usage()
 
 int main(int argc, char **argv)
 {
-	std::cout << "Running Cotter MWA preprocessing pipeline, converting to table.\n";
+	std::cout << "Running Cotter MWA preprocessing pipeline.\n";
 	
 	std::vector<std::vector<std::string> > fileSets;
 	int argi = 1;

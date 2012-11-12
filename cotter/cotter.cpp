@@ -185,7 +185,6 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	if(_mwaConfig.Header().geomCorrection)
 		std::cout << "Will apply geometric delay correction.\n";
 	
-	
 	std::cout << "Writing" << std::flush;
 	const size_t nChannels = _mwaConfig.Header().nChannels;
 	double antU[antennaCount], antV[antennaCount], antW[antennaCount];
@@ -454,6 +453,9 @@ void Cotter::correctCableLength(ImageSet& imageSet, size_t polarization, double 
 
 void Cotter::writeAntennae()
 {
+	double arrayX, arrayY, arrayZ;
+	Geometry::Geodetic2XYZ(_mwaConfig.ArrayLattitudeRad(), _mwaConfig.ArrayLongitudeRad(), _mwaConfig.ArrayHeightMeters(), arrayX, arrayY, arrayZ);
+	
 	std::vector<MSWriter::AntennaInfo> antennae;
 	for(size_t i=0; i!=_mwaConfig.NAntennae(); ++i)
 	{
@@ -463,9 +465,9 @@ void Cotter::writeAntennae()
 		antennaInfo.station = "MWA";
 		antennaInfo.type = "GROUND-BASED";
 		antennaInfo.mount = "ALT-AZ"; // TODO should be "FIXED", but Casa does not like
-		antennaInfo.x = mwaAnt.position[0];
-		antennaInfo.y = mwaAnt.position[1];
-		antennaInfo.z = mwaAnt.position[2];
+		antennaInfo.x = mwaAnt.position[0] + arrayX;
+		antennaInfo.y = mwaAnt.position[1] + arrayY;
+		antennaInfo.z = mwaAnt.position[2] + arrayZ;
 		antennaInfo.diameter = 4; /** TODO can probably give more exact size! */
 		antennaInfo.flag = false;
 		
