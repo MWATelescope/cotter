@@ -56,6 +56,7 @@ class Cotter : private UVWCalculater
 		std::vector<double> _channelFrequenciesHz;
 		std::vector<double> _scanTimes;
 		std::queue<std::pair<size_t,size_t> > _baselinesToProcess;
+		std::vector<size_t> _subbandOrder;
 		
 		boost::mutex _mutex;
 		aoflagger::QualityStatistics *_statistics;
@@ -63,15 +64,17 @@ class Cotter : private UVWCalculater
 		
 		void baselineProcessThreadFunc();
 		void processBaseline(size_t antenna1, size_t antenna2, aoflagger::QualityStatistics &statistics);
-		void correctConjugated(aoflagger::ImageSet& imageSet, size_t imageIndex);
-		void correctCableLength(aoflagger::ImageSet& imageSet, size_t polarization, double cableDelay);
+		void correctConjugated(aoflagger::ImageSet& imageSet, size_t imageIndex) const;
+		void correctCableLength(aoflagger::ImageSet& imageSet, size_t polarization, double cableDelay) const;
 		void writeAntennae();
 		void writeSPW();
 		void writeField();
 		void readSubbandGainsFile();
 		void readSubbandPassbandFile();
-		void flagBadCorrelatorSamples(aoflagger::FlagMask &flagMask);
+		void flagBadCorrelatorSamples(aoflagger::FlagMask &flagMask) const;
 		void initializeWeights(float *outputWeights);
+		void reorderSubbands(aoflagger::ImageSet& imageSet) const;
+		void initializeSbOrder(size_t centerSbNumber);
 		
 		// Implementing UVWCalculater
 		virtual void CalculateUVW(double date, size_t antenna1, size_t antenna2, double &u, double &v, double &w);

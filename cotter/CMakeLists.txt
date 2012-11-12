@@ -21,7 +21,8 @@ find_library(FFTW3_LIB fftw3 REQUIRED)
 find_package(LibXml2 REQUIRED)
 find_library(LIBSLA_LIB sla REQUIRED)
 
-set(CMAKE_CXX_FLAGS "-Wall -DNDEBUG -ggdb")
+set(CMAKE_CXX_FLAGS "-Wall -DNDEBUG -ggdb -msse2 -O3 -march=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -DNDEBUG -funroll-loops -msse2 -O3")
 
 include_directories(${AOFLAGGER_INCLUDE_DIR})
 include_directories(${CASA_INCLUDE_DIR})

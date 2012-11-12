@@ -66,9 +66,9 @@ class AveragingMSWriter : public Writer
 				initBuffers();
 		}
 		
-		void WriteAntennae(const std::vector<MSWriter::AntennaInfo> &antennae)
+		void WriteAntennae(const std::vector<MSWriter::AntennaInfo> &antennae, double time)
 		{
-			_writer.WriteAntennae(antennae);
+			_writer.WriteAntennae(antennae, time);
 			
 			_antennaCount = antennae.size();
 			if(_originalChannelCount != 0)
@@ -85,6 +85,11 @@ class AveragingMSWriter : public Writer
 			_writer.WriteField(field);
 		}
 		
+		void WriteObservation(const std::string& telescopeName, double startTime, double endTime, const std::string& observer, const std::string& scheduleType, const std::string& project, double releaseDate, bool flagRow)
+		{
+			_writer.WriteObservation(telescopeName, startTime, endTime, observer, scheduleType, project, releaseDate, flagRow);
+		}
+		
 		void AddRows(size_t rowCount)
 		{
 			if(_rowsAdded == 0)
@@ -94,7 +99,7 @@ class AveragingMSWriter : public Writer
 				_rowsAdded=0;
 		}
 		
-		void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, const std::complex<float>* data, const bool* flags, const float *weights)
+		void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, size_t scanNumber, const std::complex<float>* data, const bool* flags, const float *weights)
 		{
 			Buffer &buffer = getBuffer(antenna1, antenna2);
 			for(size_t ch=0; ch!=_avgChannelCount*_freqAvgFactor; ++ch)
@@ -113,6 +118,8 @@ class AveragingMSWriter : public Writer
 			}
 			buffer._rowTime += time;
 			buffer._rowTimestepCount++;
+			buffer._scanNumber += scanNumber;
+			buffer._interval += interval;
 			
 			if(buffer._rowTimestepCount == _timeAvgFactor)
 				writeCurrentTimestep(antenna1, antenna2);
@@ -144,6 +151,8 @@ class AveragingMSWriter : public Writer
 			{
 				_rowTime = 0.0;
 				_rowTimestepCount = 0;
+				_scanNumber = 0;
+				_interval = 0.0;
 				for(size_t ch=0; ch!=avgChannelCount*4; ++ch)
 				{
 					_rowData[ch] = 0.0;
@@ -155,7 +164,8 @@ class AveragingMSWriter : public Writer
 			}
 			
 			double _rowTime;
-			size_t _rowTimestepCount;
+			size_t _rowTimestepCount, _scanNumber;
+			double _interval;
 			std::complex<float> *_rowData, *_flaggedAndUnflaggedData;
 			bool *_rowFlags;
 			float *_rowWeights;
@@ -168,6 +178,7 @@ class AveragingMSWriter : public Writer
 			double time = buffer._rowTime / buffer._rowTimestepCount;
 			double u, v, w;
 			_uvwCalculater.CalculateUVW(time, antenna1, antenna2, u, v, w);
+			size_t scanNumber = (buffer._scanNumber/buffer._rowTimestepCount)/buffer._rowTimestepCount;
 			
 			for(size_t ch=0;ch!=_avgChannelCount*4;++ch)
 			{
@@ -183,7 +194,7 @@ class AveragingMSWriter : public Writer
 				}
 			}
 			
-			_writer.WriteRow(time, time, antenna1, antenna2, u, v, w, buffer._rowData, buffer._rowFlags, buffer._rowWeights);
+			_writer.WriteRow(time, time, antenna1, antenna2, u, v, w, buffer._interval, scanNumber, buffer._rowData, buffer._rowFlags, buffer._rowWeights);
 			
 			buffer.initZero(_avgChannelCount);
 		}

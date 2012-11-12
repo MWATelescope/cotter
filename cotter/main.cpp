@@ -7,7 +7,12 @@ void usage()
 {
 	std::cout << "usage: cotter [options] -i <gpufile1> [<gpufile2> ..] [-i <gpufile1> <gpufile2> ..\n"
 	"Options:\n"
-	"  -norfi  disable RFI detection\n";
+	"  -timeavg <factor>  Average 'factor' timesteps together before writing to measurement set.\n"
+	"  -freqavg <factor>  Average 'factor' channels together before writing to measurement set.\n"
+	"                     When averaging: flagging, collecting statistics and cable length fixes will be done\n"
+	"                     at highest resolution. UVW positions will be recalculated for new timesteps.\n"
+	"  -norfi             Disable RFI detection\n"
+	"  -nostats           Disable collecting statistics\n";
 }
 
 int main(int argc, char **argv)
@@ -16,6 +21,7 @@ int main(int argc, char **argv)
 	
 	std::vector<std::vector<std::string> > fileSets;
 	int argi = 1;
+	size_t freqAvg = 1, timeAvg = 1;
 	Cotter cotter;
 	while(argi!=argc)
 	{
@@ -39,6 +45,16 @@ int main(int argc, char **argv)
 		{
 			cotter.SetCollectStatistics(false);
 		}
+		else if(strcmp(argv[argi], "-timeavg") == 0)
+		{
+			++argi;
+			timeAvg = atoi(argv[argi]);
+		}
+		else if(strcmp(argv[argi], "-freqavg") == 0)
+		{
+			++argi;
+			freqAvg = atoi(argv[argi]);
+		}
 		else {
 			usage();
 			return -1;
@@ -55,7 +71,7 @@ int main(int argc, char **argv)
 	
 	cotter.SetFileSets(fileSets);
 	cotter.SetThreadCount(sysconf(_SC_NPROCESSORS_ONLN));
-	cotter.Run("flagged.ms", 4, 4);
+	cotter.Run("flagged.ms", timeAvg, freqAvg);
 	
 	return 0;
 }

@@ -18,8 +18,11 @@ class MSWriterData
 		ScalarColumn<int> *_antenna1Col, *_antenna2Col;
 		ScalarColumn<int> *_dataDescIdCol;
 		ArrayColumn<double> *_uvwCol;
+		ScalarColumn<double> *_intervalCol, *_exposureCol;
+		ScalarColumn<int> *_scanNumberCol;
 		ArrayColumn<std::complex<float> > *_dataCol;
 		ArrayColumn<bool> *_flagCol;
+		ArrayColumn<float> *_sigmaCol;
 		ArrayColumn<float> *_weightCol;
 		ArrayColumn<float> *_weightSpectrumCol;
 };
@@ -45,7 +48,11 @@ MSWriter::MSWriter(const char* filename) :
 	_data->_antenna2Col = new ScalarColumn<int>(ms, MS::columnName(casa::MSMainEnums::ANTENNA2));
 	_data->_dataDescIdCol = new ScalarColumn<int>(ms, MS::columnName(casa::MSMainEnums::DATA_DESC_ID));
 	_data->_uvwCol = new ArrayColumn<double>(ms, MS::columnName(casa::MSMainEnums::UVW));
+	_data->_intervalCol = new ScalarColumn<double>(ms, MS::columnName(casa::MSMainEnums::INTERVAL));
+	_data->_exposureCol = new ScalarColumn<double>(ms, MS::columnName(casa::MSMainEnums::EXPOSURE));
+	_data->_scanNumberCol = new ScalarColumn<int>(ms, MS::columnName(casa::MSMainEnums::SCAN_NUMBER));
 	_data->_dataCol = new ArrayColumn<std::complex<float> >(ms, MS::columnName(casa::MSMainEnums::DATA));
+	_data->_sigmaCol = new ArrayColumn<float>(ms, MS::columnName(casa::MSMainEnums::SIGMA));
 	_data->_weightCol = new ArrayColumn<float>(ms, MS::columnName(casa::MSMainEnums::WEIGHT));
 	_data->_weightSpectrumCol = new ArrayColumn<float>(ms, MS::columnName(casa::MSMainEnums::WEIGHT_SPECTRUM));
 	_data->_flagCol = new ArrayColumn<bool>(ms, MS::columnName(casa::MSMainEnums::FLAG));
@@ -60,6 +67,7 @@ MSWriter::~MSWriter()
 	delete _data->_dataDescIdCol;
 	delete _data->_uvwCol;
 	delete _data->_dataCol;
+	delete _data->_sigmaCol;
 	delete _data->_weightCol;
 	delete _data->_weightSpectrumCol;
 	delete _data->_flagCol;
@@ -107,9 +115,11 @@ void MSWriter::WriteBandInfo(const std::string &name, const std::vector<ChannelI
 	
 	totalBWCol.put(rowIndex, totalBandwidth);
 	flagRowCol.put(rowIndex, flagRow);
+	
+	writeDataDescEntry(rowIndex, 0, false);
 }
 
-void MSWriter::WriteAntennae(const std::vector<AntennaInfo> &antennae)
+void MSWriter::WriteAntennae(const std::vector<AntennaInfo> &antennae, double time)
 {
 	MeasurementSet &ms = *_data->ms;
 	MSAntenna antTable = ms.antenna();
@@ -134,6 +144,8 @@ void MSWriter::WriteAntennae(const std::vector<AntennaInfo> &antennae)
 		dishDiameterCol.put(rowIndex, antPtr->diameter);
 		++rowIndex;
 	}
+	
+	writeFeedEntries(antennae, time);
 }
 
 void MSWriter::WritePolarizationForLinearPols(bool flagRow)
@@ -201,12 +213,107 @@ void MSWriter::WriteField(const FieldInfo& field)
 	flagRowCol.put(index, field.flagRow);
 }
 
+void MSWriter::writeDataDescEntry(size_t spectralWindowId, size_t polarizationId, bool flagRow)
+{
+	MeasurementSet &ms = *_data->ms;
+	MSDataDescription dataDescTable = ms.dataDescription();
+	ScalarColumn<int> spectWindowIdCol(dataDescTable, dataDescTable.columnName(MSDataDescriptionEnums::SPECTRAL_WINDOW_ID));
+	ScalarColumn<int> polIdCol(dataDescTable, dataDescTable.columnName(MSDataDescriptionEnums::POLARIZATION_ID));
+	ScalarColumn<bool> flagRowCol(dataDescTable, dataDescTable.columnName(MSDataDescriptionEnums::FLAG_ROW));
+	
+	size_t index = dataDescTable.nrow();
+	dataDescTable.addRow();
+	
+	spectWindowIdCol.put(index, spectralWindowId);
+	polIdCol.put(index, polarizationId);
+	flagRowCol.put(index, flagRow);
+}
+
+void MSWriter::writeFeedEntries(const std::vector<Writer::AntennaInfo> &antennae, double time)
+{
+	MeasurementSet &ms = *_data->ms;
+	MSFeed feedTable = ms.feed();
+	ScalarColumn<int> antennaIdCol(feedTable, feedTable.columnName(MSFeedEnums::ANTENNA_ID));
+	ScalarColumn<int> feedIdCol(feedTable, feedTable.columnName(MSFeedEnums::FEED_ID));
+	ScalarColumn<int> spectralWindowIdCol(feedTable, feedTable.columnName(MSFeedEnums::SPECTRAL_WINDOW_ID));
+	ScalarColumn<double> timeCol(feedTable, feedTable.columnName(MSFeedEnums::TIME));
+	ScalarColumn<int> numReceptorsCol(feedTable, feedTable.columnName(MSFeedEnums::NUM_RECEPTORS));
+	ScalarColumn<int> beamIdCol(feedTable, feedTable.columnName(MSFeedEnums::BEAM_ID));
+	ArrayColumn<double> beamOffsetCol(feedTable, feedTable.columnName(MSFeedEnums::BEAM_OFFSET));
+	ArrayColumn<casa::String> polarizationTypeCol(feedTable, feedTable.columnName(MSFeedEnums::POLARIZATION_TYPE));
+	ArrayColumn<std::complex<float> > polResponseCol(feedTable, feedTable.columnName(MSFeedEnums::POL_RESPONSE));
+	ArrayColumn<double> positionCol(feedTable, feedTable.columnName(MSFeedEnums::POSITION));
+	ArrayColumn<double> receptorAngleCol(feedTable, feedTable.columnName(MSFeedEnums::RECEPTOR_ANGLE));
+	
+	size_t rowIndex = feedTable.nrow();
+	feedTable.addRow(antennae.size());
+	for(size_t antIndex=0; antIndex!=antennae.size(); ++antIndex)
+	{
+		antennaIdCol.put(rowIndex, antIndex);
+		feedIdCol.put(rowIndex, 0);
+		spectralWindowIdCol.put(rowIndex, -1);
+		timeCol.put(rowIndex, time);
+		numReceptorsCol.put(rowIndex, 2);
+		beamIdCol.put(rowIndex, -1);
+		
+		casa::Array<double> beamOffset(IPosition(2, 2, 2));
+		casa::Array<double>::iterator i = beamOffset.begin();
+		*i = 0.0; ++i; *i = 0.0; ++i; *i = 0.0; ++i; *i = 0.0;
+		beamOffsetCol.put(rowIndex, beamOffset);
+		
+		casa::Vector<casa::String> polType(2);
+		polType[0] = 'X'; polType[1] = 'Y';
+		polarizationTypeCol.put(rowIndex, polType);
+		
+		casa::Array<std::complex<float> > polResponse(IPosition(2, 2, 2));
+		casa::Array<std::complex<float> >::iterator piter = polResponse.begin();
+		*piter = 1.0; ++i; *piter = 0.0; ++i; *piter = 0.0; ++i; *piter = 1.0;
+		polResponseCol.put(rowIndex, polResponse);
+		
+		casa::Vector<double> position(3);
+		position[0] = 0.0; position[1] = 0.0; position[2] = 0.0;
+		positionCol.put(rowIndex, position);
+		
+		casa::Vector<double> receptorAngle(2);
+		receptorAngle[0] = 0.0; receptorAngle[1] = M_PI*0.5;
+		receptorAngleCol.put(rowIndex, receptorAngle);
+		
+		++rowIndex;
+	}
+}
+
+void MSWriter::WriteObservation(const std::string& telescopeName, double startTime, double endTime, const std::string& observer, const std::string& scheduleType, const std::string& project, double releaseDate, bool flagRow)
+{
+	MeasurementSet &ms = *_data->ms;
+	MSObservation obsTable = ms.observation();
+	ScalarColumn<casa::String> telescopeNameCol(obsTable, obsTable.columnName(MSObservationEnums::TELESCOPE_NAME));
+	ArrayColumn<double> timeRangeCol(obsTable, obsTable.columnName(MSObservationEnums::TIME_RANGE));
+	ScalarColumn<casa::String> observerCol(obsTable, obsTable.columnName(MSObservationEnums::OBSERVER));
+	ScalarColumn<casa::String> scheduleTypeCol(obsTable, obsTable.columnName(MSObservationEnums::SCHEDULE_TYPE));
+	ScalarColumn<casa::String> projectCol(obsTable, obsTable.columnName(MSObservationEnums::PROJECT));
+	ScalarColumn<double> releaseDateCol(obsTable, obsTable.columnName(MSObservationEnums::RELEASE_DATE));
+	ScalarColumn<bool> flagRowCol(obsTable, obsTable.columnName(MSObservationEnums::FLAG_ROW));
+	
+	size_t rowIndex = obsTable.nrow();
+	obsTable.addRow();
+	
+	telescopeNameCol.put(rowIndex, telescopeName);
+	casa::Vector<double> timeRange(2);
+	timeRange[0] = startTime; timeRange[1] = endTime;
+	timeRangeCol.put(rowIndex, timeRange);
+	observerCol.put(rowIndex, observer);
+	scheduleTypeCol.put(rowIndex, scheduleType);
+	projectCol.put(rowIndex, project);
+	releaseDateCol.put(rowIndex, releaseDate);
+	flagRowCol.put(rowIndex, flagRow);
+}
+
 void MSWriter::AddRows(size_t count)
 {
 	_data->ms->addRow(count);
 }
 
-void MSWriter::WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, const std::complex<float>* data, const bool* flags, const float *weights)
+void MSWriter::WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, size_t scanNumber, const std::complex<float>* data, const bool* flags, const float *weights)
 {
 	_data->_timeCol->put(_rowIndex, time);
 	_data->_timeCentroidCol->put(_rowIndex, timeCentroid);
@@ -218,7 +325,16 @@ void MSWriter::WriteRow(double time, double timeCentroid, size_t antenna1, size_
 	uvwVec[0] = u; uvwVec[1] = v; uvwVec[2] = w;
 	_data->_uvwCol->put(_rowIndex, uvwVec);
 	
+	_data->_intervalCol->put(_rowIndex, interval);
+	_data->_exposureCol->put(_rowIndex, interval);
+	_data->_scanNumberCol->put(_rowIndex, scanNumber);
+	
 	size_t nPol = 4;
+	
+	casa::Vector<float> sigmaArr(nPol);
+	for(size_t p=0; p!=nPol; ++p) sigmaArr[p] = 1.0;
+	_data->_sigmaCol->put(_rowIndex, sigmaArr);
+	
 	size_t valCount = _nChannels * nPol;
 	casa::IPosition shape(2, nPol, _nChannels);
 	casa::Array<std::complex<float> > dataArr(shape);

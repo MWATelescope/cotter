@@ -44,12 +44,13 @@ class Writer
 		
 		virtual ~Writer() { }
 		virtual void WriteBandInfo(const std::string &name, const std::vector<Writer::ChannelInfo> &channels, double refFreq, double totalBandwidth, bool flagRow) = 0;
-		virtual void WriteAntennae(const std::vector<Writer::AntennaInfo> &antennae) = 0;
+		virtual void WriteAntennae(const std::vector<Writer::AntennaInfo> &antennae, double time) = 0;
 		virtual void WritePolarizationForLinearPols(bool flagRow) = 0;
 		virtual void WriteField(const Writer::FieldInfo& field) = 0;
+		virtual void WriteObservation(const std::string& telescopeName, double startTime, double endTime, const std::string& observer, const std::string& scheduleType, const std::string& project, double releaseDate, bool flagRow) = 0;
 		
 		virtual void AddRows(size_t count) = 0;
-		virtual void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, const std::complex<float>* data, const bool* flags, const float *weights) = 0;
+		virtual void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, size_t scanNumber, const std::complex<float>* data, const bool* flags, const float *weights) = 0;
 };
 
 class MSWriter : public Writer
@@ -58,15 +59,19 @@ class MSWriter : public Writer
 		MSWriter(const char *filename);
 		~MSWriter();
 		
-		void WriteBandInfo(const std::string &name, const std::vector<ChannelInfo> &channels, double refFreq, double totalBandwidth, bool flagRow);
-		void WriteAntennae(const std::vector<AntennaInfo> &antennae);
+		void WriteBandInfo(const std::string& name, const std::vector<ChannelInfo>& channels, double refFreq, double totalBandwidth, bool flagRow);
+		void WriteAntennae(const std::vector<AntennaInfo>& antennae, double time);
 		void WritePolarizationForLinearPols(bool flagRow);
 		void WriteField(const FieldInfo& field);
+		void WriteObservation(const std::string& telescopeName, double startTime, double endTime, const std::string& observer, const std::string& scheduleType, const std::string& project, double releaseDate, bool flagRow);
 		
 		void AddRows(size_t count);
-		void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, const std::complex<float>* data, const bool* flags, const float *weights);
+		void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, size_t scanNumber, const std::complex<float>* data, const bool* flags, const float *weights);
 		
 	private:
+		void writeDataDescEntry(size_t spectralWindowId, size_t polarizationId, bool flagRow);
+		void writeFeedEntries(const std::vector<Writer::AntennaInfo>& antennae, double time);
+		
 		class MSWriterData *_data;
 		size_t _rowIndex;
 		

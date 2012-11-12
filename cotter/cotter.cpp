@@ -27,6 +27,7 @@ Cotter::Cotter() :
 	_subbandCount(24),
 	_quackSampleCount(4),
 	_rfiDetection(true),
+	_collectStatistics(true),
 	_statistics(0),
 	_correlatorMask(0),
 	_fullysetMask(0)
@@ -59,6 +60,7 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	
 	readSubbandPassbandFile();
 	readSubbandGainsFile();
+	initializeSbOrder(_mwaConfig.CentreSubbandNumber());
 	
 	_flagger = new AOFlagger();
 	
@@ -84,6 +86,7 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	writeSPW();
 	writeField();
 	_writer->WritePolarizationForLinearPols(false);
+	_writer->WriteObservation("MWA", _mwaConfig.Header().dateFirstScanMJD*86400.0, _mwaConfig.Header().GetDateLastScanMJD()*86400.0, "Unknown", "MWA", "Unknown", 0, false);
 
 	std::vector<std::vector<std::string> >::const_iterator currentFileSetPtr = _fileSets.begin();
 	
@@ -126,9 +129,10 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		if(!moreAvailableInCurrentFile && bufferPos < _mwaConfig.Header().nScans)
 		{
 			// Go to the next set of GPU files and add them to the buffer
-			delete _reader;
 			++currentFileSetPtr;
 			continueWithNextFile = (currentFileSetPtr!=_fileSets.end());
+			if(continueWithNextFile)
+				delete _reader;
 		} else {
 			continueWithNextFile = false;
 		}
@@ -161,16 +165,16 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	if(_rfiDetection)
 	{
 		if(_collectStatistics)
-			std::cout << "RFI detection, stats, conjugations and cable length corrections" << std::flush;
+			std::cout << "RFI detection, stats, conjugations, subband ordering and cable length corrections" << std::flush;
 		else
-			std::cout << "RFI detection, conjugations and cable length corrections" << std::flush;
+			std::cout << "RFI detection, conjugations, subband ordering and cable length corrections" << std::flush;
 	}
 	else
 	{
 		if(_collectStatistics)
-			std::cout << "Stats, conjugations and cable length corrections" << std::flush;
+			std::cout << "Stats, conjugations, subband ordering and cable length corrections" << std::flush;
 		else
-			std::cout << "Conjugations and cable length corrections" << std::flush;
+			std::cout << "Conjugations, subband ordering and cable length corrections" << std::flush;
 	}
 	boost::thread_group threadGroup;
 	for(size_t i=0; i!=_threadCount; ++i)
@@ -265,7 +269,7 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 					}
 				}
 				
-				_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, u, v, w, outputData, outputFlags, outputWeights);
+				_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, u, v, w, _mwaConfig.Header().integrationTime, t, outputData, outputFlags, outputWeights);
 			}
 		}
 		std::cout << '.' << std::flush;
@@ -278,6 +282,8 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	_correlatorMask = 0;
 	delete _fullysetMask;
 	_fullysetMask = 0;
+	delete _reader;
+	_reader = 0;
 	
 	if(_collectStatistics)
 		_flagger->WriteStatistics(*_statistics, outputFilename);
@@ -351,6 +357,8 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 		correctConjugated(*imageSet, 7);
 	}
 	
+	reorderSubbands(*imageSet);
+	
 	// Correct cable delay
 	correctCableLength(*imageSet, 0, input2X.cableLenDelta - input1X.cableLenDelta);
 	correctCableLength(*imageSet, 1, input2Y.cableLenDelta - input1X.cableLenDelta);
@@ -405,7 +413,7 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 		_flagger->CollectStatistics(statistics, *imageSet, *flagMask, *correlatorMask, antenna1, antenna2);
 }	
 
-void Cotter::correctConjugated(ImageSet& imageSet, size_t imgImageIndex)
+void Cotter::correctConjugated(ImageSet& imageSet, size_t imgImageIndex) const
 {
 	float *imags = imageSet.ImageBuffer(imgImageIndex);
 	for(size_t y=0; y!=imageSet.Height(); ++y)
@@ -418,7 +426,7 @@ void Cotter::correctConjugated(ImageSet& imageSet, size_t imgImageIndex)
 	}
 }
 
-void Cotter::correctCableLength(ImageSet& imageSet, size_t polarization, double cableDelay)
+void Cotter::correctCableLength(ImageSet& imageSet, size_t polarization, double cableDelay) const
 {
 	float *reals = imageSet.ImageBuffer(polarization*2);
 	float *imags = imageSet.ImageBuffer(polarization*2+1);
@@ -454,7 +462,7 @@ void Cotter::writeAntennae()
 		antennaInfo.name = mwaAnt.name;
 		antennaInfo.station = "MWA";
 		antennaInfo.type = "GROUND-BASED";
-		antennaInfo.mount = "FIXED";
+		antennaInfo.mount = "ALT-AZ"; // TODO should be "FIXED", but Casa does not like
 		antennaInfo.x = mwaAnt.position[0];
 		antennaInfo.y = mwaAnt.position[1];
 		antennaInfo.z = mwaAnt.position[2];
@@ -463,7 +471,7 @@ void Cotter::writeAntennae()
 		
 		antennae.push_back(antennaInfo);
 	}
-	_writer->WriteAntennae(antennae);
+	_writer->WriteAntennae(antennae, _mwaConfig.Header().dateFirstScanMJD*86400.0);
 }
 
 void Cotter::writeSPW()
@@ -511,6 +519,8 @@ void Cotter::writeField()
 void Cotter::readSubbandPassbandFile()
 {
 	std::ifstream passbandFile("subband-passband.txt");
+	if(!passbandFile.good())
+		throw std::runtime_error("Unable to read subband-passband.txt");
 	while(passbandFile.good())
 	{
 		size_t rowIndex;
@@ -563,7 +573,7 @@ void Cotter::readSubbandGainsFile()
 	std::cout << '\n';
 }
 
-void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask)
+void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask) const
 {
 	// Flag MWA side and centre channels
 	for(size_t sb=0; sb!=_subbandCount; ++sb)
@@ -612,4 +622,53 @@ void Cotter::initializeWeights(float *outputWeights)
 				outputWeights[(ch+channelsPerSubband*sb)*4 + p] = weightFactor / (_subbandCorrectionFactors[p][ch]);
 		}
 	}
+}
+
+void Cotter::reorderSubbands(ImageSet& imageSet) const
+{
+	float *temp = new float[imageSet.HorizontalStride() * imageSet.Height()];
+	const size_t channelsPerSubband = imageSet.Height()/_subbandCount;
+	const size_t valuesPerSubband = imageSet.HorizontalStride()*channelsPerSubband;
+	for(size_t i=0;i!=8;++i)
+	{
+		memcpy(temp, imageSet.ImageBuffer(i), imageSet.HorizontalStride()*imageSet.Height()*sizeof(float));
+		
+		float *tempBfr = temp;
+		for(size_t sb=0;sb!=_subbandCount;++sb)
+		{
+			float *destBfr = imageSet.ImageBuffer(i) + valuesPerSubband * _subbandOrder[sb];
+			memcpy(destBfr, tempBfr, valuesPerSubband*sizeof(float));
+				
+			tempBfr += valuesPerSubband;
+		}
+	}
+	delete[] temp;
+}
+
+void Cotter::initializeSbOrder(size_t centerSbNumber)
+{
+	if(_subbandCount != 24)
+		throw std::runtime_error("Not 24 subbands: I only know mappings for 24 subbands.");
+	if(centerSbNumber<=12 || centerSbNumber > 243)
+		throw std::runtime_error("Center channel must be between 13 and 243");
+
+	_subbandOrder.resize(24);
+	size_t firstSb = centerSbNumber-12;
+	size_t nbank1 = 0, nbank2 = 0;
+	for(size_t i=firstSb; i!=firstSb+24; ++i)
+	{
+		if(i<=128)
+			++nbank1;
+		else
+			++nbank2;
+	}
+	for(size_t i=0; i!=nbank1; ++i)
+		_subbandOrder[i]=i;
+	for(size_t i=0; i!=nbank2; ++i)
+		_subbandOrder[i+nbank1] = 23-i;
+	
+	std::cout << "Subband order for centre subband " << centerSbNumber << ": " << _subbandOrder[0];
+	for(size_t i=1; i!=24; ++i)
+		std::cout << ',' << _subbandOrder[i];
+	std::cout << '\n';
 }

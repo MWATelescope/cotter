@@ -254,3 +254,7 @@ double MWAConfig::ArrayLongitudeRad()
 	return MWA_LONGITUDE*(M_PI/180.0);
 }
 
+size_t MWAConfig::CentreSubbandNumber() const
+{
+	return round(12.0 + ChannelFrequencyHz(0) / 1280000.0);
+}

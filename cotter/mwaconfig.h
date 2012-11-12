@@ -41,6 +41,10 @@ struct MWAHeader
 		
 		double dateFirstScanMJD;        // The central time of the first time step. Not in header file, derived from it.
 		
+		double GetDateLastScanMJD() const
+		{
+			return dateFirstScanMJD + (integrationTime/86400.0)*nScans;
+		}
 	private:
 		MWAHeader(const MWAHeader &) { }
 		void operator=(const MWAHeader &) { }
@@ -92,6 +96,8 @@ class MWAConfig
 			return (_header.centralFrequency +
 				invertFactor * (channelIndex - _header.nChannels*0.5) * _header.bandwidth / _header.nChannels) * 1000000.0;
 		}
+		
+		size_t CentreSubbandNumber() const;
 		
 		static double ArrayLattitudeRad();
 		static double ArrayLongitudeRad();
