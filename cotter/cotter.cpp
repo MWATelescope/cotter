@@ -510,9 +510,9 @@ void Cotter::writeField()
 	field.delayDirRA = header.raHrs * (M_PI/12.0);
 	field.delayDirDec = header.decDegs * (M_PI/180.0);
 	field.phaseDirRA = field.delayDirRA;
-	field.phaseDirDec = field.phaseDirDec;
-	field.referenceDirRA = field.referenceDirRA;
-	field.referenceDirDec = field.referenceDirDec;
+	field.phaseDirDec = field.delayDirDec;
+	field.referenceDirRA = field.delayDirRA;
+	field.referenceDirDec = field.delayDirDec;
 	field.sourceId = 0;
 	field.flagRow = false;
 	_writer->WriteField(field);
