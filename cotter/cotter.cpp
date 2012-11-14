@@ -155,6 +155,10 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		std::cout << "Will apply geometric delay correction.\n";
 	
 	std::cout << "Writing" << std::flush;
+	const size_t nChannels = _mwaConfig.Header().nChannels;
+	_outputFlags = new bool[nChannels*4];
+	posix_memalign((void**) &_outputData, 16, nChannels*4*sizeof(std::complex<float>));
+	posix_memalign((void**) &_outputWeights, 16, nChannels*4*sizeof(float));
 	for(size_t t=0; t!=_mwaConfig.Header().nScans; ++t)
 	{
 		processAndWriteTimestep(t);
@@ -165,16 +169,13 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	if(!_writer->IsTimeAligned(0, 0))
 	{
 		std::cout << "Nr of timesteps did not match averaging size, last averaged sample will be downweighted" << std::flush;
-		const size_t nChannels = _mwaConfig.Header().nChannels;
 		size_t timeIndex = _mwaConfig.Header().nScans;
-		std::complex<float> outputData[nChannels*4];
-		bool outputFlags[nChannels*4];
-		float outputWeights[nChannels*4];
+		
 		for(size_t ch=0; ch!=nChannels*4; ++ch)
 		{
-			outputData[ch] = std::complex<float>(0.0, 0.0);
-			outputFlags[ch] = true;
-			outputWeights[ch] = 0.0;
+			_outputData[ch] = std::complex<float>(0.0, 0.0);
+			_outputFlags[ch] = true;
+			_outputWeights[ch] = 0.0;
 		}
 		while(!_writer->IsTimeAligned(0, 0))
 		{
@@ -184,14 +185,18 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 			{
 				for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
 				{
-					_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, 0.0, 0.0, 0.0, _mwaConfig.Header().integrationTime, timeIndex, outputData, outputFlags, outputWeights);
+					_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, 0.0, 0.0, 0.0, _mwaConfig.Header().integrationTime, timeIndex, _outputData, _outputFlags, _outputWeights);
 				}
 			}
 			++timeIndex;
 			std::cout << '.' << std::flush;
 		}
+		std::cout << '\n';
 	}
-	std::cout << '\n';
+	
+	free(_outputData);
+	free(_outputWeights);
+	delete[] _outputFlags;
 	
 	delete _writer;
 	_writer = 0;
@@ -265,10 +270,7 @@ void Cotter::processAndWriteTimestep(size_t timeIndex)
 	_writer->AddRows(antennaCount*(antennaCount+1)/2);
 	
 	double cosAngles[nChannels], sinAngles[nChannels];
-	std::complex<float> outputData[nChannels*4];
-	bool outputFlags[nChannels*4];
-	float outputWeights[nChannels*4];
-	initializeWeights(outputWeights);
+	initializeWeights(_outputWeights);
 	for(size_t antenna1=0; antenna1!=antennaCount; ++antenna1)
 	{
 		for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
@@ -302,8 +304,8 @@ void Cotter::processAndWriteTimestep(size_t timeIndex)
 					*realPtr = imageSet.ImageBuffer(p*2)+timeIndex,
 					*imagPtr = imageSet.ImageBuffer(p*2+1)+timeIndex;
 				const bool *flagPtr = flagMask.Buffer()+timeIndex;
-				std::complex<float> *outDataPtr = &outputData[p];
-				bool *outputFlagPtr = &outputFlags[p];
+				std::complex<float> *outDataPtr = &_outputData[p];
+				bool *outputFlagPtr = &_outputFlags[p];
 				for(size_t ch=0; ch!=nChannels; ++ch)
 				{
 					// Apply geometric phase delay (for w)
@@ -326,7 +328,7 @@ void Cotter::processAndWriteTimestep(size_t timeIndex)
 				}
 			}
 			
-			_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, u, v, w, _mwaConfig.Header().integrationTime, timeIndex, outputData, outputFlags, outputWeights);
+			_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, u, v, w, _mwaConfig.Header().integrationTime, timeIndex, _outputData, _outputFlags, _outputWeights);
 		}
 	}
 }

@@ -99,31 +99,7 @@ class AveragingMSWriter : public Writer
 				_rowsAdded=0;
 		}
 		
-		void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, size_t scanNumber, const std::complex<float>* data, const bool* flags, const float *weights)
-		{
-			Buffer &buffer = getBuffer(antenna1, antenna2);
-			for(size_t ch=0; ch!=_avgChannelCount*_freqAvgFactor; ++ch)
-			{
-				for(size_t p=0; p!=4; ++p)
-				{
-					const size_t destIndex = (ch / _freqAvgFactor) * 4 + p;
-					buffer._flaggedAndUnflaggedData[destIndex] += data[ch*4 + p];
-					if(!flags[ch*4 + p])
-					{
-						buffer._rowData[destIndex] += data[ch*4 + p] * weights[ch*4 + p];
-						buffer._rowWeights[destIndex] += weights[ch*4 + p];
-						buffer._rowCounts[destIndex]++;
-					}
-				}
-			}
-			buffer._rowTime += time;
-			buffer._rowTimestepCount++;
-			buffer._scanNumber += scanNumber;
-			buffer._interval += interval;
-			
-			if(buffer._rowTimestepCount == _timeAvgFactor)
-				writeCurrentTimestep(antenna1, antenna2);
-		}
+		void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, size_t scanNumber, const std::complex<float>* data, const bool* flags, const float *weights);
 		
 		virtual bool IsTimeAligned(size_t antenna1, size_t antenna2) {
 			const Buffer &buffer = getBuffer(antenna1, antenna2);

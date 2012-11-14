@@ -62,6 +62,10 @@ class Cotter : private UVWCalculater
 		aoflagger::QualityStatistics *_statistics;
 		aoflagger::FlagMask *_correlatorMask, *_fullysetMask;
 		
+		bool *_outputFlags;
+		std::complex<float> *_outputData;
+		float *_outputWeights;
+		
 		void initializeReader(const std::vector<std::string> &curFileset);
 		void processAndWriteTimestep(size_t timeIndex);
 		void baselineProcessThreadFunc();
