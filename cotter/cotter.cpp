@@ -350,12 +350,14 @@ void Cotter::processAndWriteTimestep(size_t timeIndex)
 				// Apply geometric phase delay (for w)
 				if(_mwaConfig.Header().geomCorrection)
 				{
+					// Note that order within set_ps is reversed; for the four complex numbers,
+					// the first two compl are loaded corresponding to set_ps(imag2, real2, imag1, real1).
 					__m128 ra = _mm_set_ps(*realBPtr, *realBPtr, *realAPtr, *realAPtr);
 					__m128 rb = _mm_set_ps(*realDPtr, *realDPtr, *realCPtr, *realCPtr);
-					__m128 rgeom = _mm_set_ps(cosAngles[ch], sinAngles[ch], cosAngles[ch], sinAngles[ch]);
+					__m128 rgeom = _mm_set_ps(sinAngles[ch], cosAngles[ch], sinAngles[ch], cosAngles[ch]);
 					__m128 ia = _mm_set_ps(*imagBPtr, *imagBPtr, *imagAPtr, *imagAPtr);
 					__m128 ib = _mm_set_ps(*imagDPtr, *imagDPtr, *imagCPtr, *imagCPtr);
-					__m128 igeom = _mm_set_ps(-sinAngles[ch], cosAngles[ch], -sinAngles[ch], cosAngles[ch]);
+					__m128 igeom = _mm_set_ps(cosAngles[ch], -sinAngles[ch], cosAngles[ch], -sinAngles[ch]);
 					__m128 outa = _mm_add_ps(_mm_mul_ps(ra, rgeom), _mm_mul_ps(ia, igeom));
 					__m128 outb = _mm_add_ps(_mm_mul_ps(rb, rgeom), _mm_mul_ps(ib, igeom));
 					_mm_store_ps((float*) outDataPtr, outa);
