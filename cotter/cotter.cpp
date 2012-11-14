@@ -13,8 +13,10 @@
 #include <map>
 #include <cmath>
 #include <complex>
+#include <xmmintrin.h>
 
 #define SPEED_OF_LIGHT 299792458.0        // speed of light in m/s
+#define USE_SSE
 
 using namespace aoflagger;
 
@@ -298,6 +300,7 @@ void Cotter::processAndWriteTimestep(size_t timeIndex)
 				}
 			}
 				
+#ifndef USE_SSE
 			for(size_t p=0; p!=4; ++p)
 			{
 				const float
@@ -327,6 +330,47 @@ void Cotter::processAndWriteTimestep(size_t timeIndex)
 					outputFlagPtr += 4;
 				}
 			}
+#else
+			const float
+				*realAPtr = imageSet.ImageBuffer(0)+timeIndex,
+				*imagAPtr = imageSet.ImageBuffer(1)+timeIndex,
+				*realBPtr = imageSet.ImageBuffer(2)+timeIndex,
+				*imagBPtr = imageSet.ImageBuffer(3)+timeIndex,
+				*realCPtr = imageSet.ImageBuffer(4)+timeIndex,
+				*imagCPtr = imageSet.ImageBuffer(5)+timeIndex,
+				*realDPtr = imageSet.ImageBuffer(6)+timeIndex,
+				*imagDPtr = imageSet.ImageBuffer(7)+timeIndex;
+			const bool *flagPtr = flagMask.Buffer()+timeIndex;
+			std::complex<float> *outDataPtr = &_outputData[0];
+			bool *outputFlagPtr = &_outputFlags[0];
+			for(size_t ch=0; ch!=nChannels; ++ch)
+			{
+				// Apply geometric phase delay (for w)
+				if(_mwaConfig.Header().geomCorrection)
+				{
+					__m128 ra = _mm_set_ps(*realBPtr, *realBPtr, *realAPtr, *realAPtr);
+					__m128 rb = _mm_set_ps(*realDPtr, *realDPtr, *realCPtr, *realCPtr);
+					__m128 rgeom = _mm_set_ps(cosAngles[ch], sinAngles[ch], cosAngles[ch], sinAngles[ch]);
+					__m128 ia = _mm_set_ps(*imagBPtr, *imagBPtr, *imagAPtr, *imagAPtr);
+					__m128 ib = _mm_set_ps(*imagDPtr, *imagDPtr, *imagCPtr, *imagCPtr);
+					__m128 igeom = _mm_set_ps(-sinAngles[ch], cosAngles[ch], -sinAngles[ch], cosAngles[ch]);
+					__m128 outa = _mm_add_ps(_mm_mul_ps(ra, rgeom), _mm_mul_ps(ia, igeom));
+					__m128 outb = _mm_add_ps(_mm_mul_ps(rb, rgeom), _mm_mul_ps(ib, igeom));
+					_mm_store_ps((float*) outDataPtr, outa);
+					_mm_store_ps((float*) (outDataPtr+2), outb);
+				}
+				*outputFlagPtr = *flagPtr; ++outputFlagPtr;
+				*outputFlagPtr = *flagPtr; ++outputFlagPtr;
+				*outputFlagPtr = *flagPtr; ++outputFlagPtr;
+				*outputFlagPtr = *flagPtr; ++outputFlagPtr;
+				realAPtr += stride; imagAPtr += stride;
+				realBPtr += stride; imagBPtr += stride;
+				realCPtr += stride; imagCPtr += stride;
+				realDPtr += stride; imagDPtr += stride;
+				flagPtr += flagStride;
+				outDataPtr += 4;
+			}
+#endif
 			
 			_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, u, v, w, _mwaConfig.Header().integrationTime, timeIndex, _outputData, _outputFlags, _outputWeights);
 		}

@@ -36,8 +36,8 @@ void AveragingMSWriter::WriteRow(double time, double timeCentroid, size_t antenn
 		// Note that if one polarization is flagged, all are flagged
 		if(!flags[srcIndex])
 		{
-			const __m128 weightsA = _mm_set_ps(weights[srcIndex], weights[srcIndex], weights[srcIndex+1], weights[srcIndex+1]);
-			const __m128 weightsB = _mm_set_ps(weights[srcIndex+2], weights[srcIndex+2], weights[srcIndex+3], weights[srcIndex+3]);
+			const __m128 weightsA = _mm_set_ps(weights[srcIndex+1], weights[srcIndex+1], weights[srcIndex], weights[srcIndex]);
+			const __m128 weightsB = _mm_set_ps(weights[srcIndex+3], weights[srcIndex+3], weights[srcIndex+2], weights[srcIndex+2]);
 			std::complex<float> *destPtr = &buffer._rowData[destIndex];
 			
 			// Perform *destPtr += dataVal * weights
