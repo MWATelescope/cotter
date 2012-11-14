@@ -13,9 +13,11 @@
 #include <map>
 #include <cmath>
 #include <complex>
+
 #include <xmmintrin.h>
 
 #define SPEED_OF_LIGHT 299792458.0        // speed of light in m/s
+
 #define USE_SSE
 
 using namespace aoflagger;
