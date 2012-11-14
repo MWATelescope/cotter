@@ -62,6 +62,8 @@ class Cotter : private UVWCalculater
 		aoflagger::QualityStatistics *_statistics;
 		aoflagger::FlagMask *_correlatorMask, *_fullysetMask;
 		
+		void initializeReader(const std::vector<std::string> &curFileset);
+		void processAndWriteTimestep(size_t timeIndex);
 		void baselineProcessThreadFunc();
 		void processBaseline(size_t antenna1, size_t antenna2, aoflagger::QualityStatistics &statistics);
 		void correctConjugated(aoflagger::ImageSet& imageSet, size_t imageIndex) const;

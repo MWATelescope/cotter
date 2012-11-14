@@ -125,6 +125,10 @@ class AveragingMSWriter : public Writer
 				writeCurrentTimestep(antenna1, antenna2);
 		}
 		
+		virtual bool IsTimeAligned(size_t antenna1, size_t antenna2) {
+			const Buffer &buffer = getBuffer(antenna1, antenna2);
+			return buffer._scanNumber==0;
+		}
 	private:
 		struct Buffer
 		{

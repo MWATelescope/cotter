@@ -93,36 +93,7 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	size_t bufferPos = 0;
 	bool continueWithNextFile;
 	do {
-		_reader = new GPUFileReader();
-		
-		for(std::vector<std::string>::const_iterator i=currentFileSetPtr->begin(); i!=currentFileSetPtr->end(); ++i)
-			_reader->AddFile(i->c_str());
-		
-		_reader->Initialize();
-		if(_reader->AntennaCount() != antennaCount)
-			throw std::runtime_error("nAntennae in GPU files do not match nAntennae in config");
-		if(_reader->ChannelCount() != _mwaConfig.Header().nChannels)
-			throw std::runtime_error("nChannels in GPU files do not match nChannels in config");
-		
-		for(size_t i=0; i!=_mwaConfig.Header().nInputs; ++i)
-			_reader->SetCorrInputToOutput(i, _mwaConfig.Input(i).antennaIndex, _mwaConfig.Input(i).polarizationIndex);
-		
-		// Initialize buffers of reader
-		for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
-		{
-			for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
-			{
-				ImageSet &imageSet = *_imageSetBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
-				BaselineBuffer buffer;
-				for(size_t p=0; p!=4; ++p)
-				{
-					buffer.real[p] = imageSet.ImageBuffer(p*2);
-					buffer.imag[p] = imageSet.ImageBuffer(p*2+1);
-				}
-				buffer.nElementsPerRow = imageSet.HorizontalStride();
-				_reader->SetDestBaselineBuffer(antenna1, antenna2, buffer);
-			}
-		}
+		initializeReader(*currentFileSetPtr);
 		
 		bool moreAvailableInCurrentFile = _reader->Read(bufferPos);
 		
@@ -131,8 +102,6 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 			// Go to the next set of GPU files and add them to the buffer
 			++currentFileSetPtr;
 			continueWithNextFile = (currentFileSetPtr!=_fileSets.end());
-			if(continueWithNextFile)
-				delete _reader;
 		} else {
 			continueWithNextFile = false;
 		}
@@ -186,92 +155,41 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		std::cout << "Will apply geometric delay correction.\n";
 	
 	std::cout << "Writing" << std::flush;
-	const size_t nChannels = _mwaConfig.Header().nChannels;
-	double antU[antennaCount], antV[antennaCount], antW[antennaCount];
 	for(size_t t=0; t!=_mwaConfig.Header().nScans; ++t)
 	{
-		double dateMJD = _mwaConfig.Header().dateFirstScanMJD + t * _mwaConfig.Header().integrationTime/86400.0;
-		
-		Geometry::UVWTimestepInfo uvwInfo;
-		Geometry::PrepareTimestepUVW(uvwInfo, dateMJD, _mwaConfig.ArrayLongitudeRad(), _mwaConfig.ArrayLattitudeRad(), _mwaConfig.Header().raHrs, _mwaConfig.Header().decDegs);
-		
-		for(size_t antenna=0; antenna!=antennaCount; ++antenna)
-		{
-			const double
-				x = _mwaConfig.Antenna(antenna).position[0],
-				y = _mwaConfig.Antenna(antenna).position[1],
-				z = _mwaConfig.Antenna(antenna).position[2];
-			Geometry::CalcUVW(uvwInfo, x, y, z, antU[antenna],antV[antenna], antW[antenna]);
-		}
-		
-		_writer->AddRows(antennaCount*(antennaCount+1)/2);
-		
-		double cosAngles[nChannels], sinAngles[nChannels];
+		processAndWriteTimestep(t);
+		std::cout << '.' << std::flush;
+	}
+	std::cout << '\n';
+	
+	if(!_writer->IsTimeAligned(0, 0))
+	{
+		std::cout << "Nr of timesteps did not match averaging size, last averaged sample will be downweighted" << std::flush;
+		const size_t nChannels = _mwaConfig.Header().nChannels;
+		size_t timeIndex = _mwaConfig.Header().nScans;
 		std::complex<float> outputData[nChannels*4];
 		bool outputFlags[nChannels*4];
 		float outputWeights[nChannels*4];
-		initializeWeights(outputWeights);
-		for(size_t antenna1=0; antenna1!=antennaCount; ++antenna1)
+		for(size_t ch=0; ch!=nChannels*4; ++ch)
 		{
-			for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
-			{
-				// TODO these statements should be more efficient
-				const ImageSet &imageSet = *_imageSetBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
-				const FlagMask &flagMask = *_flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
-				
-				const size_t stride = imageSet.HorizontalStride();
-				const size_t flagStride = flagMask.HorizontalStride();
-				double
-					u = antU[antenna1] - antU[antenna2],
-					v = antV[antenna1] - antV[antenna2],
-					w = antW[antenna1] - antW[antenna2];
-					
-				// Pre-calculate rotation coefficients for geometric phase delay correction
-				if(_mwaConfig.Header().geomCorrection)
-				{
-					for(size_t ch=0; ch!=nChannels; ++ch)
-					{
-						double angle = -2.0*M_PI*w*_channelFrequenciesHz[ch] / SPEED_OF_LIGHT;
-						double sinAng, cosAng;
-						sincos(angle, &sinAng, &cosAng);
-						sinAngles[ch] = sinAng; cosAngles[ch] = cosAng;
-					}
-				}
-					
-				for(size_t p=0; p!=4; ++p)
-				{
-					const float
-						*realPtr = imageSet.ImageBuffer(p*2)+t,
-						*imagPtr = imageSet.ImageBuffer(p*2+1)+t;
-					const bool *flagPtr = flagMask.Buffer()+t;
-					std::complex<float> *outDataPtr = &outputData[p];
-					bool *outputFlagPtr = &outputFlags[p];
-					for(size_t ch=0; ch!=nChannels; ++ch)
-					{
-						// Apply geometric phase delay (for w)
-						if(_mwaConfig.Header().geomCorrection)
-						{
-							const float rtmp = *realPtr, itmp = *imagPtr;
-							*outDataPtr = std::complex<float>(
-								cosAngles[ch] * rtmp - sinAngles[ch] * itmp,
-								sinAngles[ch] * rtmp + cosAngles[ch] * itmp
-							);
-						} else {
-							*outDataPtr = std::complex<float>(*realPtr, *imagPtr);
-						}
-						*outputFlagPtr = *flagPtr;
-						realPtr += stride;
-						imagPtr += stride;
-						flagPtr += flagStride;
-						outDataPtr += 4;
-						outputFlagPtr += 4;
-					}
-				}
-				
-				_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, u, v, w, _mwaConfig.Header().integrationTime, t, outputData, outputFlags, outputWeights);
-			}
+			outputData[ch] = std::complex<float>(0.0, 0.0);
+			outputFlags[ch] = true;
+			outputWeights[ch] = 0.0;
 		}
-		std::cout << '.' << std::flush;
+		while(!_writer->IsTimeAligned(0, 0))
+		{
+			_writer->AddRows(antennaCount*(antennaCount+1)/2);
+			const double dateMJD = _mwaConfig.Header().dateFirstScanMJD + timeIndex * _mwaConfig.Header().integrationTime/86400.0;
+			for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
+			{
+				for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
+				{
+					_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, 0.0, 0.0, 0.0, _mwaConfig.Header().integrationTime, timeIndex, outputData, outputFlags, outputWeights);
+				}
+			}
+			++timeIndex;
+			std::cout << '.' << std::flush;
+		}
 	}
 	std::cout << '\n';
 	
@@ -286,6 +204,131 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	
 	if(_collectStatistics)
 		_flagger->WriteStatistics(*_statistics, outputFilename);
+}
+
+void Cotter::initializeReader(const std::vector<std::string> &curFileset)
+{
+	delete _reader; // might be 0, but that's ok.
+	_reader = new GPUFileReader();
+	
+	for(std::vector<std::string>::const_iterator i=curFileset.begin(); i!=curFileset.end(); ++i)
+		_reader->AddFile(i->c_str());
+	
+	_reader->Initialize();
+	
+	const size_t antennaCount = _mwaConfig.NAntennae();
+	if(_reader->AntennaCount() != antennaCount)
+		throw std::runtime_error("nAntennae in GPU files do not match nAntennae in config");
+	if(_reader->ChannelCount() != _mwaConfig.Header().nChannels)
+		throw std::runtime_error("nChannels in GPU files do not match nChannels in config");
+	
+	for(size_t i=0; i!=_mwaConfig.Header().nInputs; ++i)
+		_reader->SetCorrInputToOutput(i, _mwaConfig.Input(i).antennaIndex, _mwaConfig.Input(i).polarizationIndex);
+	
+	// Initialize buffers of reader
+	for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
+	{
+		for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
+		{
+			ImageSet &imageSet = *_imageSetBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
+			BaselineBuffer buffer;
+			for(size_t p=0; p!=4; ++p)
+			{
+				buffer.real[p] = imageSet.ImageBuffer(p*2);
+				buffer.imag[p] = imageSet.ImageBuffer(p*2+1);
+			}
+			buffer.nElementsPerRow = imageSet.HorizontalStride();
+			_reader->SetDestBaselineBuffer(antenna1, antenna2, buffer);
+		}
+	}
+}
+
+void Cotter::processAndWriteTimestep(size_t timeIndex)
+{
+	const size_t antennaCount = _mwaConfig.NAntennae();
+	const size_t nChannels = _mwaConfig.Header().nChannels;
+	const double dateMJD = _mwaConfig.Header().dateFirstScanMJD + timeIndex * _mwaConfig.Header().integrationTime/86400.0;
+	
+	Geometry::UVWTimestepInfo uvwInfo;
+	Geometry::PrepareTimestepUVW(uvwInfo, dateMJD, _mwaConfig.ArrayLongitudeRad(), _mwaConfig.ArrayLattitudeRad(), _mwaConfig.Header().raHrs, _mwaConfig.Header().decDegs);
+	
+	double antU[antennaCount], antV[antennaCount], antW[antennaCount];
+	for(size_t antenna=0; antenna!=antennaCount; ++antenna)
+	{
+		const double
+			x = _mwaConfig.Antenna(antenna).position[0],
+			y = _mwaConfig.Antenna(antenna).position[1],
+			z = _mwaConfig.Antenna(antenna).position[2];
+		Geometry::CalcUVW(uvwInfo, x, y, z, antU[antenna],antV[antenna], antW[antenna]);
+	}
+	
+	_writer->AddRows(antennaCount*(antennaCount+1)/2);
+	
+	double cosAngles[nChannels], sinAngles[nChannels];
+	std::complex<float> outputData[nChannels*4];
+	bool outputFlags[nChannels*4];
+	float outputWeights[nChannels*4];
+	initializeWeights(outputWeights);
+	for(size_t antenna1=0; antenna1!=antennaCount; ++antenna1)
+	{
+		for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
+		{
+			// TODO these statements should be more efficient
+			const ImageSet &imageSet = *_imageSetBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
+			const FlagMask &flagMask = *_flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
+			
+			const size_t stride = imageSet.HorizontalStride();
+			const size_t flagStride = flagMask.HorizontalStride();
+			double
+				u = antU[antenna1] - antU[antenna2],
+				v = antV[antenna1] - antV[antenna2],
+				w = antW[antenna1] - antW[antenna2];
+				
+			// Pre-calculate rotation coefficients for geometric phase delay correction
+			if(_mwaConfig.Header().geomCorrection)
+			{
+				for(size_t ch=0; ch!=nChannels; ++ch)
+				{
+					double angle = -2.0*M_PI*w*_channelFrequenciesHz[ch] / SPEED_OF_LIGHT;
+					double sinAng, cosAng;
+					sincos(angle, &sinAng, &cosAng);
+					sinAngles[ch] = sinAng; cosAngles[ch] = cosAng;
+				}
+			}
+				
+			for(size_t p=0; p!=4; ++p)
+			{
+				const float
+					*realPtr = imageSet.ImageBuffer(p*2)+timeIndex,
+					*imagPtr = imageSet.ImageBuffer(p*2+1)+timeIndex;
+				const bool *flagPtr = flagMask.Buffer()+timeIndex;
+				std::complex<float> *outDataPtr = &outputData[p];
+				bool *outputFlagPtr = &outputFlags[p];
+				for(size_t ch=0; ch!=nChannels; ++ch)
+				{
+					// Apply geometric phase delay (for w)
+					if(_mwaConfig.Header().geomCorrection)
+					{
+						const float rtmp = *realPtr, itmp = *imagPtr;
+						*outDataPtr = std::complex<float>(
+							cosAngles[ch] * rtmp - sinAngles[ch] * itmp,
+							sinAngles[ch] * rtmp + cosAngles[ch] * itmp
+						);
+					} else {
+						*outDataPtr = std::complex<float>(*realPtr, *imagPtr);
+					}
+					*outputFlagPtr = *flagPtr;
+					realPtr += stride;
+					imagPtr += stride;
+					flagPtr += flagStride;
+					outDataPtr += 4;
+					outputFlagPtr += 4;
+				}
+			}
+			
+			_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, u, v, w, _mwaConfig.Header().integrationTime, timeIndex, outputData, outputFlags, outputWeights);
+		}
+	}
 }
 
 void Cotter::CalculateUVW(double date, size_t antenna1, size_t antenna2, double &u, double &v, double &w)
