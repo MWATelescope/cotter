@@ -651,11 +651,18 @@ void Cotter::readSubbandGainsFile()
 	std::map<double, double> subbandGainCorrection;
 	while(gainsFile.good())
 	{
-		size_t index;
-		double centralFrequency, gain;
-		gainsFile >> index >> centralFrequency >> gain;
-		if(gainsFile.fail()) break;
-		subbandGainCorrection.insert(std::pair<double,double>(centralFrequency, gain));
+		std::string line;
+		std::getline(gainsFile, line);
+		if(!line.empty() && line[0]!='#')
+		{
+			std::istringstream lineStr(line);
+			size_t index;
+			double centralFrequency, gain;
+			lineStr >> index >> centralFrequency >> gain;
+			if(lineStr.fail())
+				throw std::runtime_error("Could not parse subband gains file, line: " + line);
+			subbandGainCorrection.insert(std::pair<double,double>(centralFrequency, gain));
+		}
 	}
 	std::cout << "Subband gain file contains " << subbandGainCorrection.size() << " entries, used: ";
 	for(size_t sb=0; sb!=_subbandCount; ++sb)
