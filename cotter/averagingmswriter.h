@@ -53,9 +53,6 @@ class AveragingMSWriter : public Writer
 				}
 				
 				channel.chanFreq /= (double) _freqAvgFactor;
-				channel.chanWidth /= (double) _freqAvgFactor;
-				channel.effectiveBW /= (double) _freqAvgFactor;
-				channel.resolution /= (double) _freqAvgFactor;
 				
 				avgChannels[ch] = channel;
 			}
