@@ -50,7 +50,7 @@ class Writer
 		virtual void WriteObservation(const std::string& telescopeName, double startTime, double endTime, const std::string& observer, const std::string& scheduleType, const std::string& project, double releaseDate, bool flagRow) = 0;
 		
 		virtual void AddRows(size_t count) = 0;
-		virtual void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, size_t scanNumber, const std::complex<float>* data, const bool* flags, const float *weights) = 0;
+		virtual void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights) = 0;
 		
 		/**
 		 * In case time is regridded, this returns 'true' when the current time samples fit on
@@ -71,7 +71,7 @@ class MSWriter : public Writer
 		void WriteObservation(const std::string& telescopeName, double startTime, double endTime, const std::string& observer, const std::string& scheduleType, const std::string& project, double releaseDate, bool flagRow);
 		
 		void AddRows(size_t count);
-		void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, size_t scanNumber, const std::complex<float>* data, const bool* flags, const float *weights);
+		void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights);
 		
 	private:
 		void writeDataDescEntry(size_t spectralWindowId, size_t polarizationId, bool flagRow);

@@ -198,7 +198,7 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 			{
 				for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
 				{
-					_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, 0.0, 0.0, 0.0, _mwaConfig.Header().integrationTime, timeIndex, _outputData, _outputFlags, _outputWeights);
+					_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, 0.0, 0.0, 0.0, _mwaConfig.Header().integrationTime, _outputData, _outputFlags, _outputWeights);
 				}
 			}
 			++timeIndex;
@@ -385,7 +385,7 @@ void Cotter::processAndWriteTimestep(size_t timeIndex)
 			}
 #endif
 			
-			_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, u, v, w, _mwaConfig.Header().integrationTime, timeIndex, _outputData, _outputFlags, _outputWeights);
+			_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, u, v, w, _mwaConfig.Header().integrationTime, _outputData, _outputFlags, _outputWeights);
 		}
 	}
 }
@@ -734,7 +734,8 @@ void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask) const
 void Cotter::initializeWeights(float *outputWeights)
 {
 	// Weights are normalized so that default res of 10 kHz, 1s has weight of "1" per sample
-	size_t weightFactor = _mwaConfig.Header().integrationTime * (100.0*_mwaConfig.Header().bandwidthMHz/_mwaConfig.Header().nChannels);
+	// That only holds for numbers in the WEIGHTS_SPECTRUM column; WEIGHTS will hold the sum.
+	double weightFactor = _mwaConfig.Header().integrationTime * (100.0*_mwaConfig.Header().bandwidthMHz/_mwaConfig.Header().nChannels);
 	for(size_t sb=0; sb!=_subbandCount; ++sb)
 	{
 		size_t channelsPerSubband = _mwaConfig.Header().nChannels / _subbandCount;

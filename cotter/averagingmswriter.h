@@ -96,11 +96,11 @@ class AveragingMSWriter : public Writer
 				_rowsAdded=0;
 		}
 		
-		void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, size_t scanNumber, const std::complex<float>* data, const bool* flags, const float *weights);
+		void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights);
 		
 		virtual bool IsTimeAligned(size_t antenna1, size_t antenna2) {
 			const Buffer &buffer = getBuffer(antenna1, antenna2);
-			return buffer._scanNumber==0;
+			return buffer._rowTimestepCount==0;
 		}
 	private:
 		struct Buffer
@@ -128,7 +128,6 @@ class AveragingMSWriter : public Writer
 			{
 				_rowTime = 0.0;
 				_rowTimestepCount = 0;
-				_scanNumber = 0;
 				_interval = 0.0;
 				for(size_t ch=0; ch!=avgChannelCount*4; ++ch)
 				{
@@ -141,7 +140,7 @@ class AveragingMSWriter : public Writer
 			}
 			
 			double _rowTime;
-			size_t _rowTimestepCount, _scanNumber;
+			size_t _rowTimestepCount;
 			double _interval;
 			std::complex<float> *_rowData, *_flaggedAndUnflaggedData;
 			bool *_rowFlags;
@@ -155,7 +154,6 @@ class AveragingMSWriter : public Writer
 			double time = buffer._rowTime / buffer._rowTimestepCount;
 			double u, v, w;
 			_uvwCalculater.CalculateUVW(time, antenna1, antenna2, u, v, w);
-			size_t scanNumber = (buffer._scanNumber/buffer._rowTimestepCount)/buffer._rowTimestepCount;
 			
 			for(size_t ch=0;ch!=_avgChannelCount*4;++ch)
 			{
@@ -171,7 +169,7 @@ class AveragingMSWriter : public Writer
 				}
 			}
 			
-			_writer.WriteRow(time, time, antenna1, antenna2, u, v, w, buffer._interval, scanNumber, buffer._rowData, buffer._rowFlags, buffer._rowWeights);
+			_writer.WriteRow(time, time, antenna1, antenna2, u, v, w, buffer._interval, buffer._rowData, buffer._rowFlags, buffer._rowWeights);
 			
 			buffer.initZero(_avgChannelCount);
 		}

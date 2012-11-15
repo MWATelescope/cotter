@@ -4,7 +4,7 @@
 
 #define USE_SSE
 
-void AveragingMSWriter::WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, size_t scanNumber, const std::complex<float>* data, const bool* flags, const float *weights)
+void AveragingMSWriter::WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights)
 {
 	Buffer &buffer = getBuffer(antenna1, antenna2);
 	size_t srcIndex = 0;
@@ -58,7 +58,6 @@ void AveragingMSWriter::WriteRow(double time, double timeCentroid, size_t antenn
 	}
 	buffer._rowTime += time;
 	buffer._rowTimestepCount++;
-	buffer._scanNumber += scanNumber;
 	buffer._interval += interval;
 	
 	if(buffer._rowTimestepCount == _timeAvgFactor)

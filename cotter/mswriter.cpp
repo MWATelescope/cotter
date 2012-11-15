@@ -19,7 +19,7 @@ class MSWriterData
 		ScalarColumn<int> *_dataDescIdCol;
 		ArrayColumn<double> *_uvwCol;
 		ScalarColumn<double> *_intervalCol, *_exposureCol;
-		ScalarColumn<int> *_scanNumberCol;
+		ScalarColumn<int> *_processorIdCol, *_scanNumberCol, *_stateIdCol;
 		ArrayColumn<std::complex<float> > *_dataCol;
 		ArrayColumn<bool> *_flagCol;
 		ArrayColumn<float> *_sigmaCol;
@@ -50,7 +50,9 @@ MSWriter::MSWriter(const char* filename) :
 	_data->_uvwCol = new ArrayColumn<double>(ms, MS::columnName(casa::MSMainEnums::UVW));
 	_data->_intervalCol = new ScalarColumn<double>(ms, MS::columnName(casa::MSMainEnums::INTERVAL));
 	_data->_exposureCol = new ScalarColumn<double>(ms, MS::columnName(casa::MSMainEnums::EXPOSURE));
+	_data->_processorIdCol = new ScalarColumn<int>(ms, MS::columnName(casa::MSMainEnums::PROCESSOR_ID));
 	_data->_scanNumberCol = new ScalarColumn<int>(ms, MS::columnName(casa::MSMainEnums::SCAN_NUMBER));
+	_data->_stateIdCol = new ScalarColumn<int>(ms, MS::columnName(casa::MSMainEnums::STATE_ID));
 	_data->_dataCol = new ArrayColumn<std::complex<float> >(ms, MS::columnName(casa::MSMainEnums::DATA));
 	_data->_sigmaCol = new ArrayColumn<float>(ms, MS::columnName(casa::MSMainEnums::SIGMA));
 	_data->_weightCol = new ArrayColumn<float>(ms, MS::columnName(casa::MSMainEnums::WEIGHT));
@@ -66,6 +68,11 @@ MSWriter::~MSWriter()
 	delete _data->_antenna2Col;
 	delete _data->_dataDescIdCol;
 	delete _data->_uvwCol;
+	delete _data->_intervalCol;
+	delete _data->_exposureCol;
+	delete _data->_processorIdCol;
+	delete _data->_scanNumberCol;
+	delete _data->_stateIdCol;
 	delete _data->_dataCol;
 	delete _data->_sigmaCol;
 	delete _data->_weightCol;
@@ -313,7 +320,7 @@ void MSWriter::AddRows(size_t count)
 	_data->ms->addRow(count);
 }
 
-void MSWriter::WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, size_t scanNumber, const std::complex<float>* data, const bool* flags, const float *weights)
+void MSWriter::WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights)
 {
 	_data->_timeCol->put(_rowIndex, time);
 	_data->_timeCentroidCol->put(_rowIndex, timeCentroid);
@@ -327,7 +334,9 @@ void MSWriter::WriteRow(double time, double timeCentroid, size_t antenna1, size_
 	
 	_data->_intervalCol->put(_rowIndex, interval);
 	_data->_exposureCol->put(_rowIndex, interval);
-	_data->_scanNumberCol->put(_rowIndex, scanNumber);
+	_data->_processorIdCol->put(_rowIndex, -1);
+	_data->_scanNumberCol->put(_rowIndex, 1);
+	_data->_stateIdCol->put(_rowIndex, -1);
 	
 	size_t nPol = 4;
 	
