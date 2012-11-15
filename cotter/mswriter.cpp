@@ -274,7 +274,7 @@ void MSWriter::writeFeedEntries(const std::vector<Writer::AntennaInfo> &antennae
 		
 		casa::Array<std::complex<float> > polResponse(IPosition(2, 2, 2));
 		casa::Array<std::complex<float> >::iterator piter = polResponse.begin();
-		*piter = 1.0; ++i; *piter = 0.0; ++i; *piter = 0.0; ++i; *piter = 1.0;
+		*piter = 1.0; ++piter; *piter = 0.0; ++piter; *piter = 0.0; ++piter; *piter = 1.0;
 		polResponseCol.put(rowIndex, polResponse);
 		
 		casa::Vector<double> position(3);
