@@ -607,7 +607,7 @@ void Cotter::writeField()
 	field.code = std::string();
 	field.time = Geometry::GetMJD(
 		header.year, header.month, header.day, 
-		header.refHour, header.refMinute, header.refSecond);
+		header.refHour, header.refMinute, header.refSecond) * 86400.0;
 	field.numPoly = 0;
 	field.delayDirRA = header.raHrs * (M_PI/12.0);
 	field.delayDirDec = header.decDegs * (M_PI/180.0);
