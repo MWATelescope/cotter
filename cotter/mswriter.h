@@ -65,6 +65,8 @@ class MSWriter : public Writer
 		MSWriter(const char *filename);
 		~MSWriter();
 		
+		// TODO write SOURCE table
+		
 		void WriteBandInfo(const std::string& name, const std::vector<ChannelInfo>& channels, double refFreq, double totalBandwidth, bool flagRow);
 		void WriteAntennae(const std::vector<AntennaInfo>& antennae, double time);
 		void WritePolarizationForLinearPols(bool flagRow);
