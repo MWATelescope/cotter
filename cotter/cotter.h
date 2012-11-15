@@ -49,6 +49,7 @@ class Cotter : private UVWCalculater
 		size_t _threadCount;
 		size_t _subbandCount;
 		size_t _quackSampleCount;
+		size_t _missingEndScans;
 		bool _rfiDetection, _collectStatistics;
 		
 		std::map<std::pair<size_t, size_t>, aoflagger::ImageSet*> _imageSetBuffers;

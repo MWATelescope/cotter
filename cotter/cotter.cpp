@@ -111,6 +111,15 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		}
 	} while(continueWithNextFile);
 	
+	if(bufferPos < _mwaConfig.Header().nScans)
+	{
+		std::cout << "Warning: header specifies " << _mwaConfig.Header().nScans << " scans, but there are only " << bufferPos << " in the data.\n"
+		"Last " << (_mwaConfig.Header().nScans-bufferPos) << " scan(s) will be flagged.\n";
+		_missingEndScans = _mwaConfig.Header().nScans-bufferPos;
+	} else {
+		_missingEndScans = 0;
+	}
+	
 	_scanTimes.resize(_mwaConfig.Header().nScans);
 	for(size_t t=0; t!=_mwaConfig.Header().nScans; ++t)
 	{
@@ -697,6 +706,17 @@ void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask) const
 	{
 		bool *channelPtr = flagMask.Buffer() + ch*flagMask.HorizontalStride();
 		for(size_t x=0; x!=_quackSampleCount;++x)
+		{
+			*channelPtr = true;
+			++channelPtr;
+		}
+	}
+	
+	// If samples are missing at the end, flag them.
+	for(size_t ch=0; ch!=flagMask.Height(); ++ch)
+	{
+		bool *channelPtr = flagMask.Buffer() + ch*flagMask.HorizontalStride() + _mwaConfig.Header().nScans - _missingEndScans;
+		for(size_t t=_mwaConfig.Header().nScans - _missingEndScans; t!=_mwaConfig.Header().nScans; ++t)
 		{
 			*channelPtr = true;
 			++channelPtr;
