@@ -698,13 +698,13 @@ void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask) const
 		
 		// Flag centre channel of sb
 		size_t halfBand = flagMask.Height()/(_subbandCount*2);
-		channelPtr = sbStart + halfBand*_mwaConfig.Header().nScans;
-		endPtr = sbStart + (halfBand + 1)*_mwaConfig.Header().nScans;
+		channelPtr = sbStart + halfBand*flagMask.HorizontalStride();
+		endPtr = sbStart + halfBand*flagMask.HorizontalStride() + _mwaConfig.Header().nScans;
 		while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
 		
 		// Flag last channel of sb
-		channelPtr = sbStart + (flagMask.Height()/_subbandCount-1)*_mwaConfig.Header().nScans;
-		endPtr = sbStart + (flagMask.Height()/_subbandCount)*_mwaConfig.Header().nScans;
+		channelPtr = sbStart + (flagMask.Height()/_subbandCount-1)*flagMask.HorizontalStride();
+		endPtr = sbStart + (flagMask.Height()/_subbandCount-1)*flagMask.HorizontalStride() + _mwaConfig.Header().nScans;
 		while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
 	}
 	
