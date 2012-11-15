@@ -736,7 +736,7 @@ void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask) const
 void Cotter::initializeWeights(float *outputWeights)
 {
 	// Weights are normalized so that default res of 10 kHz, 1s has weight of "1" per sample
-	// That only holds for numbers in the WEIGHTS_SPECTRUM column; WEIGHTS will hold the sum.
+	// Note that this only holds for numbers in the WEIGHTS_SPECTRUM column; WEIGHTS will hold the sum.
 	double weightFactor = _mwaConfig.Header().integrationTime * (100.0*_mwaConfig.Header().bandwidthMHz/_mwaConfig.Header().nChannels);
 	for(size_t sb=0; sb!=_subbandCount; ++sb)
 	{

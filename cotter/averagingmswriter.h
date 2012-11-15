@@ -169,7 +169,9 @@ class AveragingMSWriter : public Writer
 						buffer._flaggedAndUnflaggedData[ch].imag() / buffer._rowTimestepCount);
 					buffer._rowFlags[ch] = true;
 				} else {
-					buffer._rowData[ch] /= buffer._rowWeights[ch];
+					buffer._rowData[ch] = std::complex<float>(
+						buffer._rowData[ch].real()/buffer._rowWeights[ch],
+						buffer._rowData[ch].imag()/buffer._rowWeights[ch]);
 					buffer._rowFlags[ch] = false;
 				}
 			}
@@ -200,7 +202,7 @@ class AveragingMSWriter : public Writer
 				
 				for(size_t antenna2=antenna1; antenna2!=_antennaCount; ++antenna2)
 				{
-					Buffer *buffer = new Buffer(_avgChannelCount*4);
+					Buffer *buffer = new Buffer(_avgChannelCount);
 					setBuffer(antenna1, antenna2, buffer);
 				}
 			}
