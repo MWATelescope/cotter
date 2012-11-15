@@ -668,7 +668,7 @@ void Cotter::readSubbandGainsFile()
 	for(size_t sb=0; sb!=_subbandCount; ++sb)
 	{
 		double channelFreq = _channelFrequenciesHz[sb * _mwaConfig.Header().nChannels / _subbandCount];
-		std::map<double, double>::const_iterator i = subbandGainCorrection.lower_bound(channelFreq/1000000.0);
+		std::map<double, double>::const_iterator i = subbandGainCorrection.lower_bound(channelFreq/1000000.0-(63.0*0.01));
 		if(sb != 0) std::cout << ',';
 		if(i == subbandGainCorrection.end())
 		{
