@@ -41,6 +41,7 @@ int main(int argc, char **argv)
 		}
 		else if(strcmp(argv[argi], "-o") == 0)
 		{
+			++argi;
 			outputFilename = argv[argi];
 		}
 		else if(strcmp(argv[argi], "-norfi") == 0)
