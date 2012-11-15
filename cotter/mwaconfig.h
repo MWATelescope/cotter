@@ -25,8 +25,8 @@ struct MWAHeader
 		size_t nChannels;               // the number of spectral channels
 		enum CorrType { None, CrossCorrelation, AutoCorrelation, BothCorrelations } correlationType;
 		double integrationTime;         // per time sample, in seconds
-		double centralFrequency;        // observing central frequency and 
-		double bandwidth;               // bandwidth (MHz)
+		double centralFrequencyMHz;     // observing central frequency and 
+		double bandwidthMHz;            // bandwidth (MHz)
 		double raHrs, decDegs;          // ra,dec of phase centre.
 		double haHrsStart;              // the HA of the phase center at the start of the integration
 		double refEl, refAz;            // the el/az of the normal to the plane of the array (radian)
@@ -93,8 +93,8 @@ class MWAConfig
 		double ChannelFrequencyHz(size_t channelIndex) const
 		{
 			const double invertFactor = _header.invertFrequency ? -1.0 : 1.0;
-			return (_header.centralFrequency +
-				invertFactor * (channelIndex - _header.nChannels*0.5) * _header.bandwidth / _header.nChannels) * 1000000.0;
+			return (_header.centralFrequencyMHz +
+				invertFactor * (channelIndex - _header.nChannels*0.5) * _header.bandwidthMHz / _header.nChannels) * 1000000.0;
 		}
 		
 		size_t CentreSubbandNumber() const;

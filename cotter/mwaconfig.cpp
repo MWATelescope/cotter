@@ -31,8 +31,8 @@ MWAHeader::MWAHeader() :
 	nChannels(0),
 	correlationType(None),
 	integrationTime(0.0),
-	centralFrequency(0.0),
-	bandwidth(0.0),
+	centralFrequencyMHz(0.0),
+	bandwidthMHz(0.0),
 	raHrs(-99.0),
 	decDegs(-99.0),
 	haHrsStart(-99.0),
@@ -82,8 +82,8 @@ void MWAConfig::ReadHeader(const char *filename, bool lockPointing)
 				}
 			}
 			else if(keyStr == "INT_TIME") _header.integrationTime = atof(valueStr.c_str());
-			else if(keyStr == "FREQCENT") _header.centralFrequency = atof(valueStr.c_str());
-			else if(keyStr == "BANDWIDTH") _header.bandwidth = atof(valueStr.c_str());
+			else if(keyStr == "FREQCENT") _header.centralFrequencyMHz = atof(valueStr.c_str());
+			else if(keyStr == "BANDWIDTH") _header.bandwidthMHz = atof(valueStr.c_str());
 			else if(keyStr == "INVERT_FREQ") _header.invertFrequency = atoi(valueStr.c_str());
 			else if(keyStr == "CONJUGATE") _header.conjugate = atoi(valueStr.c_str());
 			else if(keyStr == "GEOM_CORRECT") _header.geomCorrection = atoi(valueStr.c_str());
@@ -121,9 +121,9 @@ void MWAConfig::ReadHeader(const char *filename, bool lockPointing)
 	}
 	if(_header.integrationTime == 0)
 		throw std::runtime_error("INT_TIME not specified in header");
-	if(_header.bandwidth == 0)
+	if(_header.bandwidthMHz == 0)
 		throw std::runtime_error("BANDWIDTH not specified in header");
-	if(_header.centralFrequency == 0.0)
+	if(_header.centralFrequencyMHz == 0.0)
 		throw std::runtime_error("FREQCENT not specified in header");
 	if(_header.raHrs == -99)
 		throw std::runtime_error("RA_HRS not specified in header");

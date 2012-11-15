@@ -582,19 +582,19 @@ void Cotter::writeSPW()
 {
 	std::vector<MSWriter::ChannelInfo> channels(_mwaConfig.Header().nChannels);
 	std::ostringstream str;
-	str << "MWA_BAND_" << (round(_mwaConfig.Header().centralFrequency*10.0)/10.0);
+	str << "MWA_BAND_" << (round(_mwaConfig.Header().centralFrequencyMHz*10.0)/10.0);
 	for(size_t ch=0;ch!=_mwaConfig.Header().nChannels;++ch)
 	{
 		MSWriter::ChannelInfo &channel = channels[ch];
 		channel.chanFreq = _channelFrequenciesHz[ch];
-		channel.chanWidth = _mwaConfig.Header().bandwidth / _mwaConfig.Header().nChannels;
+		channel.chanWidth = _mwaConfig.Header().bandwidthMHz * 1000000.0 / _mwaConfig.Header().nChannels;
 		channel.effectiveBW = channel.chanWidth;
 		channel.resolution = channel.chanWidth;
 	}
 	_writer->WriteBandInfo(str.str(),
 		channels,
-		_mwaConfig.Header().centralFrequency*1000000.0,
-		_mwaConfig.Header().bandwidth*1000000.0,
+		_mwaConfig.Header().centralFrequencyMHz*1000000.0,
+		_mwaConfig.Header().bandwidthMHz*1000000.0,
 		false
 	);
 }
@@ -734,7 +734,7 @@ void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask) const
 void Cotter::initializeWeights(float *outputWeights)
 {
 	// Weights are normalized so that default res of 10 kHz, 1s has weight of "1" per sample
-	size_t weightFactor = _mwaConfig.Header().integrationTime * (100.0*_mwaConfig.Header().bandwidth/_mwaConfig.Header().nChannels);
+	size_t weightFactor = _mwaConfig.Header().integrationTime * (100.0*_mwaConfig.Header().bandwidthMHz/_mwaConfig.Header().nChannels);
 	for(size_t sb=0; sb!=_subbandCount; ++sb)
 	{
 		size_t channelsPerSubband = _mwaConfig.Header().nChannels / _subbandCount;
