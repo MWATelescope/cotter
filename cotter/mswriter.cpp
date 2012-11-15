@@ -94,6 +94,7 @@ void MSWriter::WriteBandInfo(const std::string &name, const std::vector<ChannelI
 	
 	ArrayColumn<double> chanFreqCol = ArrayColumn<double>(spwTable, spwTable.columnName(MSSpectralWindowEnums::CHAN_FREQ));
 	ArrayColumn<double> chanWidthCol = ArrayColumn<double>(spwTable, spwTable.columnName(MSSpectralWindowEnums::CHAN_WIDTH));
+	ScalarColumn<int> measFreqRefCol = ScalarColumn<int>(spwTable, spwTable.columnName(MSSpectralWindowEnums::MEAS_FREQ_REF));
 	ArrayColumn<double> effectiveBWCol = ArrayColumn<double>(spwTable, spwTable.columnName(MSSpectralWindowEnums::EFFECTIVE_BW));
 	ArrayColumn<double> resolutionCol = ArrayColumn<double>(spwTable, spwTable.columnName(MSSpectralWindowEnums::RESOLUTION));
 	ScalarColumn<double> totalBWCol = ScalarColumn<double>(spwTable, spwTable.columnName(MSSpectralWindowEnums::TOTAL_BANDWIDTH));
@@ -117,6 +118,7 @@ void MSWriter::WriteBandInfo(const std::string &name, const std::vector<ChannelI
 	}
 	chanFreqCol.put(rowIndex, chanFreqVec);
 	chanWidthCol.put(rowIndex, chanWidthVec);
+	measFreqRefCol.put(rowIndex, 5); // 5 means "TOPO"
 	effectiveBWCol.put(rowIndex, effectiveBWVec);
 	resolutionCol.put(rowIndex, resolutionVec);
 	
@@ -418,7 +420,7 @@ void MSWriter::WriteHistoryItem(const std::string &commandLine, const std::strin
 	hisTable.addRow();
 	timeCol.put(rowIndex, casa::Time().modifiedJulianDay()*24.0*3600.0);
 	obsIdCol.put(rowIndex, 0);
-	messageCol.put(rowIndex, "parameters");
+	messageCol.put(rowIndex, "Preprocessed & AOFlagged");
 	applicationCol.put(rowIndex, application);
 	priorityCol.put(rowIndex, "NORMAL");
 	originCol.put(rowIndex, "standalone");
