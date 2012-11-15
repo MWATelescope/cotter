@@ -395,3 +395,33 @@ MSWriter::AntennaInfo& MSWriter::AntennaInfo::operator=(const MSWriter::AntennaI
 	flag = source.flag;
 	return *this;
 }
+
+void MSWriter::WriteHistoryItem(const std::string &commandLine, const std::string &application)
+{
+	MeasurementSet &ms = *_data->ms;
+	MSHistory hisTable = ms.history();
+	casa::ScalarColumn<double> timeCol(hisTable, MSHistory::columnName(MSHistoryEnums::TIME));
+	casa::ScalarColumn<int> obsIdCol(hisTable, MSHistory::columnName(MSHistoryEnums::OBSERVATION_ID));
+	casa::ScalarColumn<casa::String> messageCol(hisTable, MSHistory::columnName(MSHistoryEnums::MESSAGE));
+	casa::ScalarColumn<casa::String> applicationCol(hisTable, MSHistory::columnName(MSHistoryEnums::APPLICATION));
+	casa::ScalarColumn<casa::String> priorityCol(hisTable, MSHistory::columnName(MSHistoryEnums::PRIORITY));
+	casa::ScalarColumn<casa::String> originCol(hisTable, MSHistory::columnName(MSHistoryEnums::ORIGIN));
+	casa::ArrayColumn<casa::String> parmsCol(hisTable, MSHistory::columnName(MSHistoryEnums::APP_PARAMS));
+	casa::ArrayColumn<casa::String> cliCol(hisTable, MSHistory::columnName(MSHistoryEnums::CLI_COMMAND));
+
+	casa::Vector<casa::String> appParamsVec(1);
+	appParamsVec[0] = "";
+	casa::Vector<casa::String> cliVec(1);
+	cliVec[0] = commandLine;
+	
+	size_t rowIndex = hisTable.nrow();
+	hisTable.addRow();
+	timeCol.put(rowIndex, casa::Time().modifiedJulianDay()*24.0*3600.0);
+	obsIdCol.put(rowIndex, 0);
+	messageCol.put(rowIndex, "parameters");
+	applicationCol.put(rowIndex, application);
+	priorityCol.put(rowIndex, "NORMAL");
+	originCol.put(rowIndex, "standalone");
+	parmsCol.put(rowIndex, appParamsVec);
+	cliCol.put(rowIndex, cliVec);
+}

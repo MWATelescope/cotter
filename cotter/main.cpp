@@ -76,6 +76,11 @@ int main(int argc, char **argv)
 		return -1;
 	}
 	
+	std::ostringstream commandLineStr;
+	commandLineStr << argv[0];
+	for(int i=1;i!=argc;++i)
+		commandLineStr << ' ' << argv[i];
+	
 	cotter.SetFileSets(fileSets);
 	cotter.SetThreadCount(sysconf(_SC_NPROCESSORS_ONLN));
 	cotter.Run(outputFilename, timeAvg, freqAvg);

@@ -98,7 +98,12 @@ class AveragingMSWriter : public Writer
 		
 		void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights);
 		
-		virtual bool IsTimeAligned(size_t antenna1, size_t antenna2) {
+		void WriteHistoryItem(const std::string &commandLine, const std::string &application)
+		{
+			_writer.WriteHistoryItem(commandLine, application);
+		}
+		
+		bool IsTimeAligned(size_t antenna1, size_t antenna2) {
 			const Buffer &buffer = getBuffer(antenna1, antenna2);
 			return buffer._rowTimestepCount==0;
 		}

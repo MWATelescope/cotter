@@ -211,6 +211,8 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	free(_outputWeights);
 	delete[] _outputFlags;
 	
+	_writer->WriteHistoryItem(_commandLine, "Cotter MWA preprocessor");
+	
 	delete _writer;
 	_writer = 0;
 	delete _correlatorMask;
