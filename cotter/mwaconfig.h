@@ -45,6 +45,7 @@ struct MWAHeader
 		{
 			return dateFirstScanMJD + (integrationTime/86400.0)*nScans;
 		}
+		double GetStartDateMJD() const;
 	private:
 		MWAHeader(const MWAHeader &) { }
 		void operator=(const MWAHeader &) { }

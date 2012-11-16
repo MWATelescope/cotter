@@ -42,6 +42,11 @@ MSWriter::MSWriter(const char* filename) :
 	MeasurementSet &ms = *_data->ms;
 	ms.createDefaultSubtables(Table::New);
 	
+	TableDesc sourceTableDesc = MSSource::requiredTableDesc();
+	SetupNewTable newSourceTable(ms.sourceTableName(), sourceTableDesc, Table::New);
+	MSSource sourceTable(newSourceTable);
+	ms.rwKeywordSet().defineTable(MS::keywordName(casa::MSMainEnums::SOURCE), sourceTable);
+
 	_data->_timeCol = new ScalarColumn<double>(ms, MS::columnName(casa::MSMainEnums::TIME));
 	_data->_timeCentroidCol = new ScalarColumn<double>(ms, MS::columnName(casa::MSMainEnums::TIME_CENTROID));
 	_data->_antenna1Col = new ScalarColumn<int>(ms, MS::columnName(casa::MSMainEnums::ANTENNA1));
@@ -183,6 +188,40 @@ void MSWriter::WritePolarizationForLinearPols(bool flagRow)
 	corrProductCol.put(rowIndex, cProdArr);
 	
 	flagRowCol.put(rowIndex, flagRow);
+}
+
+void MSWriter::WriteSource(const SourceInfo &source)
+{
+	MeasurementSet &ms = *_data->ms;
+	MSSource sourceTable = ms.keywordSet().asTable(MS::keywordName(MS::SOURCE));
+	ScalarColumn<int> sourceIdCol = ScalarColumn<int>(sourceTable, MSSource::columnName(MSSourceEnums::SOURCE_ID));
+	ScalarColumn<double> timeCol = ScalarColumn<double>(sourceTable, MSSource::columnName(MSSourceEnums::TIME));
+	ScalarColumn<double> intervalCol = ScalarColumn<double>(sourceTable, MSSource::columnName(MSSourceEnums::INTERVAL));
+	ScalarColumn<int> spectralWindowIdCol = ScalarColumn<int>(sourceTable, MSSource::columnName(MSSourceEnums::SPECTRAL_WINDOW_ID));
+	ScalarColumn<int> numLinesCol = ScalarColumn<int>(sourceTable, MSSource::columnName(MSSourceEnums::NUM_LINES));
+	ScalarColumn<casa::String> nameCol = ScalarColumn<casa::String>(sourceTable, MSSource::columnName(MSSourceEnums::NAME));
+	ScalarColumn<int> calibrationGroupCol = ScalarColumn<int>(sourceTable, MSSource::columnName(MSSourceEnums::CALIBRATION_GROUP));
+	ScalarColumn<casa::String> codeCol = ScalarColumn<casa::String>(sourceTable, MSSource::columnName(MSSourceEnums::CODE));
+	ArrayColumn<double> directionCol = ArrayColumn<double>(sourceTable, MSSource::columnName(MSSourceEnums::DIRECTION));
+	ArrayColumn<double> properMotionCol = ArrayColumn<double>(sourceTable, MSSource::columnName(MSSourceEnums::PROPER_MOTION));
+	
+	size_t rowIndex = sourceTable.nrow();
+	sourceTable.addRow();
+	
+	sourceIdCol.put(rowIndex, source.sourceId);
+	timeCol.put(rowIndex, source.time);
+	intervalCol.put(rowIndex, source.interval);
+	spectralWindowIdCol.put(rowIndex, source.spectralWindowId);
+	numLinesCol.put(rowIndex, source.numLines);
+	nameCol.put(rowIndex, source.name);
+	calibrationGroupCol.put(rowIndex, source.calibrationGroup);
+	codeCol.put(rowIndex, source.code);
+	casa::Vector<double> direction(2);
+	direction[0] = source.directionRA; direction[1] = source.directionDec;
+	directionCol.put(rowIndex, direction);
+	casa::Vector<double> properMotion(2);
+	properMotion[0] = source.properMotion[0]; properMotion[1] = source.properMotion[1];
+	properMotionCol.put(rowIndex, properMotion);
 }
 
 void MSWriter::WriteField(const FieldInfo& field)

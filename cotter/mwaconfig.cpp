@@ -52,6 +52,11 @@ MWAHeader::MWAHeader() :
 {
 }
 
+double MWAHeader::GetStartDateMJD() const
+{
+	return Geometry::GetMJD(year, month, day, refHour, refMinute, refSecond);
+}
+
 void MWAConfig::ReadHeader(const char *filename, bool lockPointing)
 {
 	std::ifstream file(filename);

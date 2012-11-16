@@ -77,6 +77,11 @@ class AveragingMSWriter : public Writer
 			_writer.WritePolarizationForLinearPols(flagRow);
 		}
 		
+		void WriteSource(const MSWriter::SourceInfo &source)
+		{
+			_writer.WriteSource(source);
+		}
+		
 		void WriteField(const MSWriter::FieldInfo& field)
 		{
 			_writer.WriteField(field);

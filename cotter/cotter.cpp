@@ -88,6 +88,7 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		_writer = new AveragingMSWriter(outputFilename, timeAvgFactor, freqAvgFactor, *this);
 	writeAntennae();
 	writeSPW();
+	writeSource();
 	writeField();
 	_writer->WritePolarizationForLinearPols(false);
 	_writer->WriteObservation("MWA", _mwaConfig.Header().dateFirstScanMJD*86400.0, _mwaConfig.Header().GetDateLastScanMJD()*86400.0, "Unknown", "MWA", "Unknown", 0, false);
@@ -601,15 +602,32 @@ void Cotter::writeSPW()
 	);
 }
 
+void Cotter::writeSource()
+{
+	const MWAHeader &header = _mwaConfig.Header();
+	MSWriter::SourceInfo source;
+	source.sourceId = 0;
+	source.time = (header.dateFirstScanMJD + header.GetDateLastScanMJD()) * (86400.0/ 2.0);
+	source.interval = header.GetDateLastScanMJD() - header.dateFirstScanMJD;
+	source.spectralWindowId = 0;
+	source.numLines = 0;
+	source.name = header.fieldName;
+	source.calibrationGroup = 0;
+	source.code = "";
+	source.directionRA = header.raHrs * (M_PI/12.0);
+	source.directionDec = header.decDegs * (M_PI/180.0);
+	source.properMotion[0] = 0.0;
+	source.properMotion[1] = 0.0;
+	_writer->WriteSource(source);
+}
+
 void Cotter::writeField()
 {
 	const MWAHeader &header = _mwaConfig.Header();
 	MSWriter::FieldInfo field;
 	field.name = header.fieldName;
 	field.code = std::string();
-	field.time = Geometry::GetMJD(
-		header.year, header.month, header.day, 
-		header.refHour, header.refMinute, header.refSecond) * 86400.0;
+	field.time = header.GetStartDateMJD() * 86400.0;
 	field.numPoly = 0;
 	field.delayDirRA = header.raHrs * (M_PI/12.0);
 	field.delayDirDec = header.decDegs * (M_PI/180.0);
@@ -617,7 +635,7 @@ void Cotter::writeField()
 	field.phaseDirDec = field.delayDirDec;
 	field.referenceDirRA = field.delayDirRA;
 	field.referenceDirDec = field.delayDirDec;
-	field.sourceId = 0;
+	field.sourceId = -1;
 	field.flagRow = false;
 	_writer->WriteField(field);
 }

@@ -26,27 +26,44 @@ class Writer
 			double chanFreq, chanWidth, effectiveBW, resolution;
 		};
 		
+		struct SourceInfo
+		{
+			SourceInfo() { }
+			int sourceId;
+			double time, interval;
+			int spectralWindowId, numLines;
+			std::string name;
+			int calibrationGroup;
+			std::string code;
+			double directionRA, directionDec;
+			double properMotion[2];
+		private:
+			SourceInfo(const SourceInfo&) { }
+			void operator=(const SourceInfo&) { }
+		};
+		
 		struct FieldInfo
 		{
-				FieldInfo() { }
-				std::string name, code;
-				double time;
-				int numPoly;
-				double delayDirRA, delayDirDec;
-				double phaseDirRA, phaseDirDec;
-				double referenceDirRA, referenceDirDec;
-				int sourceId;
-				bool flagRow;
-			private:
-				FieldInfo(const FieldInfo&) { }
-				void operator=(const FieldInfo&) { }
+			FieldInfo() { }
+			std::string name, code;
+			double time;
+			int numPoly;
+			double delayDirRA, delayDirDec;
+			double phaseDirRA, phaseDirDec;
+			double referenceDirRA, referenceDirDec;
+			int sourceId;
+			bool flagRow;
+		private:
+			FieldInfo(const FieldInfo&) { }
+			void operator=(const FieldInfo&) { }
 		};
 		
 		virtual ~Writer() { }
-		virtual void WriteBandInfo(const std::string &name, const std::vector<Writer::ChannelInfo> &channels, double refFreq, double totalBandwidth, bool flagRow) = 0;
-		virtual void WriteAntennae(const std::vector<Writer::AntennaInfo> &antennae, double time) = 0;
+		virtual void WriteBandInfo(const std::string &name, const std::vector<ChannelInfo> &channels, double refFreq, double totalBandwidth, bool flagRow) = 0;
+		virtual void WriteAntennae(const std::vector<AntennaInfo> &antennae, double time) = 0;
 		virtual void WritePolarizationForLinearPols(bool flagRow) = 0;
-		virtual void WriteField(const Writer::FieldInfo& field) = 0;
+		virtual void WriteSource(const SourceInfo &source) = 0;
+		virtual void WriteField(const FieldInfo& field) = 0;
 		virtual void WriteObservation(const std::string& telescopeName, double startTime, double endTime, const std::string& observer, const std::string& scheduleType, const std::string& project, double releaseDate, bool flagRow) = 0;
 		virtual void WriteHistoryItem(const std::string &commandLine, const std::string &application) = 0;
 		
@@ -71,6 +88,7 @@ class MSWriter : public Writer
 		void WriteAntennae(const std::vector<AntennaInfo>& antennae, double time);
 		void WritePolarizationForLinearPols(bool flagRow);
 		void WriteField(const FieldInfo& field);
+		void WriteSource(const SourceInfo &source);
 		void WriteObservation(const std::string& telescopeName, double startTime, double endTime, const std::string& observer, const std::string& scheduleType, const std::string& project, double releaseDate, bool flagRow);
 		void WriteHistoryItem(const std::string &commandLine, const std::string &application);
 		

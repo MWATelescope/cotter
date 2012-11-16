@@ -77,6 +77,7 @@ class Cotter : private UVWCalculater
 		void correctCableLength(aoflagger::ImageSet& imageSet, size_t polarization, double cableDelay) const;
 		void writeAntennae();
 		void writeSPW();
+		void writeSource();
 		void writeField();
 		void readSubbandGainsFile();
 		void readSubbandPassbandFile();
