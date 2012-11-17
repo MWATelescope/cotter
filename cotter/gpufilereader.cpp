@@ -205,7 +205,8 @@ void GPUFileReader::findStopHDU()
 		{
 			if(*iter != _stopHDU)
 			{
-				_stopHDU = *iter;
+				if(*iter < _stopHDU)
+					_stopHDU = *iter;
 				std::cout << "Warning: GPU files with same observation time range have unequal amount of HDU's.\n";
 			}
 			++iter;
