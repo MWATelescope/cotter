@@ -7,6 +7,10 @@
 #include <tables/Tables/ScalarColumn.h>
 #include <tables/Tables/SetupNewTab.h>
 
+#include <measures/TableMeasures/TableMeasDesc.h>
+
+#include <measures/Measures/MFrequency.h>
+
 using namespace casa;
 
 class MSWriterData
@@ -43,9 +47,19 @@ MSWriter::MSWriter(const char* filename) :
 	ms.createDefaultSubtables(Table::New);
 	
 	TableDesc sourceTableDesc = MSSource::requiredTableDesc();
+	casa::ArrayColumnDesc<double> restFrequencyColumnDesc = ArrayColumnDesc<double>(MSSource::columnName(MSSourceEnums::REST_FREQUENCY));
+	sourceTableDesc.addColumn(restFrequencyColumnDesc);
+	
+	TableMeasRefDesc measRef(MFrequency::DEFAULT);
+	TableMeasValueDesc measVal(sourceTableDesc, MSSource::columnName(MSSourceEnums::REST_FREQUENCY));
+	TableMeasDesc<MFrequency> restFreqColMeas(measVal, measRef);
+	// write makes the Measure column persistent.
+	restFreqColMeas.write(sourceTableDesc);
+
 	SetupNewTable newSourceTable(ms.sourceTableName(), sourceTableDesc, Table::New);
 	MSSource sourceTable(newSourceTable);
 	ms.rwKeywordSet().defineTable(MS::keywordName(casa::MSMainEnums::SOURCE), sourceTable);
+	
 
 	_data->_timeCol = new ScalarColumn<double>(ms, MS::columnName(casa::MSMainEnums::TIME));
 	_data->_timeCentroidCol = new ScalarColumn<double>(ms, MS::columnName(casa::MSMainEnums::TIME_CENTROID));

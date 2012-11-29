@@ -2,3 +2,4 @@
 build/
 libsla.a
 *.kate-swp
+*~
