@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(mwatoms)
+project(cotter)
 
 find_library(AOFLAGGER_LIB aoflagger)
 find_path(AOFLAGGER_INCLUDE_DIR NAMES aoflagger.h)
