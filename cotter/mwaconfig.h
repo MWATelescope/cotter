@@ -46,9 +46,26 @@ struct MWAHeader
 			return dateFirstScanMJD + (integrationTime/86400.0)*nScans;
 		}
 		double GetStartDateMJD() const;
+		
+		void Validate(bool lockPointing);
 	private:
 		MWAHeader(const MWAHeader &) { }
 		void operator=(const MWAHeader &) { }
+};
+
+struct MWAHeaderExt
+{
+	MWAHeaderExt() { }
+	
+	int gpsTime;
+	std::string fieldName, observerName, projectName, gridName, mode;
+	int delays[16], subbandGains[24];
+	bool hasCalibrator;
+	int centreSBNumber;
+	double fibreFactor;
+private:
+	MWAHeaderExt(const MWAHeaderExt &source) { }
+	void operator=(const MWAHeaderExt &source) { }
 };
 
 struct MWAAntenna
@@ -78,6 +95,7 @@ class MWAConfig
 		void ReadHeader(const char *filename, bool lockPointing);
 		void ReadInputConfig(const char *filename);
 		void ReadAntennaPositions(const char *filename);
+		void ReadMetaFits(const char *filename, bool lockPointing);
 		
 		void CheckSetup();
 		
@@ -103,11 +121,13 @@ class MWAConfig
 		static double ArrayLattitudeRad();
 		static double ArrayLongitudeRad();
 		static double ArrayHeightMeters();
+		static double VelocityFactor();
 	private:
 		std::vector<MWAInput> _inputs;
 		std::vector<MWAAntenna> _antennae;
 		std::map<size_t, MWAInput> _antennaXInputs, _antennaYInputs;
 		MWAHeader _header;
+		MWAHeaderExt _headerExt;
 		
 		static int polCharToIndex(char polarizationChar);
 };

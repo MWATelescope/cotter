@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 #include "baselinebuffer.h"
+#include "fitsuser.h"
 
 /**
  * The GPU file reader, that can read the files produced by the MWA correlator.
@@ -28,7 +29,7 @@
  * 
  * @author André Offringa
  */
-class GPUFileReader
+class GPUFileReader : private FitsUser
 {
 	public:
 		GPUFileReader() : _isOpen(false), _nAntenna(32), _nChannelsInTotal(3072), _bufferSize(0) { }
@@ -70,8 +71,6 @@ class GPUFileReader
 		
 		GPUFileReader(const GPUFileReader &) { }
 		void operator=(const GPUFileReader &) { }
-		void checkStatus(int status);
-		void throwError(int status, const std::string &msg = std::string());
 		void openFiles();
 		void closeFiles();
 		void findStopHDU();

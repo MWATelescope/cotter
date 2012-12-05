@@ -35,6 +35,7 @@ class Cotter : private UVWCalculater
 		void SetRFIDetection(bool performRFIDetection) { _rfiDetection = performRFIDetection; }
 		void SetCollectStatistics(bool collectStatistics) { _collectStatistics = collectStatistics; }
 		void SetHistoryInfo(const std::string &commandLine) { _commandLine = commandLine; }
+		void SetMetaFilename(const char *metaFilename) { _metaFilename = metaFilename; }
 		
 	private:
 		MWAConfig _mwaConfig;
@@ -53,6 +54,7 @@ class Cotter : private UVWCalculater
 		size_t _missingEndScans;
 		bool _rfiDetection, _collectStatistics;
 		std::string _commandLine;
+		std::string _metaFilename;
 		
 		std::map<std::pair<size_t, size_t>, aoflagger::ImageSet*> _imageSetBuffers;
 		std::map<std::pair<size_t, size_t>, aoflagger::FlagMask*> _flagBuffers;

@@ -8,6 +8,7 @@ void usage()
 	std::cout << "usage: cotter [options] -i <gpufile1> [<gpufile2> ..] [-i <gpufile1> <gpufile2> ..\n"
 	"Options:\n"
 	"  -o <filename>      Save output to given filename. Default is 'preprocessed.ms'.\n"
+	"  -m <filename>      Read meta data from given fits filename.\n"
 	"  -timeavg <factor>  Average 'factor' timesteps together before writing to measurement set.\n"
 	"  -freqavg <factor>  Average 'factor' channels together before writing to measurement set.\n"
 	"                     When averaging: flagging, collecting statistics and cable length fixes will be done\n"
@@ -43,6 +44,11 @@ int main(int argc, char **argv)
 		{
 			++argi;
 			outputFilename = argv[argi];
+		}
+		else if(strcmp(argv[argi], "-m") == 0)
+		{
+			++argi;
+			cotter.SetMetaFilename(argv[argi]);
 		}
 		else if(strcmp(argv[argi], "-norfi") == 0)
 		{

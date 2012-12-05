@@ -3,8 +3,8 @@
 /** @file mwaconfig.cpp
  * @brief Several functions to read the MWA meta data files.
  * 
- * Most functions were converted from corr2uvfits.c that is
- * written by Randall Wayth to C++.
+ * Most functions were converted to C++ from corr2uvfits.c that is
+ * written by Randall Wayth.
  * @author André Offringa offringa@gmail.com
  */
 
@@ -22,6 +22,7 @@
 #include <stdexcept>
 
 #include "geometry.h"
+#include "metafitsfile.h"
 
 #define VEL_FACTOR  1.204         // the velocity factor of electic fields in RG-6 like coax.
 
@@ -55,6 +56,26 @@ MWAHeader::MWAHeader() :
 double MWAHeader::GetStartDateMJD() const
 {
 	return Geometry::GetMJD(year, month, day, refHour, refMinute, refSecond);
+}
+
+void MWAConfig::ReadMetaFits(const char* filename, bool lockPointing)
+{
+	MetaFitsFile metaFile(filename);
+	
+	metaFile.ReadHeader(_header, _headerExt);
+	_header.Validate(lockPointing);
+	std::cout << "Observation covers " << (ChannelFrequencyHz(0)/1000000.0) << '-' << (ChannelFrequencyHz(_header.nChannels-1)/1000000.0) << " MHz.\n";
+	
+	metaFile.ReadTiles(_inputs, _antennae);
+	for(std::vector<MWAInput>::const_iterator i=_inputs.begin();
+			i!=_inputs.end(); ++i)
+	{
+		const MWAInput &input = *i;
+		if(input.polarizationIndex == 0)
+			_antennaXInputs.insert(std::pair<size_t, MWAInput>(input.antennaIndex, input));
+		else
+			_antennaYInputs.insert(std::pair<size_t, MWAInput>(input.antennaIndex, input));
+	}
 }
 
 void MWAConfig::ReadHeader(const char *filename, bool lockPointing)
@@ -109,42 +130,44 @@ void MWAConfig::ReadHeader(const char *filename, bool lockPointing)
 			}
 		}
 	}
+	
+	_header.Validate(lockPointing);
+	std::cout << "Observation covers " << (ChannelFrequencyHz(0)/1000000.0) << '-' << (ChannelFrequencyHz(_header.nChannels-1)/1000000.0) << " MHz.\n";
+}
 
+void MWAHeader::Validate(bool lockPointing)
+{
 	/* sanity checks and defaults */
-	if(_header.nScans == 0)
+	if(nScans == 0)
 		throw std::runtime_error("N_SCANS not specified in header");
-	if(_header.fieldName.empty())
-		_header.fieldName = "TEST_32T";
-	if(_header.nInputs == 0)
+	if(fieldName.empty())
+		fieldName = "TEST_32T";
+	if(nInputs == 0)
 		throw std::runtime_error("N_INPUTS not specified in header");
-	if(_header.nChannels == 0)
+	if(nChannels == 0)
 		throw std::runtime_error("N_CHANNELS not specified in header");
-	if(_header.correlationType == MWAHeader::None)
+	if(correlationType == MWAHeader::None)
 	{
-		_header.correlationType = MWAHeader::BothCorrelations;
+		correlationType = MWAHeader::BothCorrelations;
 		std::cerr << "WARNING: CORRTYPE unspecified. Assuming BOTH.\n";
 	}
-	if(_header.integrationTime == 0)
+	if(integrationTime == 0)
 		throw std::runtime_error("INT_TIME not specified in header");
-	if(_header.bandwidthMHz == 0)
+	if(bandwidthMHz == 0)
 		throw std::runtime_error("BANDWIDTH not specified in header");
-	if(_header.centralFrequencyMHz == 0.0)
+	if(centralFrequencyMHz == 0.0)
 		throw std::runtime_error("FREQCENT not specified in header");
-	if(_header.raHrs == -99)
+	if(raHrs == -99)
 		throw std::runtime_error("RA_HRS not specified in header");
-	if(_header.decDegs == -99)
+	if(decDegs == -99)
 		throw std::runtime_error("DEC_DEGS not specified in header");
-	if(_header.year==0 || _header.month==0 || _header.day==0)
+	if(year==0 || month==0 || day==0)
 		throw std::runtime_error("DATE not specified in header");
-	if(_header.haHrsStart == -99.0 && lockPointing)
+	if(haHrsStart == -99.0 && lockPointing)
 		throw std::runtime_error("HA must be specified in header when locking pointing.");
 	
-	std::cout << "Observation covers " << (ChannelFrequencyHz(0)/1000000.0) << '-' << (ChannelFrequencyHz(_header.nChannels-1)/1000000.0)
-		<< " MHz.\n";
-		
-	_header.dateFirstScanMJD = 0.5*(_header.integrationTime/86400.0) + Geometry::GetMJD(
-		_header.year, _header.month, _header.day, 
-		_header.refHour, _header.refMinute, _header.refSecond);
+	dateFirstScanMJD = 0.5*(integrationTime/86400.0) + Geometry::GetMJD(
+		year, month, day, refHour, refMinute, refSecond);
 }
 
 /** Read the mapping between antennas and correlator inputs. */
@@ -267,4 +290,9 @@ double MWAConfig::ArrayHeightMeters()
 size_t MWAConfig::CentreSubbandNumber() const
 {
 	return round(12.0 + ChannelFrequencyHz(0) / 1280000.0);
+}
+
+double MWAConfig::VelocityFactor()
+{
+	return VEL_FACTOR;
 }

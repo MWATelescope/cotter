@@ -5,34 +5,6 @@
 #include <sstream>
 #include <stdexcept>
 
-inline void GPUFileReader::checkStatus(int status)
-{
-	if(status != 0)
-	{
-		throwError(status);
-	}
-}
-
-void GPUFileReader::throwError(int status, const std::string &msg)
-{
-	std::stringstream msgStr;
-	
-	if(!msg.empty()) msgStr << msg << ". ";
-	
-	char statusStr[FLEN_STATUS], errMsg[FLEN_ERRMSG];
-	fits_get_errstatus(status, statusStr);
-	msgStr << "CFitsio reported error while reading GPU files. Status = " << status << ": " << statusStr;
-
-	if(fits_read_errmsg(errMsg))
-	{
-		msgStr << ". Error message stack: " << errMsg << '.';
-
-		while( fits_read_errmsg(errMsg) )
-			msgStr << ' ' << errMsg << '.';
-	}
-	throw std::runtime_error(msgStr.str());
-}
-
 void GPUFileReader::openFiles()
 {
 	int status = 0;

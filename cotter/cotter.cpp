@@ -32,6 +32,7 @@ Cotter::Cotter() :
 	_quackSampleCount(4),
 	_rfiDetection(true),
 	_collectStatistics(true),
+	_metaFilename(),
 	_statistics(0),
 	_correlatorMask(0),
 	_fullysetMask(0)
@@ -53,9 +54,14 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 {
 	bool lockPointing = false;
 	
-	_mwaConfig.ReadHeader("header.txt", lockPointing);
-	_mwaConfig.ReadInputConfig("instr_config.txt");
-	_mwaConfig.ReadAntennaPositions("antenna_locations.txt");
+	if(_metaFilename.empty())
+	{
+		_mwaConfig.ReadHeader("header.txt", lockPointing);
+		_mwaConfig.ReadInputConfig("instr_config.txt");
+		_mwaConfig.ReadAntennaPositions("antenna_locations.txt");
+	} else {
+		_mwaConfig.ReadMetaFits(_metaFilename.c_str(), lockPointing);
+	}
 	_mwaConfig.CheckSetup();
 	
 	_channelFrequenciesHz.resize(_mwaConfig.Header().nChannels);
