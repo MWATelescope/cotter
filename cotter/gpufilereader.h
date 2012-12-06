@@ -61,7 +61,7 @@ class GPUFileReader : private FitsUser
 			_corrInputToOutput[input] = outputAnt*2 + outputPol;
 		}
 		
-		bool Read(size_t &bufferPos);
+		bool Read(size_t &bufferPos, size_t count);
 		bool IsConjugated(size_t ant1, size_t ant2, size_t pol1, size_t pol2) const
 		{
 			return _isConjugated[(ant1 * 2 + pol1) * _nAntenna * 2 + (ant2 * 2 + pol2)];

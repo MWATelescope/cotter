@@ -36,6 +36,7 @@ class Cotter : private UVWCalculater
 		void SetCollectStatistics(bool collectStatistics) { _collectStatistics = collectStatistics; }
 		void SetHistoryInfo(const std::string &commandLine) { _commandLine = commandLine; }
 		void SetMetaFilename(const char *metaFilename) { _metaFilename = metaFilename; }
+		void SetMaxBufferSize(const size_t bufferSizeInSamples) { _maxBufferSize = bufferSizeInSamples; }
 		
 	private:
 		MWAConfig _mwaConfig;
@@ -49,9 +50,11 @@ class Cotter : private UVWCalculater
 		
 		std::vector<std::vector<std::string> > _fileSets;
 		size_t _threadCount;
+		size_t _maxBufferSize;
 		size_t _subbandCount;
 		size_t _quackSampleCount;
 		size_t _missingEndScans;
+		size_t _curChunkStart, _curChunkEnd;
 		bool _rfiDetection, _collectStatistics;
 		std::string _commandLine;
 		std::string _metaFilename;
@@ -71,7 +74,8 @@ class Cotter : private UVWCalculater
 		std::complex<float> *_outputData;
 		float *_outputWeights;
 		
-		void initializeReader(const std::vector<std::string> &curFileset);
+		void createReader(const std::vector<std::string> &curFileset);
+		void initializeReader();
 		void processAndWriteTimestep(size_t timeIndex);
 		void baselineProcessThreadFunc();
 		void processBaseline(size_t antenna1, size_t antenna2, aoflagger::QualityStatistics &statistics);

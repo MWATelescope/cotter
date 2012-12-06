@@ -147,7 +147,13 @@ int main(int argc, char **argv)
 	for(int i=1;i!=argc;++i)
 		commandLineStr << ' ' << argv[i];
 	
+	long int pageCount = sysconf(_SC_PHYS_PAGES), pageSize = sysconf(_SC_PAGE_SIZE);
+	int64_t memSize = (int64_t) pageCount * (int64_t) pageSize;
+	double memSizeInGB = (double) memSize / (1024.0*1024.0*1024.0);
+	std::cout << "Detected " << round(memSizeInGB*10.0)/10.0 << " GB of system memory.\n";
+	
 	cotter.SetFileSets(fileSets);
+	cotter.SetMaxBufferSize(memSize/10*9/(sizeof(float)*2+1));
 	cotter.SetThreadCount(sysconf(_SC_NPROCESSORS_ONLN));
 	cotter.Run(outputFilename, timeAvg, freqAvg);
 	

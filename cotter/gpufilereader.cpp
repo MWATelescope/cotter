@@ -42,7 +42,7 @@ void GPUFileReader::closeFiles()
 	_fitsFiles.clear();
 }
 
-bool GPUFileReader::Read(size_t &bufferPos) {
+bool GPUFileReader::Read(size_t &bufferPos, size_t count) {
 	size_t startScan = 0;
 
 	_nAntenna = 32;
@@ -62,12 +62,12 @@ bool GPUFileReader::Read(size_t &bufferPos) {
 		
 		size_t primary = 1; //(mode == 0) ? 0 : 1; // header to start reading
 		_currentHDU = 1 + startScan + primary;
+		
+		findStopHDU();
 	}
 
-	findStopHDU();
-
 	std::cout << "Reading GPU files" << std::flush;
-	while (_currentHDU <= _stopHDU && bufferPos < _bufferSize) {
+	while (_currentHDU <= _stopHDU && bufferPos < count) {
 		for (size_t iFile = 0; iFile != _filenames.size(); ++iFile) {
 			std::cout << '.' << std::flush;
 
@@ -160,8 +160,10 @@ bool GPUFileReader::Read(size_t &bufferPos) {
 	}
 	std::cout << '\n';
 	
-	closeFiles();
-	return false; // TODO
+	bool moreAvailable = _currentHDU <= _stopHDU;
+	if(!moreAvailable)
+		closeFiles();
+	return moreAvailable;
 }
 
 	// Check the number of HDUs in each file. Only extract the amount of time

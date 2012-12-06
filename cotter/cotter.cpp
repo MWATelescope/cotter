@@ -28,6 +28,7 @@ Cotter::Cotter() :
 	_flagger(0),
 	_strategy(0),
 	_threadCount(1),
+	_maxBufferSize(0),
 	_subbandCount(24),
 	_quackSampleCount(4),
 	_rfiDetection(true),
@@ -74,19 +75,9 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	
 	_flagger = new AOFlagger();
 	
-	// Initialize buffers
+	const size_t nChannels = _mwaConfig.Header().nChannels;
 	const size_t antennaCount = _mwaConfig.NAntennae();
-	for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
-	{
-		for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
-		{
-			/// TODO calculate available memory and use that for the buffers
-			ImageSet *imageSet = new ImageSet(_flagger->MakeImageSet(_mwaConfig.Header().nScans, _mwaConfig.Header().nChannels, 8));
-			_imageSetBuffers.insert(std::pair<std::pair<size_t,size_t>, ImageSet*>(
-				std::pair<size_t,size_t>(antenna1, antenna2), imageSet
-			));
-		}
-	}
+	size_t maxScansPerPart = _maxBufferSize / (nChannels*(antennaCount+1)*antennaCount*2);
 	
 	if(freqAvgFactor == 1 && timeAvgFactor == 1)
 		_writer = new MSWriter(outputFilename);
@@ -98,34 +89,17 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	writeField();
 	_writer->WritePolarizationForLinearPols(false);
 	_writer->WriteObservation("MWA", _mwaConfig.Header().dateFirstScanMJD*86400.0, _mwaConfig.Header().GetDateLastScanMJD()*86400.0, "Unknown", "MWA", "Unknown", 0, false);
-
-	std::vector<std::vector<std::string> >::const_iterator currentFileSetPtr = _fileSets.begin();
-	
-	size_t bufferPos = 0;
-	bool continueWithNextFile;
-	do {
-		initializeReader(*currentFileSetPtr);
 		
-		bool moreAvailableInCurrentFile = _reader->Read(bufferPos);
-		
-		if(!moreAvailableInCurrentFile && bufferPos < _mwaConfig.Header().nScans)
-		{
-			// Go to the next set of GPU files and add them to the buffer
-			++currentFileSetPtr;
-			continueWithNextFile = (currentFileSetPtr!=_fileSets.end());
-		} else {
-			continueWithNextFile = false;
-		}
-	} while(continueWithNextFile);
-	
-	if(bufferPos < _mwaConfig.Header().nScans)
+	if(maxScansPerPart<1)
 	{
-		std::cout << "Warning: header specifies " << _mwaConfig.Header().nScans << " scans, but there are only " << bufferPos << " in the data.\n"
-		"Last " << (_mwaConfig.Header().nScans-bufferPos) << " scan(s) will be flagged.\n";
-		_missingEndScans = _mwaConfig.Header().nScans-bufferPos;
-	} else {
-		_missingEndScans = 0;
+		std::cout << "WARNING! The given amount of memory is not enough for even one scan; expect swapping and very poor flagging accuracy.\n";
+		maxScansPerPart = 1;
 	}
+	size_t partCount = 1 + _mwaConfig.Header().nScans / maxScansPerPart;
+	if(partCount == 1)
+		std::cout << "All data fits in memory; no partitioning necessary.\n";
+	else
+		std::cout << "Observation does not fit fully in memory, will partition data in " << partCount << " chunks.\n";
 	
 	_scanTimes.resize(_mwaConfig.Header().nScans);
 	for(size_t t=0; t!=_mwaConfig.Header().nScans; ++t)
@@ -134,57 +108,117 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		_scanTimes[t] = dateMJD;
 	}
 	
-	_strategy = new Strategy(_flagger->MakeStrategy(MWA_TELESCOPE));
-	_fullysetMask = new FlagMask(_flagger->MakeFlagMask(_mwaConfig.Header().nScans, _reader->ChannelCount(), true));
-	_correlatorMask = new FlagMask(_flagger->MakeFlagMask(_mwaConfig.Header().nScans, _reader->ChannelCount(), false));
-	flagBadCorrelatorSamples(*_correlatorMask);
-
-	for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
+	std::vector<std::vector<std::string> >::const_iterator
+		currentFileSetPtr = _fileSets.begin();
+	createReader(*currentFileSetPtr);
+	for(size_t chunkIndex = 0; chunkIndex != partCount; ++chunkIndex)
 	{
-		for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
+		_curChunkStart = _mwaConfig.Header().nScans*chunkIndex/partCount;
+		_curChunkEnd = _mwaConfig.Header().nScans*(chunkIndex+1)/partCount;
+		
+		// Initialize buffers
+		for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
 		{
-			_baselinesToProcess.push(std::pair<size_t,size_t>(antenna1, antenna2));
-			
-			// We will put a place holder in the flagbuffer map, so we don't have to write (and lock)
-			// during multi threaded processing.
-			_flagBuffers.insert(std::pair<std::pair<size_t, size_t>, FlagMask*>(
-			std::pair<size_t,size_t>(antenna1, antenna2), 0));
+			for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
+			{
+				/// TODO calculate available memory and use that for the buffers
+				ImageSet *imageSet = new ImageSet(_flagger->MakeImageSet(_curChunkEnd-_curChunkStart, nChannels, 8));
+				_imageSetBuffers.insert(std::pair<std::pair<size_t,size_t>, ImageSet*>(
+					std::pair<size_t,size_t>(antenna1, antenna2), imageSet
+				));
+			}
 		}
-	}
-	if(_rfiDetection)
-	{
-		if(_collectStatistics)
-			std::cout << "RFI detection, stats, conjugations, subband ordering and cable length corrections" << std::flush;
+		
+		size_t bufferPos = 0, scanPos = 0;
+		bool continueWithNextFile;
+		do {
+			initializeReader();
+			
+			bool moreAvailableInCurrentFile = _reader->Read(bufferPos, _curChunkEnd-_curChunkStart);
+			scanPos += _curChunkEnd-_curChunkStart;
+			
+			if(!moreAvailableInCurrentFile && bufferPos < (_curChunkEnd-_curChunkStart))
+			{
+				// Go to the next set of GPU files and add them to the buffer
+				++currentFileSetPtr;
+				continueWithNextFile = (currentFileSetPtr!=_fileSets.end());
+				createReader(*currentFileSetPtr);
+			} else {
+				continueWithNextFile = false;
+			}
+		} while(continueWithNextFile);
+		
+		if(bufferPos < _curChunkEnd-_curChunkStart)
+		{
+			std::cout << "Warning: header specifies " << _mwaConfig.Header().nScans << " scans, but there are only " << scanPos << " in the data.\n"
+			"Last " << (bufferPos-(_curChunkEnd-_curChunkStart)) << " scan(s) will be flagged.\n";
+			_missingEndScans = (bufferPos-(_curChunkEnd-_curChunkStart));
+		} else {
+			_missingEndScans = 0;
+		}
+		
+		_strategy = new Strategy(_flagger->MakeStrategy(MWA_TELESCOPE));
+		_fullysetMask = new FlagMask(_flagger->MakeFlagMask(_mwaConfig.Header().nScans, _reader->ChannelCount(), true));
+		_correlatorMask = new FlagMask(_flagger->MakeFlagMask(_mwaConfig.Header().nScans, _reader->ChannelCount(), false));
+		flagBadCorrelatorSamples(*_correlatorMask);
+
+		for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
+		{
+			for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
+			{
+				_baselinesToProcess.push(std::pair<size_t,size_t>(antenna1, antenna2));
+				
+				// We will put a place holder in the flagbuffer map, so we don't have to write (and lock)
+				// during multi threaded processing.
+				_flagBuffers.insert(std::pair<std::pair<size_t, size_t>, FlagMask*>(
+				std::pair<size_t,size_t>(antenna1, antenna2), 0));
+			}
+		}
+		if(_rfiDetection)
+		{
+			if(_collectStatistics)
+				std::cout << "RFI detection, stats, conjugations, subband ordering and cable length corrections" << std::flush;
+			else
+				std::cout << "RFI detection, conjugations, subband ordering and cable length corrections" << std::flush;
+		}
 		else
-			std::cout << "RFI detection, conjugations, subband ordering and cable length corrections" << std::flush;
-	}
-	else
-	{
-		if(_collectStatistics)
-			std::cout << "Stats, conjugations, subband ordering and cable length corrections" << std::flush;
-		else
-			std::cout << "Conjugations, subband ordering and cable length corrections" << std::flush;
-	}
-	boost::thread_group threadGroup;
-	for(size_t i=0; i!=_threadCount; ++i)
-		threadGroup.create_thread(boost::bind(&Cotter::baselineProcessThreadFunc, this));
-	threadGroup.join_all();
-	std::cout << '\n';
-	
-	if(_mwaConfig.Header().geomCorrection)
-		std::cout << "Will apply geometric delay correction.\n";
-	
-	std::cout << "Writing" << std::flush;
-	const size_t nChannels = _mwaConfig.Header().nChannels;
-	_outputFlags = new bool[nChannels*4];
-	posix_memalign((void**) &_outputData, 16, nChannels*4*sizeof(std::complex<float>));
-	posix_memalign((void**) &_outputWeights, 16, nChannels*4*sizeof(float));
-	for(size_t t=0; t!=_mwaConfig.Header().nScans; ++t)
-	{
-		processAndWriteTimestep(t);
-		std::cout << '.' << std::flush;
-	}
-	std::cout << '\n';
+		{
+			if(_collectStatistics)
+				std::cout << "Stats, conjugations, subband ordering and cable length corrections" << std::flush;
+			else
+				std::cout << "Conjugations, subband ordering and cable length corrections" << std::flush;
+		}
+		boost::thread_group threadGroup;
+		for(size_t i=0; i!=_threadCount; ++i)
+			threadGroup.create_thread(boost::bind(&Cotter::baselineProcessThreadFunc, this));
+		threadGroup.join_all();
+		std::cout << '\n';
+		
+		if(_mwaConfig.Header().geomCorrection)
+			std::cout << "Will apply geometric delay correction.\n";
+		
+		std::cout << "Writing" << std::flush;
+		_outputFlags = new bool[nChannels*4];
+		posix_memalign((void**) &_outputData, 16, nChannels*4*sizeof(std::complex<float>));
+		posix_memalign((void**) &_outputWeights, 16, nChannels*4*sizeof(float));
+		for(size_t t=_curChunkStart; t!=_curChunkEnd; ++t)
+		{
+			processAndWriteTimestep(t);
+			std::cout << '.' << std::flush;
+		}
+		std::cout << '\n';
+		
+		for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
+		{
+			for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
+			{
+				delete _flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
+				delete _imageSetBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
+			}
+		}
+		_flagBuffers.clear();
+		_imageSetBuffers.clear();
+	} // end for chunkIndex!=partCount
 	
 	if(!_writer->IsTimeAligned(0, 0))
 	{
@@ -233,21 +267,25 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		_flagger->WriteStatistics(*_statistics, outputFilename);
 }
 
-void Cotter::initializeReader(const std::vector<std::string> &curFileset)
+void Cotter::createReader(const std::vector< std::string >& curFileset)
 {
 	delete _reader; // might be 0, but that's ok.
 	_reader = new GPUFileReader();
-	
+
 	for(std::vector<std::string>::const_iterator i=curFileset.begin(); i!=curFileset.end(); ++i)
 		_reader->AddFile(i->c_str());
 	
 	_reader->Initialize();
 	
-	const size_t antennaCount = _mwaConfig.NAntennae();
-	if(_reader->AntennaCount() != antennaCount)
+	if(_reader->AntennaCount() != _mwaConfig.NAntennae())
 		throw std::runtime_error("nAntennae in GPU files do not match nAntennae in config");
 	if(_reader->ChannelCount() != _mwaConfig.Header().nChannels)
 		throw std::runtime_error("nChannels in GPU files do not match nChannels in config");
+}
+
+void Cotter::initializeReader()
+{
+	const size_t antennaCount = _mwaConfig.NAntennae();
 	
 	for(size_t i=0; i!=_mwaConfig.Header().nInputs; ++i)
 		_reader->SetCorrInputToOutput(i, _mwaConfig.Input(i).antennaIndex, _mwaConfig.Input(i).polarizationIndex);
@@ -319,14 +357,15 @@ void Cotter::processAndWriteTimestep(size_t timeIndex)
 					sinAngles[ch] = sinAng; cosAngles[ch] = cosAng;
 				}
 			}
-				
+			
+			size_t bufferIndex = timeIndex - _curChunkStart;
 #ifndef USE_SSE
 			for(size_t p=0; p!=4; ++p)
 			{
 				const float
-					*realPtr = imageSet.ImageBuffer(p*2)+timeIndex,
-					*imagPtr = imageSet.ImageBuffer(p*2+1)+timeIndex;
-				const bool *flagPtr = flagMask.Buffer()+timeIndex;
+					*realPtr = imageSet.ImageBuffer(p*2)+bufferIndex,
+					*imagPtr = imageSet.ImageBuffer(p*2+1)+bufferIndex;
+				const bool *flagPtr = flagMask.Buffer()+bufferIndex;
 				std::complex<float> *outDataPtr = &_outputData[p];
 				bool *outputFlagPtr = &_outputFlags[p];
 				for(size_t ch=0; ch!=nChannels; ++ch)
@@ -352,15 +391,15 @@ void Cotter::processAndWriteTimestep(size_t timeIndex)
 			}
 #else
 			const float
-				*realAPtr = imageSet.ImageBuffer(0)+timeIndex,
-				*imagAPtr = imageSet.ImageBuffer(1)+timeIndex,
-				*realBPtr = imageSet.ImageBuffer(2)+timeIndex,
-				*imagBPtr = imageSet.ImageBuffer(3)+timeIndex,
-				*realCPtr = imageSet.ImageBuffer(4)+timeIndex,
-				*imagCPtr = imageSet.ImageBuffer(5)+timeIndex,
-				*realDPtr = imageSet.ImageBuffer(6)+timeIndex,
-				*imagDPtr = imageSet.ImageBuffer(7)+timeIndex;
-			const bool *flagPtr = flagMask.Buffer()+timeIndex;
+				*realAPtr = imageSet.ImageBuffer(0)+bufferIndex,
+				*imagAPtr = imageSet.ImageBuffer(1)+bufferIndex,
+				*realBPtr = imageSet.ImageBuffer(2)+bufferIndex,
+				*imagBPtr = imageSet.ImageBuffer(3)+bufferIndex,
+				*realCPtr = imageSet.ImageBuffer(4)+bufferIndex,
+				*imagCPtr = imageSet.ImageBuffer(5)+bufferIndex,
+				*realDPtr = imageSet.ImageBuffer(6)+bufferIndex,
+				*imagDPtr = imageSet.ImageBuffer(7)+bufferIndex;
+			const bool *flagPtr = flagMask.Buffer()+bufferIndex;
 			std::complex<float> *outDataPtr = &_outputData[0];
 			bool *outputFlagPtr = &_outputFlags[0];
 			for(size_t ch=0; ch!=nChannels; ++ch)
@@ -423,7 +462,7 @@ void Cotter::CalculateUVW(double date, size_t antenna1, size_t antenna2, double 
 void Cotter::baselineProcessThreadFunc()
 {
 	QualityStatistics threadStatistics =
-		_flagger->MakeQualityStatistics(&_scanTimes[0], _mwaConfig.Header().nScans, &_channelFrequenciesHz[0], _channelFrequenciesHz.size(), 4);
+		_flagger->MakeQualityStatistics(&_scanTimes[_curChunkStart], _curChunkEnd-_curChunkStart, &_channelFrequenciesHz[0], _channelFrequenciesHz.size(), 4);
 	
 	boost::mutex::scoped_lock lock(_mutex);
 	while(!_baselinesToProcess.empty())
