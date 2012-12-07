@@ -118,10 +118,6 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		_curChunkStart = _mwaConfig.Header().nScans*chunkIndex/partCount;
 		_curChunkEnd = _mwaConfig.Header().nScans*(chunkIndex+1)/partCount;
 		
-		_fullysetMask = new FlagMask(_flagger->MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), true));
-		_correlatorMask = new FlagMask(_flagger->MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), false));
-		flagBadCorrelatorSamples(*_correlatorMask);
-		
 		// Initialize buffers
 		for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
 		{
@@ -161,6 +157,10 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		} else {
 			_missingEndScans = 0;
 		}
+		
+		_fullysetMask = new FlagMask(_flagger->MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), true));
+		_correlatorMask = new FlagMask(_flagger->MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), false));
+		flagBadCorrelatorSamples(*_correlatorMask);
 		
 		for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
 		{
@@ -729,7 +729,7 @@ void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask) const
 	size_t scanCount = _curChunkEnd - _curChunkStart;
 	for(size_t sb=0; sb!=_subbandCount; ++sb)
 	{
-		bool *sbStart = flagMask.Buffer() + (sb*flagMask.Height()/_subbandCount)*scanCount;
+		bool *sbStart = flagMask.Buffer() + (sb*flagMask.Height()/_subbandCount)*flagMask.HorizontalStride();
 		bool *channelPtr = sbStart;
 		bool *endPtr = sbStart + flagMask.HorizontalStride();
 		
