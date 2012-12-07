@@ -97,9 +97,9 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	}
 	size_t partCount = 1 + _mwaConfig.Header().nScans / maxScansPerPart;
 	if(partCount == 1)
-		std::cout << "All data fits in memory; no partitioning necessary.\n";
+		std::cout << "All " << _mwaConfig.Header().nScans << " scans fit in memory; no partitioning necessary.\n";
 	else
-		std::cout << "Observation does not fit fully in memory, will partition data in " << partCount << " chunks.\n";
+		std::cout << "Observation does not fit fully in memory, will partition data in " << partCount << " chunks of at least " << (_mwaConfig.Header().nScans/partCount) << " scans.\n";
 	
 	_scanTimes.resize(_mwaConfig.Header().nScans);
 	for(size_t t=0; t!=_mwaConfig.Header().nScans; ++t)
@@ -107,6 +107,8 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		double dateMJD = _mwaConfig.Header().dateFirstScanMJD * 86400.0 + t * _mwaConfig.Header().integrationTime;
 		_scanTimes[t] = dateMJD;
 	}
+	
+	_strategy = new Strategy(_flagger->MakeStrategy(MWA_TELESCOPE));
 	
 	std::vector<std::vector<std::string> >::const_iterator
 		currentFileSetPtr = _fileSets.begin();
@@ -116,12 +118,15 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		_curChunkStart = _mwaConfig.Header().nScans*chunkIndex/partCount;
 		_curChunkEnd = _mwaConfig.Header().nScans*(chunkIndex+1)/partCount;
 		
+		_fullysetMask = new FlagMask(_flagger->MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), true));
+		_correlatorMask = new FlagMask(_flagger->MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), false));
+		flagBadCorrelatorSamples(*_correlatorMask);
+		
 		// Initialize buffers
 		for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
 		{
 			for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
 			{
-				/// TODO calculate available memory and use that for the buffers
 				ImageSet *imageSet = new ImageSet(_flagger->MakeImageSet(_curChunkEnd-_curChunkStart, nChannels, 8));
 				_imageSetBuffers.insert(std::pair<std::pair<size_t,size_t>, ImageSet*>(
 					std::pair<size_t,size_t>(antenna1, antenna2), imageSet
@@ -157,11 +162,6 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 			_missingEndScans = 0;
 		}
 		
-		_strategy = new Strategy(_flagger->MakeStrategy(MWA_TELESCOPE));
-		_fullysetMask = new FlagMask(_flagger->MakeFlagMask(_mwaConfig.Header().nScans, _reader->ChannelCount(), true));
-		_correlatorMask = new FlagMask(_flagger->MakeFlagMask(_mwaConfig.Header().nScans, _reader->ChannelCount(), false));
-		flagBadCorrelatorSamples(*_correlatorMask);
-
 		for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
 		{
 			for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
@@ -206,6 +206,9 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 			processAndWriteTimestep(t);
 			std::cout << '.' << std::flush;
 		}
+		free(_outputData);
+		free(_outputWeights);
+		delete[] _outputFlags;
 		std::cout << '\n';
 		
 		for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
@@ -218,48 +221,19 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		}
 		_flagBuffers.clear();
 		_imageSetBuffers.clear();
+		
+		delete _correlatorMask;
+		_correlatorMask = 0;
+		delete _fullysetMask;
+		_fullysetMask = 0;
 	} // end for chunkIndex!=partCount
 	
-	if(!_writer->IsTimeAligned(0, 0))
-	{
-		std::cout << "Nr of timesteps did not match averaging size, last averaged sample will be downweighted" << std::flush;
-		size_t timeIndex = _mwaConfig.Header().nScans;
-		
-		for(size_t ch=0; ch!=nChannels*4; ++ch)
-		{
-			_outputData[ch] = std::complex<float>(0.0, 0.0);
-			_outputFlags[ch] = true;
-			_outputWeights[ch] = 0.0;
-		}
-		while(!_writer->IsTimeAligned(0, 0))
-		{
-			_writer->AddRows(antennaCount*(antennaCount+1)/2);
-			const double dateMJD = _mwaConfig.Header().dateFirstScanMJD + timeIndex * _mwaConfig.Header().integrationTime/86400.0;
-			for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
-			{
-				for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
-				{
-					_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, 0.0, 0.0, 0.0, _mwaConfig.Header().integrationTime, _outputData, _outputFlags, _outputWeights);
-				}
-			}
-			++timeIndex;
-			std::cout << '.' << std::flush;
-		}
-		std::cout << '\n';
-	}
-	
-	free(_outputData);
-	free(_outputWeights);
-	delete[] _outputFlags;
+	writeAlignmentScans();
 	
 	_writer->WriteHistoryItem(_commandLine, "Cotter MWA preprocessor");
 	
 	delete _writer;
 	_writer = 0;
-	delete _correlatorMask;
-	_correlatorMask = 0;
-	delete _fullysetMask;
-	_fullysetMask = 0;
 	delete _reader;
 	_reader = 0;
 	
@@ -549,7 +523,7 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 		if(_rfiDetection && (antenna1 != antenna2))
 			flagMask = new FlagMask(_flagger->Run(*_strategy, *imageSet));
 		else
-			flagMask = new FlagMask(_flagger->MakeFlagMask(_mwaConfig.Header().nScans, _reader->ChannelCount(), false));
+			flagMask = new FlagMask(_flagger->MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), false));
 		correlatorMask = _correlatorMask;
 		
 		flagBadCorrelatorSamples(*flagMask);
@@ -752,9 +726,10 @@ void Cotter::readSubbandGainsFile()
 void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask) const
 {
 	// Flag MWA side and centre channels
+	size_t scanCount = _curChunkEnd - _curChunkStart;
 	for(size_t sb=0; sb!=_subbandCount; ++sb)
 	{
-		bool *sbStart = flagMask.Buffer() + (sb*flagMask.Height()/_subbandCount)*_mwaConfig.Header().nScans;
+		bool *sbStart = flagMask.Buffer() + (sb*flagMask.Height()/_subbandCount)*scanCount;
 		bool *channelPtr = sbStart;
 		bool *endPtr = sbStart + flagMask.HorizontalStride();
 		
@@ -764,31 +739,35 @@ void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask) const
 		// Flag centre channel of sb
 		size_t halfBand = flagMask.Height()/(_subbandCount*2);
 		channelPtr = sbStart + halfBand*flagMask.HorizontalStride();
-		endPtr = sbStart + halfBand*flagMask.HorizontalStride() + _mwaConfig.Header().nScans;
+		endPtr = sbStart + halfBand*flagMask.HorizontalStride() + scanCount;
 		while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
 		
 		// Flag last channel of sb
 		channelPtr = sbStart + (flagMask.Height()/_subbandCount-1)*flagMask.HorizontalStride();
-		endPtr = sbStart + (flagMask.Height()/_subbandCount-1)*flagMask.HorizontalStride() + _mwaConfig.Header().nScans;
+		endPtr = sbStart + (flagMask.Height()/_subbandCount-1)*flagMask.HorizontalStride() + scanCount;
 		while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
 	}
 	
 	// Drop first samples
-	for(size_t ch=0; ch!=flagMask.Height(); ++ch)
+	if(_quackSampleCount >= _curChunkStart)
 	{
-		bool *channelPtr = flagMask.Buffer() + ch*flagMask.HorizontalStride();
-		for(size_t x=0; x!=_quackSampleCount;++x)
+		for(size_t ch=0; ch!=flagMask.Height(); ++ch)
 		{
-			*channelPtr = true;
-			++channelPtr;
+			bool *channelPtr = flagMask.Buffer() + ch*flagMask.HorizontalStride();
+			const size_t count = _quackSampleCount - _curChunkStart;
+			for(size_t x=0; x!=count; ++x)
+			{
+				*channelPtr = true;
+				++channelPtr;
+			}
 		}
 	}
 	
 	// If samples are missing at the end, flag them.
 	for(size_t ch=0; ch!=flagMask.Height(); ++ch)
 	{
-		bool *channelPtr = flagMask.Buffer() + ch*flagMask.HorizontalStride() + _mwaConfig.Header().nScans - _missingEndScans;
-		for(size_t t=_mwaConfig.Header().nScans - _missingEndScans; t!=_mwaConfig.Header().nScans; ++t)
+		bool *channelPtr = flagMask.Buffer() + ch*flagMask.HorizontalStride() + scanCount - _missingEndScans;
+		for(size_t t=scanCount - _missingEndScans; t!=scanCount; ++t)
 		{
 			*channelPtr = true;
 			++channelPtr;
@@ -859,4 +838,43 @@ void Cotter::initializeSbOrder(size_t centerSbNumber)
 	for(size_t i=1; i!=24; ++i)
 		std::cout << ',' << _subbandOrder[i];
 	std::cout << '\n';
+}
+
+void Cotter::writeAlignmentScans()
+{
+	if(!_writer->IsTimeAligned(0, 0))
+	{
+		const size_t nChannels = _mwaConfig.Header().nChannels;
+		const size_t antennaCount = _mwaConfig.NAntennae();
+		std::cout << "Nr of timesteps did not match averaging size, last averaged sample will be downweighted" << std::flush;
+		size_t timeIndex = _mwaConfig.Header().nScans;
+		
+		_outputFlags = new bool[nChannels*4];
+		posix_memalign((void**) &_outputData, 16, nChannels*4*sizeof(std::complex<float>));
+		posix_memalign((void**) &_outputWeights, 16, nChannels*4*sizeof(float));
+		for(size_t ch=0; ch!=nChannels*4; ++ch)
+		{
+			_outputData[ch] = std::complex<float>(0.0, 0.0);
+			_outputFlags[ch] = true;
+			_outputWeights[ch] = 0.0;
+		}
+		while(!_writer->IsTimeAligned(0, 0))
+		{
+			_writer->AddRows(antennaCount*(antennaCount+1)/2);
+			const double dateMJD = _mwaConfig.Header().dateFirstScanMJD + timeIndex * _mwaConfig.Header().integrationTime/86400.0;
+			for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
+			{
+				for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
+				{
+					_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, 0.0, 0.0, 0.0, _mwaConfig.Header().integrationTime, _outputData, _outputFlags, _outputWeights);
+				}
+			}
+			++timeIndex;
+			std::cout << '.' << std::flush;
+		}
+		free(_outputData);
+		free(_outputWeights);
+		delete[] _outputFlags;
+		std::cout << '\n';
+	}
 }

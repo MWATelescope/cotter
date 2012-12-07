@@ -91,6 +91,7 @@ class Cotter : private UVWCalculater
 		void initializeWeights(float *outputWeights);
 		void reorderSubbands(aoflagger::ImageSet& imageSet) const;
 		void initializeSbOrder(size_t centerSbNumber);
+		void writeAlignmentScans();
 		
 		// Implementing UVWCalculater
 		virtual void CalculateUVW(double date, size_t antenna1, size_t antenna2, double &u, double &v, double &w);
