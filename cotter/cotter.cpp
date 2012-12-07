@@ -130,13 +130,12 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 			}
 		}
 		
-		size_t bufferPos = 0, scanPos = 0;
+		size_t bufferPos = 0;
 		bool continueWithNextFile;
 		do {
 			initializeReader();
 			
 			bool moreAvailableInCurrentFile = _reader->Read(bufferPos, _curChunkEnd-_curChunkStart);
-			scanPos += _curChunkEnd-_curChunkStart;
 			
 			if(!moreAvailableInCurrentFile && bufferPos < (_curChunkEnd-_curChunkStart))
 			{
@@ -152,9 +151,9 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		
 		if(bufferPos < _curChunkEnd-_curChunkStart)
 		{
-			std::cout << "Warning: header specifies " << _mwaConfig.Header().nScans << " scans, but there are only " << scanPos << " in the data.\n"
-			"Last " << (bufferPos-(_curChunkEnd-_curChunkStart)) << " scan(s) will be flagged.\n";
-			_missingEndScans = (bufferPos-(_curChunkEnd-_curChunkStart));
+			_missingEndScans = (_curChunkEnd-_curChunkStart)- bufferPos;
+			std::cout << "Warning: header specifies " << _mwaConfig.Header().nScans << " scans, but there are only " << (bufferPos+_curChunkStart) << " in the data.\n"
+			"Last " << _missingEndScans << " scan(s) will be flagged.\n";
 		} else {
 			_missingEndScans = 0;
 		}
