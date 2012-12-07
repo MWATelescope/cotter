@@ -28,6 +28,7 @@ void GPUFileReader::openFiles()
 			exit(1);
 		}
 	}
+	_isOpen = true;
 }
 
 void GPUFileReader::closeFiles()
@@ -40,11 +41,10 @@ void GPUFileReader::closeFiles()
 		checkStatus(status);
 	}
 	_fitsFiles.clear();
+	_isOpen = false;
 }
 
 bool GPUFileReader::Read(size_t &bufferPos, size_t count) {
-	size_t startScan = 0;
-
 	_nAntenna = 32;
 	_nChannelsInTotal = 1536*2;
 	
@@ -57,14 +57,14 @@ bool GPUFileReader::Read(size_t &bufferPos, size_t count) {
 	if(!_isOpen)
 	{
 		openFiles();
-		initMapping();
-		_isOpen = true;
 		
 		size_t primary = 1; //(mode == 0) ? 0 : 1; // header to start reading
-		_currentHDU = 1 + startScan + primary;
+		_currentHDU = 1 + primary;
 		
 		findStopHDU();
 	}
+	
+	initMapping();
 
 	std::cout << "Reading GPU files" << std::flush;
 	while (_currentHDU <= _stopHDU && bufferPos < count) {
