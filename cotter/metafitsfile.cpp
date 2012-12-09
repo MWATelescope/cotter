@@ -59,8 +59,8 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput> &inputs, std::vector<MWAAnten
 		slotColName[] = "Slot",
 		flagColName[] = "Flag",
 		lengthColName[] = "Length",
-		northColName[] = "North",
 		eastColName[] = "East",
+		northColName[] = "North",
 		heightColName[] = "Height";
 	int inputCol, antennaCol, tileCol, polCol, rxCol, slotCol, flagCol, lengthCol, northCol, eastCol, heightCol;
 		
@@ -72,8 +72,8 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput> &inputs, std::vector<MWAAnten
 	fits_get_colnum(_fptr, CASESEN, slotColName, &slotCol, &status);
 	fits_get_colnum(_fptr, CASESEN, flagColName, &flagCol, &status);
 	fits_get_colnum(_fptr, CASESEN, lengthColName, &lengthCol, &status);
-	fits_get_colnum(_fptr, CASESEN, northColName, &northCol, &status);
 	fits_get_colnum(_fptr, CASESEN, eastColName, &eastCol, &status);
+	fits_get_colnum(_fptr, CASESEN, northColName, &northCol, &status);
 	fits_get_colnum(_fptr, CASESEN, heightColName, &heightCol, &status);
 	checkStatus(status);
 	
@@ -99,26 +99,26 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput> &inputs, std::vector<MWAAnten
 		fits_read_col(_fptr, TINT, slotCol, i+1, 1, 1, 0, &slot, 0, &status);
 		fits_read_col(_fptr, TINT, flagCol, i+1, 1, 1, 0, &flag, 0, &status);
 		fits_read_col(_fptr, TSTRING, lengthCol, i+1, 1, 1, 0, lengthPtr, 0, &status);
-		fits_read_col(_fptr, TDOUBLE, northCol, i+1, 1, 1, 0, &north, 0, &status);
 		fits_read_col(_fptr, TDOUBLE, eastCol, i+1, 1, 1, 0, &east, 0, &status);
+		fits_read_col(_fptr, TDOUBLE, northCol, i+1, 1, 1, 0, &north, 0, &status);
 		fits_read_col(_fptr, TDOUBLE, heightCol, i+1, 1, 1, 0, &height, 0, &status);
 		checkStatus(status);
 		
-		std::stringstream nameStr;
-		nameStr << "Tile";
-		if(tile<100) nameStr << '0';
-		if(tile<10) nameStr << '0';
-		nameStr << tile;
-		
-		//if(pol == 'X')
-		//{
+		if(pol == 'X')
+		{
+			std::stringstream nameStr;
+			nameStr << "Tile";
+			if(tile<100) nameStr << '0';
+			if(tile<10) nameStr << '0';
+			nameStr << tile;
+			
 			MWAAntenna &ant = antennae[antenna];
 			ant.name = nameStr.str();
 			Geometry::ENH2XYZ_local(east, north, height, MWAConfig::ArrayLattitudeRad(), ant.position[0], ant.position[1], ant.position[2]);
 			ant.stationIndex = antenna;
-			std::cout << "Tile" << tile << ' ' << antenna << ' ' << east << ' ' << north << ' ' << height << '\n';
-		//} else if(pol != 'Y')
-		//	throw std::runtime_error("Error parsing polarization");
+			//std::cout << ant.name << ' ' << input << ' ' << antenna << ' ' << east << ' ' << north << ' ' << height << '\n';
+		} else if(pol != 'Y')
+			throw std::runtime_error("Error parsing polarization");
 		
 		length[80] = 0;
 		lengthStr = length;
@@ -140,7 +140,7 @@ void MetaFitsFile::parseKeyword(MWAHeader &header, MWAHeaderExt &headerExt, cons
 	if(name == "GPSTIME")
 		headerExt.gpsTime = atoi(keyValue);
 	else if(name == "FILENAME")
-		headerExt.fieldName = parseFitsString(keyValue);
+		header.fieldName = parseFitsString(keyValue);
 	else if(name == "DATE-OBS")
 		parseFitsDate(keyValue, header.year, header.month, header.day, header.refHour, header.refMinute, header.refSecond);
 	else if(name == "RA")
@@ -179,6 +179,7 @@ void MetaFitsFile::parseKeyword(MWAHeader &header, MWAHeaderExt &headerExt, cons
 		header.centralFrequencyMHz = atof(keyValue);
 	//else
 	//	std::cout << "Ignored keyword: " << name << '\n';
+	std::cout << "RA=" << header.raHrs << ", DEC=" << header.decDegs << '\n';
 }
 
 std::string MetaFitsFile::parseFitsString(const char* valueStr)
@@ -206,6 +207,7 @@ void MetaFitsFile::parseFitsDate(const char* valueStr, int& year, int& month, in
 	hour = (dateStr[11]-'0')*10 + (dateStr[12]-'0');
 	min = (dateStr[14]-'0')*10 + (dateStr[15]-'0');
 	sec = (dateStr[17]-'0')*10 + (dateStr[18]-'0');
+	std::cout << "Date=" << year << '-' << month << '-' << day << ' ' << hour << ':' << min << ':' << sec <<'\n';
 }
 
 void MetaFitsFile::parseIntArray(const char* valueStr, int *delays, size_t count)

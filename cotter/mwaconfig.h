@@ -58,7 +58,7 @@ struct MWAHeaderExt
 	MWAHeaderExt() { }
 	
 	int gpsTime;
-	std::string fieldName, observerName, projectName, gridName, mode;
+	std::string observerName, projectName, gridName, mode;
 	int delays[16], subbandGains[24];
 	bool hasCalibrator;
 	int centreSBNumber;
@@ -108,6 +108,7 @@ class MWAConfig
 		size_t NAntennae() const { return _antennae.size(); }
 		
 		const MWAHeader &Header() const { return _header; }
+		const MWAHeaderExt &HeaderExt() const { return _headerExt; }
 		
 		double ChannelFrequencyHz(size_t channelIndex) const
 		{

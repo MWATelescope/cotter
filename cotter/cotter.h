@@ -85,6 +85,7 @@ class Cotter : private UVWCalculater
 		void writeSPW();
 		void writeSource();
 		void writeField();
+		void writeObservation();
 		void readSubbandGainsFile();
 		void readSubbandPassbandFile();
 		void flagBadCorrelatorSamples(aoflagger::FlagMask &flagMask) const;

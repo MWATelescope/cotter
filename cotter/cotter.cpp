@@ -88,7 +88,7 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	writeSource();
 	writeField();
 	_writer->WritePolarizationForLinearPols(false);
-	_writer->WriteObservation("MWA", _mwaConfig.Header().dateFirstScanMJD*86400.0, _mwaConfig.Header().GetDateLastScanMJD()*86400.0, "Unknown", "MWA", "Unknown", 0, false);
+	writeObservation();
 		
 	if(maxScansPerPart<1)
 	{
@@ -657,6 +657,18 @@ void Cotter::writeField()
 	field.sourceId = -1;
 	field.flagRow = false;
 	_writer->WriteField(field);
+}
+
+void Cotter::writeObservation()
+{
+	std::string
+		observer = _mwaConfig.HeaderExt().observerName,
+		project = _mwaConfig.HeaderExt().projectName;
+	if(observer.empty())
+		observer = "Unknown";
+	if(project.empty())
+		project = "Unknown";
+	_writer->WriteObservation("MWA", _mwaConfig.Header().dateFirstScanMJD*86400.0, _mwaConfig.Header().GetDateLastScanMJD()*86400.0, observer, "MWA", project, 0, false);
 }
 
 void Cotter::readSubbandPassbandFile()
