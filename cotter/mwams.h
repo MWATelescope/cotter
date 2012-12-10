@@ -36,16 +36,19 @@ class MWAMS
 {
 	public:
 		struct MWAAntennaInfo {
-			int inputX, inputY, tileNr, receiver, slot;
+			int inputX, inputY, tileNr, receiver, slotX, slotY;
 			double cableLength;
 		};
 		
 		struct MWAObservationInfo {
 			double gpsTime;
-			std::string filename, mode;
+			std::string filename, observationMode;
+			double rawFileCreationDate;
+			int flagWindowSize;
 		};
 		
 		MWAMS(const std::string &filename);
+		
 		~MWAMS();
 		
 		void AddMWAFields()
@@ -55,19 +58,22 @@ class MWAMS
 			addMWAObservationFields();
 			addMWASpectralWindowFields();
 			addMWATilePointingFields();
+			addMWASubbandFields();
 		}
 		
-		void WriteMWAAntennaInfo(size_t antennaIndex, const MWAAntennaInfo &info);
+		void UpdateMWAAntennaInfo(size_t antennaIndex, const MWAAntennaInfo &info);
 		
-		void WriteMWAObservationInfo(const MWAObservationInfo &info);
+		void UpdateMWAFieldInfo(bool hasCalibrator);
 		
-		void WriteSpectralWindowInfo(size_t spwIndex, int mwaCentreSubbandNr);
+		void UpdateMWAObservationInfo(const MWAObservationInfo &info);
+		
+		void UpdateSpectralWindowInfo(int mwaCentreSubbandNr);
 		
 		void WriteMWATilePointingInfo(double start, double end, const int *delays);
 		
 		void WriteMWASubbandInfo(int number, double gain, bool isFlagged);
 		
-		void WriteMWAKeywords(double fibreVelFactor, double rawFileCreationDate, int metaDataVersion, bool hasCalibrator);
+		void WriteMWAKeywords(double fibreVelFactor, int metaDataVersion);
 		
 	private:
 		void addMWAAntennaFields();
@@ -75,6 +81,7 @@ class MWAMS
 		void addMWAObservationFields();
 		void addMWASpectralWindowFields();
 		void addMWATilePointingFields();
+		void addMWASubbandFields();
 		
 		const std::string &columnName(enum MWAMSEnums::MWAColumns column)
 		{
@@ -83,7 +90,7 @@ class MWAMS
 		
 		const std::string &tableName(enum MWAMSEnums::MWATables table)
 		{
-			return _tableName[(int) table];
+			return _tableNames[(int) table];
 		}
 		
 		static const std::string _columnNames[], _tableNames[];

@@ -8,6 +8,9 @@
 #include <tables/Tables/ScaColDesc.h>
 #include <tables/Tables/SetupNewTab.h>
 
+#include <stdexcept>
+#include <sstream>
+
 using namespace casa;
 
 struct MWAMSData
@@ -119,13 +122,166 @@ void MWAMS::addMWATilePointingFields()
 {
 	TableDesc tilePointingTableDesc(tableName(MWAMSEnums::MWA_TILE_POINTING_TABLE), TableDesc::New);
 	
-	casa::ArrayColumnDesc<double> restFrequencyColumnDesc =
-		ArrayColumnDesc<double>(MSSource::columnName(MSSourceEnums::REST_FREQUENCY));
+	ArrayColumnDesc<double> intervalCD =
+		ArrayColumnDesc<double>(columnName(MWAMSEnums::INTERVAL));
+	ArrayColumnDesc<int> delaysCD =
+		ArrayColumnDesc<int>(columnName(MWAMSEnums::DELAYS));
 		
-	tilePointingTableDesc.addColumn(restFrequencyColumnDesc);
+	tilePointingTableDesc.addColumn(intervalCD);
+	tilePointingTableDesc.addColumn(delaysCD);
 	
-	SetupNewTable newTilePointingTable(tableName(MWAMSEnums::MWA_TILE_POINTING_TABLE), tilePointingTableDesc, Table::New);
-	MSSource sourceTable(newSourceTable);
-	ms.rwKeywordSet().defineTable(MS::keywordName(casa::MSMainEnums::SOURCE), sourceTable);
+	SetupNewTable newTilePointingTable(_filename + '/' + tableName(MWAMSEnums::MWA_TILE_POINTING_TABLE), tilePointingTableDesc, Table::New);
+	Table tilePointingTable(newTilePointingTable);
+	_data->_measurementSet.rwKeywordSet().defineTable(tableName(MWAMSEnums::MWA_TILE_POINTING_TABLE), tilePointingTable);
+}
+
+void MWAMS::addMWASubbandFields()
+{
+	TableDesc subbandTableDesc(tableName(MWAMSEnums::MWA_SUBBAND_TABLE), TableDesc::New);
 	
+	ScalarColumnDesc<int> numberCD =
+		ScalarColumnDesc<int>(columnName(MWAMSEnums::NUMBER));
+	ScalarColumnDesc<int> gainCD =
+		ScalarColumnDesc<int>(columnName(MWAMSEnums::GAIN));
+	ScalarColumnDesc<bool> flagRowCD =
+		ScalarColumnDesc<bool>(columnName(MWAMSEnums::FLAG_ROW));
+		
+	subbandTableDesc.addColumn(numberCD);
+	subbandTableDesc.addColumn(gainCD);
+	subbandTableDesc.addColumn(flagRowCD);
+	
+	SetupNewTable newSubbandTable(_filename + '/' + tableName(MWAMSEnums::MWA_SUBBAND_TABLE), subbandTableDesc, Table::New);
+	Table subbandTable(newSubbandTable);
+	_data->_measurementSet.rwKeywordSet().defineTable(tableName(MWAMSEnums::MWA_SUBBAND_TABLE), subbandTable);
+}
+
+void MWAMS::UpdateMWAAntennaInfo(size_t antennaIndex, const MWAMS::MWAAntennaInfo& info)
+{
+	MSAntenna antTable = _data->_measurementSet.antenna();
+	
+	ArrayColumn<int> inputCol =
+		ArrayColumn<int>(antTable, columnName(MWAMSEnums::MWA_INPUT));
+	ScalarColumn<int> tileNrCol =
+		ScalarColumn<int>(antTable, columnName(MWAMSEnums::MWA_TILE_NR));
+	ScalarColumn<int> receiverCol =
+		ScalarColumn<int>(antTable, columnName(MWAMSEnums::MWA_RECEIVER));
+	ArrayColumn<int> slotCol =
+		ArrayColumn<int>(antTable, columnName(MWAMSEnums::MWA_SLOT));
+	ScalarColumn<double> cableLengthCol =
+		ScalarColumn<double>(antTable, columnName(MWAMSEnums::MWA_CABLE_LENGTH));
+	
+	casa::Vector<int> inputVec(2);
+	inputVec[0] = info.inputX;
+	inputVec[1] = info.inputY;
+	inputCol.put(antennaIndex, inputVec);
+	
+	tileNrCol.put(antennaIndex, info.tileNr);
+	receiverCol.put(antennaIndex, info.receiver);
+	
+	casa::Vector<int> slotVec(2);
+	slotVec[0] = info.slotX;
+	slotVec[1] = info.slotY;
+	slotCol.put(antennaIndex, slotVec);
+	
+	cableLengthCol.put(antennaIndex, info.cableLength);
+}
+
+void MWAMS::UpdateMWAFieldInfo(bool hasCalibrator)
+{
+	MSField fieldTable = _data->_measurementSet.field();
+	
+	if(fieldTable.nrow() != 1) {
+		std::stringstream s;
+		s << "The field table of a MWA MS should have exactly one row, but in " << _filename << " it has " << fieldTable.nrow() << " rows.";
+		throw std::runtime_error(s.str());
+	}
+	
+	ScalarColumn<bool> hasCalCol =
+		ScalarColumn<bool>(fieldTable, columnName(MWAMSEnums::MWA_HAS_CALIBRATOR));
+	hasCalCol.put(0, hasCalibrator);
+}
+
+void MWAMS::UpdateMWAObservationInfo(const MWAMS::MWAObservationInfo& info)
+{
+	MSObservation obsTable = _data->_measurementSet.observation();
+	
+	if(obsTable.nrow() != 1) {
+		std::stringstream s;
+		s << "The observation table of a MWA MS should have exactly one row, but in " << _filename << " it has " << obsTable.nrow() << " rows.";
+		throw std::runtime_error(s.str());
+	}
+	
+	ScalarColumn<double> gpsTimeCol =
+		ScalarColumn<double>(obsTable, columnName(MWAMSEnums::MWA_GPS_TIME));
+	ScalarColumn<casa::String> filenameCol =
+		ScalarColumn<casa::String>(obsTable, columnName(MWAMSEnums::MWA_FILENAME));
+	ScalarColumn<casa::String> obsModeCol =
+		ScalarColumn<casa::String>(obsTable, columnName(MWAMSEnums::MWA_OBSERVATION_MODE));
+	ScalarColumn<double> rawFileCreationDateCol =
+		ScalarColumn<double>(obsTable, columnName(MWAMSEnums::MWA_RAW_FILE_CREATION_DATE));
+	ScalarColumn<int> flagWindowSizeCol =
+		ScalarColumn<int>(obsTable, columnName(MWAMSEnums::MWA_FLAG_WINDOW_SIZE));
+		
+	gpsTimeCol.put(0, info.gpsTime);
+	filenameCol.put(0, info.filename);
+	obsModeCol.put(0, info.observationMode);
+	rawFileCreationDateCol.put(0, info.rawFileCreationDate);
+	flagWindowSizeCol.put(0, info.flagWindowSize);
+}
+
+void MWAMS::UpdateSpectralWindowInfo(int mwaCentreSubbandNr)
+{
+	MSSpectralWindow spwTable = _data->_measurementSet.spectralWindow();
+	
+	if(spwTable.nrow() != 1) {
+		std::stringstream s;
+		s << "The spectralwindow table of a MWA MS should have exactly one row, but in " << _filename << " it has " << spwTable.nrow() << " rows.";
+		throw std::runtime_error(s.str());
+	}
+	
+	ScalarColumn<int> centreSubbandNrCol =
+		ScalarColumn<int>(spwTable, columnName(MWAMSEnums::MWA_CENTRE_SUBBAND_NR));
+
+	centreSubbandNrCol.put(0, mwaCentreSubbandNr);
+}
+
+void MWAMS::WriteMWATilePointingInfo(double start, double end, const int* delays)
+{
+	Table tilePntTable(_data->_measurementSet.rwKeywordSet().asTable(tableName(MWAMSEnums::MWA_TILE_POINTING_TABLE)));
+	
+	ArrayColumn<double> intervalCol =
+		ArrayColumn<double>(tilePntTable, columnName(MWAMSEnums::INTERVAL));
+	ArrayColumn<int> delaysCol =
+		ArrayColumn<int>(tilePntTable, columnName(MWAMSEnums::DELAYS));
+		
+	size_t index = tilePntTable.nrow();
+	tilePntTable.addRow();
+		
+	casa::Vector<double> intervalVec(2);
+	intervalVec[0] = start;
+	intervalVec[1] = end;
+	intervalCol.put(index, intervalVec);
+	
+	casa::Vector<int> delaysVec(2);
+	for(size_t i=0; i!=16; ++i) delaysVec[i] = delays[i];
+	delaysCol.put(index, delaysVec);
+}
+
+void MWAMS::WriteMWASubbandInfo(int number, double gain, bool isFlagged)
+{
+	Table sbTable(_data->_measurementSet.rwKeywordSet().asTable(tableName(MWAMSEnums::MWA_SUBBAND_TABLE)));
+	
+	ScalarColumn<int> numberCol =
+		ScalarColumn<int>(sbTable, columnName(MWAMSEnums::NUMBER));
+	ScalarColumn<int> gainCol =
+		ScalarColumn<int>(sbTable, columnName(MWAMSEnums::GAIN));
+	ScalarColumn<bool> flagRowCol =
+		ScalarColumn<bool>(sbTable, columnName(MWAMSEnums::FLAG_ROW));
+		
+	size_t index = sbTable.nrow();
+	sbTable.addRow();
+		
+	numberCol.put(index, number);
+	gainCol.put(index, gain);
+	flagRowCol.put(index, isFlagged);
 }
