@@ -3,6 +3,7 @@
 #include "baselinebuffer.h"
 #include "geometry.h"
 #include "mswriter.h"
+#include "mwams.h"
 
 #include <aoflagger.h>
 
@@ -230,15 +231,24 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	
 	writeAlignmentScans();
 	
-	_writer->WriteHistoryItem(_commandLine, "Cotter MWA preprocessor");
+	std::vector<std::string> params;
+	std::stringstream paramStr;
+	paramStr << "timeavg=" << timeAvgFactor << ",freqavg=" << freqAvgFactor << ",windowSize=" << (_mwaConfig.Header().nScans/partCount);
+	params.push_back(paramStr.str());
+	_writer->WriteHistoryItem(_commandLine, "Cotter MWA preprocessor", params);
 	
 	delete _writer;
 	_writer = 0;
 	delete _reader;
 	_reader = 0;
 	
-	if(_collectStatistics)
+	if(_collectStatistics) {
+		std::cout << "Writing statistics to file...\n";
 		_flagger->WriteStatistics(*_statistics, outputFilename);
+	}
+	
+	std::cout << "Writing MWA fields to file...\n";
+	writeMWAFields(outputFilename, _mwaConfig.Header().nScans/partCount);
 }
 
 void Cotter::createReader(const std::vector< std::string >& curFileset)
@@ -889,4 +899,50 @@ void Cotter::writeAlignmentScans()
 		delete[] _outputFlags;
 		std::cout << '\n';
 	}
+}
+
+void Cotter::writeMWAFields(const char *outputFilename, size_t flagWindowSize)
+{
+	MWAMS mwaMs(outputFilename);
+	mwaMs.AddMWAFields();
+	
+	size_t nAnt = _mwaConfig.NAntennae();
+	for(size_t i=0; i!=nAnt; ++i)
+	{
+		const MWAAntenna &ant = _mwaConfig.Antenna(i);
+		const MWAInput &inpX = _mwaConfig.AntennaXInput(i);
+		const MWAInput &inpY = _mwaConfig.AntennaYInput(i);
+		
+		MWAMS::MWAAntennaInfo antennaInfo;
+		antennaInfo.inputX = inpX.inputIndex;
+		antennaInfo.inputY = inpY.inputIndex;
+		antennaInfo.tileNr = ant.tileNumber;
+		antennaInfo.receiver = ant.receiver;
+		antennaInfo.slotX = inpX.slot;
+		antennaInfo.slotY = inpY.slot;
+		antennaInfo.cableLengthX = inpX.cableLenDelta;
+		antennaInfo.cableLengthY = inpY.cableLenDelta;
+		
+		mwaMs.UpdateMWAAntennaInfo(i, antennaInfo);
+	}
+	
+	mwaMs.UpdateMWAFieldInfo(_mwaConfig.HeaderExt().hasCalibrator);
+	
+	MWAMS::MWAObservationInfo obsInfo;
+	obsInfo.gpsTime = _mwaConfig.HeaderExt().gpsTime;
+	obsInfo.filename = _mwaConfig.HeaderExt().filename;
+	obsInfo.observationMode = _mwaConfig.HeaderExt().mode;
+	obsInfo.rawFileCreationDate = 0;
+	obsInfo.flagWindowSize = flagWindowSize;
+	mwaMs.UpdateMWAObservationInfo(obsInfo);
+	
+	mwaMs.UpdateSpectralWindowInfo(_mwaConfig.CentreSubbandNumber());
+	
+	mwaMs.WriteMWATilePointingInfo(_mwaConfig.Header().GetStartDateMJD()*86400.0,
+		_mwaConfig.Header().GetDateLastScanMJD()*86400.0, _mwaConfig.HeaderExt().delays);
+	
+	for(int i=0; i!=24; ++i)
+		mwaMs.WriteMWASubbandInfo(i, sqrt(1.0/_subbandGainCorrection[i]), false);
+	
+	mwaMs.WriteMWAKeywords(_mwaConfig.HeaderExt().fibreFactor, 0);
 }

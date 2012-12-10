@@ -53,6 +53,16 @@ MWAHeader::MWAHeader() :
 {
 }
 
+MWAHeaderExt::MWAHeaderExt() :
+	gpsTime(0), observerName("Unknown"), projectName("Unknown"),
+	gridName("Unknown"), mode("Unknown"), filename("Unknown"),
+	hasCalibrator(false), centreSBNumber(0),
+	fibreFactor(VEL_FACTOR)
+{
+	for(size_t i=0; i!=16; ++i) delays[i] = 0;
+	for(size_t i=0; i!=24; ++i) subbandGains[i] = 0;
+}
+
 double MWAHeader::GetStartDateMJD() const
 {
 	return Geometry::GetMJD(year, month, day, refHour, refMinute, refSecond);
@@ -65,6 +75,13 @@ void MWAConfig::ReadMetaFits(const char* filename, bool lockPointing)
 	metaFile.ReadHeader(_header, _headerExt);
 	_header.Validate(lockPointing);
 	std::cout << "Observation covers " << (ChannelFrequencyHz(0)/1000000.0) << '-' << (ChannelFrequencyHz(_header.nChannels-1)/1000000.0) << " MHz.\n";
+	
+	if(_headerExt.centreSBNumber != (int) CentreSubbandNumber())
+	{
+		std::stringstream msg;
+		msg << "The central subband number in the meta data fits file did not match with the given frequency. The frequency corresponds with subband number " << CentreSubbandNumber() << ", but fits meta file specifies " << _headerExt.centreSBNumber;
+		throw std::runtime_error(msg.str());
+	}
 	
 	metaFile.ReadTiles(_inputs, _antennae);
 	for(std::vector<MWAInput>::const_iterator i=_inputs.begin();
@@ -244,6 +261,12 @@ void MWAConfig::ReadAntennaPositions(const char *filename) {
 			Geometry::ENH2XYZ_local(east, north, height, arrayLattitudeRad, antenna.position[0], antenna.position[1], antenna.position[2]);
 			
 			antenna.stationIndex = _antennae.size();
+			
+			if(antenna.name.size() > 4 && antenna.name.substr(0, 4) == "Tile")
+				antenna.tileNumber = atoi(antenna.name.substr(4).c_str());
+			else
+				antenna.tileNumber = 0;
+			
 			_antennae.push_back(antenna);
 		}
   }

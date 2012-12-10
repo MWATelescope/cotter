@@ -140,7 +140,10 @@ void MetaFitsFile::parseKeyword(MWAHeader &header, MWAHeaderExt &headerExt, cons
 	if(name == "GPSTIME")
 		headerExt.gpsTime = atoi(keyValue);
 	else if(name == "FILENAME")
+	{
 		header.fieldName = parseFitsString(keyValue);
+		headerExt.filename = header.fieldName;
+	}
 	else if(name == "DATE-OBS")
 		parseFitsDate(keyValue, header.year, header.month, header.day, header.refHour, header.refMinute, header.refSecond);
 	else if(name == "RA")

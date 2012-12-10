@@ -16,7 +16,7 @@ using namespace casa;
 struct MWAMSData
 {
 	MWAMSData(const std::string &filename) :
-		_measurementSet(filename)
+		_measurementSet(filename, Table::Update)
 	{
 	}
 	
@@ -48,6 +48,10 @@ const std::string MWAMS::_columnNames[] = {
 	"NUMBER", "GAIN", "FLAG_ROW"
 };
 
+const std::string MWAMS::_keywordNames[] = {
+	"MWA_FIBER_VEL_FACTOR", "MWA_METADATA_VERSION"
+};
+
 MWAMS::MWAMS(const string& filename) : _filename(filename),
 	_data(new MWAMSData(filename))
 {
@@ -68,8 +72,8 @@ void MWAMS::addMWAAntennaFields()
 		ScalarColumnDesc<int>(columnName(MWAMSEnums::MWA_RECEIVER));
 	ArrayColumnDesc<int> slotCD =
 		ArrayColumnDesc<int>(columnName(MWAMSEnums::MWA_SLOT));
-	ScalarColumnDesc<double> cableLengthCD =
-		ScalarColumnDesc<double>(columnName(MWAMSEnums::MWA_CABLE_LENGTH));
+	ArrayColumnDesc<double> cableLengthCD =
+		ArrayColumnDesc<double>(columnName(MWAMSEnums::MWA_CABLE_LENGTH));
 	
 	MSAntenna antennaTable = _data->_measurementSet.antenna();
 	antennaTable.addColumn(inputCD);
@@ -120,7 +124,7 @@ void MWAMS::addMWASpectralWindowFields()
 
 void MWAMS::addMWATilePointingFields()
 {
-	TableDesc tilePointingTableDesc(tableName(MWAMSEnums::MWA_TILE_POINTING_TABLE), TableDesc::New);
+	TableDesc tilePointingTableDesc(tableName(MWAMSEnums::MWA_TILE_POINTING_TABLE), TableDesc::Scratch);
 	
 	ArrayColumnDesc<double> intervalCD =
 		ArrayColumnDesc<double>(columnName(MWAMSEnums::INTERVAL));
@@ -137,12 +141,12 @@ void MWAMS::addMWATilePointingFields()
 
 void MWAMS::addMWASubbandFields()
 {
-	TableDesc subbandTableDesc(tableName(MWAMSEnums::MWA_SUBBAND_TABLE), TableDesc::New);
+	TableDesc subbandTableDesc(tableName(MWAMSEnums::MWA_SUBBAND_TABLE), TableDesc::Scratch);
 	
 	ScalarColumnDesc<int> numberCD =
 		ScalarColumnDesc<int>(columnName(MWAMSEnums::NUMBER));
-	ScalarColumnDesc<int> gainCD =
-		ScalarColumnDesc<int>(columnName(MWAMSEnums::GAIN));
+	ScalarColumnDesc<double> gainCD =
+		ScalarColumnDesc<double>(columnName(MWAMSEnums::GAIN));
 	ScalarColumnDesc<bool> flagRowCD =
 		ScalarColumnDesc<bool>(columnName(MWAMSEnums::FLAG_ROW));
 		
@@ -167,8 +171,8 @@ void MWAMS::UpdateMWAAntennaInfo(size_t antennaIndex, const MWAMS::MWAAntennaInf
 		ScalarColumn<int>(antTable, columnName(MWAMSEnums::MWA_RECEIVER));
 	ArrayColumn<int> slotCol =
 		ArrayColumn<int>(antTable, columnName(MWAMSEnums::MWA_SLOT));
-	ScalarColumn<double> cableLengthCol =
-		ScalarColumn<double>(antTable, columnName(MWAMSEnums::MWA_CABLE_LENGTH));
+	ArrayColumn<double> cableLengthCol =
+		ArrayColumn<double>(antTable, columnName(MWAMSEnums::MWA_CABLE_LENGTH));
 	
 	casa::Vector<int> inputVec(2);
 	inputVec[0] = info.inputX;
@@ -183,7 +187,10 @@ void MWAMS::UpdateMWAAntennaInfo(size_t antennaIndex, const MWAMS::MWAAntennaInf
 	slotVec[1] = info.slotY;
 	slotCol.put(antennaIndex, slotVec);
 	
-	cableLengthCol.put(antennaIndex, info.cableLength);
+	casa::Vector<double> cableLengthVec(2);
+	cableLengthVec[0] = info.cableLengthX;
+	cableLengthVec[1] = info.cableLengthY;
+	cableLengthCol.put(antennaIndex, cableLengthVec);
 }
 
 void MWAMS::UpdateMWAFieldInfo(bool hasCalibrator)
@@ -262,7 +269,7 @@ void MWAMS::WriteMWATilePointingInfo(double start, double end, const int* delays
 	intervalVec[1] = end;
 	intervalCol.put(index, intervalVec);
 	
-	casa::Vector<int> delaysVec(2);
+	casa::Vector<int> delaysVec(16);
 	for(size_t i=0; i!=16; ++i) delaysVec[i] = delays[i];
 	delaysCol.put(index, delaysVec);
 }
@@ -273,8 +280,8 @@ void MWAMS::WriteMWASubbandInfo(int number, double gain, bool isFlagged)
 	
 	ScalarColumn<int> numberCol =
 		ScalarColumn<int>(sbTable, columnName(MWAMSEnums::NUMBER));
-	ScalarColumn<int> gainCol =
-		ScalarColumn<int>(sbTable, columnName(MWAMSEnums::GAIN));
+	ScalarColumn<double> gainCol =
+		ScalarColumn<double>(sbTable, columnName(MWAMSEnums::GAIN));
 	ScalarColumn<bool> flagRowCol =
 		ScalarColumn<bool>(sbTable, columnName(MWAMSEnums::FLAG_ROW));
 		
@@ -284,4 +291,10 @@ void MWAMS::WriteMWASubbandInfo(int number, double gain, bool isFlagged)
 	numberCol.put(index, number);
 	gainCol.put(index, gain);
 	flagRowCol.put(index, isFlagged);
+}
+
+void MWAMS::WriteMWAKeywords(double fibreVelFactor, int metaDataVersion)
+{
+	_data->_measurementSet.rwKeywordSet().define(keywordName(MWAMSEnums::MWA_FIBER_VEL_FACTOR), fibreVelFactor);
+	_data->_measurementSet.rwKeywordSet().define(keywordName(MWAMSEnums::MWA_METADATA_VERSION), metaDataVersion);
 }

@@ -451,7 +451,7 @@ MSWriter::AntennaInfo& MSWriter::AntennaInfo::operator=(const MSWriter::AntennaI
 	return *this;
 }
 
-void MSWriter::WriteHistoryItem(const std::string &commandLine, const std::string &application)
+void MSWriter::WriteHistoryItem(const std::string &commandLine, const std::string &application, const std::vector<std::string> &params)
 {
 	MeasurementSet &ms = *_data->ms;
 	MSHistory hisTable = ms.history();
@@ -464,8 +464,9 @@ void MSWriter::WriteHistoryItem(const std::string &commandLine, const std::strin
 	casa::ArrayColumn<casa::String> parmsCol(hisTable, MSHistory::columnName(MSHistoryEnums::APP_PARAMS));
 	casa::ArrayColumn<casa::String> cliCol(hisTable, MSHistory::columnName(MSHistoryEnums::CLI_COMMAND));
 
-	casa::Vector<casa::String> appParamsVec(1);
-	appParamsVec[0] = "";
+	casa::Vector<casa::String> appParamsVec(params.size());
+	for(size_t i=0; i!=params.size(); ++i)
+		appParamsVec[i] = params[i];
 	casa::Vector<casa::String> cliVec(1);
 	cliVec[0] = commandLine;
 	

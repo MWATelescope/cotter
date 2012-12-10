@@ -8,11 +8,16 @@
 
 struct MWAInput
 {
+	MWAInput() :
+	inputIndex(0), antennaIndex(0), cableLenDelta(0.0), polarizationIndex(0), isFlagged(false), slot(0)
+	{ }
+	
 	size_t inputIndex;
 	size_t antennaIndex;
 	double cableLenDelta;
 	unsigned polarizationIndex;
 	bool isFlagged;
+	size_t slot;
 };
 
 struct MWAHeader
@@ -55,10 +60,10 @@ struct MWAHeader
 
 struct MWAHeaderExt
 {
-	MWAHeaderExt() { }
+	MWAHeaderExt();
 	
 	int gpsTime;
-	std::string observerName, projectName, gridName, mode;
+	std::string observerName, projectName, gridName, mode, filename;
 	int delays[16], subbandGains[24];
 	bool hasCalibrator;
 	int centreSBNumber;
@@ -71,8 +76,10 @@ private:
 struct MWAAntenna
 {
 	public:
-		MWAAntenna() { }
-		MWAAntenna(const MWAAntenna& source) : name(source.name)
+		MWAAntenna() : tileNumber(0), receiver(0) { }
+		MWAAntenna(const MWAAntenna& source) :
+			name(source.name), stationIndex(source.stationIndex),
+			tileNumber(source.tileNumber), receiver(source.receiver)
 		{
 			position[0] = source.position[0]; position[1] = source.position[1]; position[2] = source.position[2];
 		}
@@ -80,11 +87,16 @@ struct MWAAntenna
 		{
 			name = source.name;
 			position[0] = source.position[0]; position[1] = source.position[1]; position[2] = source.position[2];
+			stationIndex = source.stationIndex;
+			tileNumber = source.tileNumber;
+			receiver = source.receiver;
 		}
 		
 		std::string name;
 		double position[3];
 		size_t stationIndex;
+		size_t tileNumber;
+		size_t receiver;
 		
 	private:
 };

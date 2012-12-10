@@ -30,6 +30,10 @@ struct MWAMSEnums
 		/* MWA_SUBBAND */
 		NUMBER, GAIN, FLAG_ROW
 	};
+	enum MWAKeywords
+	{
+		MWA_FIBER_VEL_FACTOR, MWA_METADATA_VERSION
+	};
 };
 
 class MWAMS
@@ -37,7 +41,7 @@ class MWAMS
 	public:
 		struct MWAAntennaInfo {
 			int inputX, inputY, tileNr, receiver, slotX, slotY;
-			double cableLength;
+			double cableLengthX, cableLengthY;
 		};
 		
 		struct MWAObservationInfo {
@@ -93,7 +97,12 @@ class MWAMS
 			return _tableNames[(int) table];
 		}
 		
-		static const std::string _columnNames[], _tableNames[];
+		const std::string &keywordName(enum MWAMSEnums::MWAKeywords keyword)
+		{
+			return _keywordNames[(int) keyword];
+		}
+		
+		static const std::string _columnNames[], _tableNames[], _keywordNames[];
 		
 		const std::string _filename;
 		struct MWAMSData *_data;

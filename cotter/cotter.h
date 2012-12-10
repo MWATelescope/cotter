@@ -93,6 +93,7 @@ class Cotter : private UVWCalculater
 		void reorderSubbands(aoflagger::ImageSet& imageSet) const;
 		void initializeSbOrder(size_t centerSbNumber);
 		void writeAlignmentScans();
+		void writeMWAFields(const char *outputFilename, size_t flagWindowSize);
 		
 		// Implementing UVWCalculater
 		virtual void CalculateUVW(double date, size_t antenna1, size_t antenna2, double &u, double &v, double &w);
