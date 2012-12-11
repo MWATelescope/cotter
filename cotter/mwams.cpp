@@ -28,7 +28,7 @@ struct MWAMSData
 };
 
 const std::string MWAMS::_tableNames[] = {
-	"MWA_TILE_POINTING_TABLE", "MWA_SUBBAND_TABLE"
+	"MWA_TILE_POINTING", "MWA_SUBBAND"
 };
 
 const std::string MWAMS::_columnNames[] = {
