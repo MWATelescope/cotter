@@ -700,7 +700,7 @@ void Cotter::readSubbandPassbandFile()
 	size_t
 		channelsPerSubband = _subbandCorrectionFactors[0].size(),
 		subBandCount = _mwaConfig.Header().nChannels / channelsPerSubband;
-	std::cout << "Read subband passband, using " << channelsPerSubband << " gains to correct for " << subBandCount << " channels/subband.\n";
+	std::cout << "Read subband passband, using " << channelsPerSubband << " gains to correct for " << subBandCount << " subbands.\n";
 	if(subBandCount != _subbandCount)
 		throw std::runtime_error("Unexpected number of channels in subband passband correction file");
 }
