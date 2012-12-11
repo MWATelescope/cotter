@@ -51,8 +51,8 @@ void MetaFitsFile::ReadHeader(MWAHeader& header, MWAHeaderExt &headerExt)
 	if(header.raHrs == -99.0 || header.decDegs == -99.0)
 	{
 		std::cout << "The metafits file does not specify a phase centre; will use pointing centre as phase centre.\n";
-		header.raHrs = headerExt.tilePointingDecRad * (12.0/M_PI);
-		header.decDegs = headerExt.tilePointingRARad * (180.0/M_PI);
+		header.raHrs = headerExt.tilePointingRARad * (12.0/M_PI);
+		header.decDegs = headerExt.tilePointingDecRad * (180.0/M_PI);
 	}
 }
 
