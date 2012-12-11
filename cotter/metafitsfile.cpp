@@ -255,9 +255,9 @@ void MetaFitsFile::parseIntArray(const char* valueStr, int *delays, size_t count
 		size_t next = str.find(',', pos);
 		if(next == str.npos)
 			throw std::runtime_error("Error parsing delays in fits file");
-		*delays = atoi(str.substr(pos, next-1).c_str());
+		*delays = atoi(str.substr(pos, next-pos).c_str());
 		++delays;
-		pos = next;
+		pos = next+1;
 	}
 	*delays = atoi(str.substr(pos).c_str());
 }
