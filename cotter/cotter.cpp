@@ -946,5 +946,5 @@ void Cotter::writeMWAFields(const char *outputFilename, size_t flagWindowSize)
 	for(int i=0; i!=24; ++i)
 		mwaMs.WriteMWASubbandInfo(i, sqrt(1.0/_subbandGainCorrection[i]), false);
 	
-	mwaMs.WriteMWAKeywords(_mwaConfig.HeaderExt().fibreFactor, 0);
+	mwaMs.WriteMWAKeywords(_mwaConfig.HeaderExt().fiberFactor, 0);
 }

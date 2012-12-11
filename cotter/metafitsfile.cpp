@@ -33,6 +33,11 @@ void MetaFitsFile::ReadHeader(MWAHeader& header, MWAHeaderExt &headerExt)
 	fits_get_hdrspace(_fptr, &keywordCount, 0, &status);
 	checkStatus(status);
 	
+	headerExt.tilePointingDecRad = -99.0;
+	headerExt.tilePointingRARad = -99.0;
+	header.raHrs = -99.0;
+	header.decDegs = -99.0;
+	
 	for(int i=0; i!=keywordCount; ++i)
 	{
 		char keyName[80], keyValue[80];
@@ -40,6 +45,15 @@ void MetaFitsFile::ReadHeader(MWAHeader& header, MWAHeaderExt &headerExt)
 		parseKeyword(header, headerExt, keyName, keyValue);
 	}
 	header.correlationType = MWAHeader::BothCorrelations;
+	
+	if(headerExt.tilePointingDecRad == -99.0 || headerExt.tilePointingRARad == -99.0)
+		throw std::runtime_error("The metafits file does not specify a pointing direction (keywords RA and DEC)");
+	if(header.raHrs == -99.0 || header.decDegs == -99.0)
+	{
+		std::cout << "The metafits file does not specify a phase centre; will use pointing centre as phase centre.\n";
+		header.raHrs = headerExt.tilePointingDecRad * (12.0/M_PI);
+		header.decDegs = headerExt.tilePointingRARad * (180.0/M_PI);
+	}
 }
 
 void MetaFitsFile::ReadTiles(std::vector<MWAInput> &inputs, std::vector<MWAAntenna> &antennae)
@@ -114,6 +128,7 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput> &inputs, std::vector<MWAAnten
 			
 			MWAAntenna &ant = antennae[antenna];
 			ant.name = nameStr.str();
+			ant.tileNumber = tile;
 			Geometry::ENH2XYZ_local(east, north, height, MWAConfig::ArrayLattitudeRad(), ant.position[0], ant.position[1], ant.position[2]);
 			ant.stationIndex = antenna;
 			//std::cout << ant.name << ' ' << input << ' ' << antenna << ' ' << east << ' ' << north << ' ' << height << '\n';
@@ -143,14 +158,14 @@ void MetaFitsFile::parseKeyword(MWAHeader &header, MWAHeaderExt &headerExt, cons
 		headerExt.gpsTime = atoi(keyValue);
 	else if(name == "FILENAME")
 	{
-		header.fieldName = parseFitsString(keyValue);
-		headerExt.filename = header.fieldName;
+		headerExt.filename = parseFitsString(keyValue);
+		header.fieldName = stripBand(headerExt.filename);
 	}
 	else if(name == "DATE-OBS")
 		headerExt.dateRequestedMJD = parseFitsDateToMJD(keyValue);
-	else if(name == "RA-PHASE")
+	else if(name == "RAPHASE")
 		header.raHrs = atof(keyValue) * (24.0 / 360.0);
-	else if(name == "DEC-PHASE")
+	else if(name == "DECPHASE")
 		header.decDegs = atof(keyValue);
 	else if(name == "RA")
 		headerExt.tilePointingRARad = atof(keyValue) * (M_PI / 180.0);
@@ -173,7 +188,7 @@ void MetaFitsFile::parseKeyword(MWAHeader &header, MWAHeaderExt &headerExt, cons
 	else if(name == "CHANGAIN")
 		parseIntArray(keyValue, headerExt.subbandGains, 24);
 	else if(name == "FIBRFACT")
-		headerExt.fibreFactor = atof(keyValue);
+		headerExt.fiberFactor = atof(keyValue);
 	else if(name == "INTTIME")
 		header.integrationTime = atof(keyValue);
 	else if(name == "NSCANS")
@@ -221,7 +236,6 @@ void MetaFitsFile::parseFitsDate(const char* valueStr, int& year, int& month, in
 	hour = (dateStr[11]-'0')*10 + (dateStr[12]-'0');
 	min = (dateStr[14]-'0')*10 + (dateStr[15]-'0');
 	sec = (dateStr[17]-'0')*10 + (dateStr[18]-'0');
-	std::cout << "Date=" << year << '-' << month << '-' << day << ' ' << hour << ':' << min << ':' << sec <<'\n';
 }
 
 double MetaFitsFile::parseFitsDateToMJD(const char* valueStr)
@@ -253,4 +267,25 @@ bool MetaFitsFile::parseBool(const char* valueStr)
 	if(valueStr[0] != 'T' && valueStr[0] != 'F')
 		throw std::runtime_error("Error parsing boolean in fits file");
 	return valueStr[0]=='T';
+}
+
+std::string MetaFitsFile::stripBand(const std::string& input)
+{
+	if(!input.empty())
+	{
+		size_t pos = input.size()-1;
+		while(pos>0 && isDigit(input[pos]))
+		{
+			--pos;
+		}
+		if(pos > 0 && input[pos] == '_')
+		{
+			int band = atoi(&input[pos+1]);
+			if(band > 0 && band <= 256)
+			{
+				return input.substr(0, pos);
+			}
+		}
+	}
+	return input;
 }

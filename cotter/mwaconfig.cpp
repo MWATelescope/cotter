@@ -57,7 +57,7 @@ MWAHeaderExt::MWAHeaderExt() :
 	gpsTime(0), observerName("Unknown"), projectName("Unknown"),
 	gridName("Unknown"), mode("Unknown"), filename("Unknown"),
 	hasCalibrator(false), centreSBNumber(0),
-	fibreFactor(VEL_FACTOR),
+	fiberFactor(VEL_FACTOR),
 	tilePointingRARad(0.0), tilePointingDecRad(0.0),
 	dateRequestedMJD(0.0)
 {
@@ -75,6 +75,7 @@ void MWAConfig::ReadMetaFits(const char* filename, bool lockPointing)
 	MetaFitsFile metaFile(filename);
 	
 	metaFile.ReadHeader(_header, _headerExt);
+	
 	_header.Validate(lockPointing);
 	std::cout << "Observation covers " << (ChannelFrequencyHz(0)/1000000.0) << '-' << (ChannelFrequencyHz(_header.nChannels-1)/1000000.0) << " MHz.\n";
 	
@@ -177,9 +178,9 @@ void MWAHeader::Validate(bool lockPointing)
 	if(centralFrequencyMHz == 0.0)
 		throw std::runtime_error("FREQCENT not specified in header");
 	if(raHrs == -99)
-		throw std::runtime_error("RA_HRS not specified in header");
+		throw std::runtime_error("RA_HRS or RAPHASE not specified in header");
 	if(decDegs == -99)
-		throw std::runtime_error("DEC_DEGS not specified in header");
+		throw std::runtime_error("DEC_DEGS or DECPHASE not specified in header");
 	if(year==0 || month==0 || day==0)
 		throw std::runtime_error("DATE not specified in header");
 	if(haHrsStart == -99.0 && lockPointing)
