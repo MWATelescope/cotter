@@ -18,14 +18,14 @@ struct MWAMSEnums
 		MWA_HAS_CALIBRATOR,
 		
 		/* Observation */
-		MWA_GPS_TIME, MWA_FILENAME, MWA_OBSERVATION_MODE, MWA_RAW_FILE_CREATION_DATE,
-		MWA_FLAG_WINDOW_SIZE,
+		MWA_GPS_TIME, MWA_FILENAME, MWA_OBSERVATION_MODE,
+		MWA_FLAG_WINDOW_SIZE, MWA_DATE_REQUESTED,
 		
 		/* Spectral window */
 		MWA_CENTRE_SUBBAND_NR,
 		
 		/* MWA_TILE_POINTING */
-		INTERVAL, DELAYS,
+		INTERVAL, DELAYS, DIRECTION,
 		
 		/* MWA_SUBBAND */
 		NUMBER, GAIN, FLAG_ROW
@@ -49,6 +49,7 @@ class MWAMS
 			std::string filename, observationMode;
 			double rawFileCreationDate;
 			int flagWindowSize;
+			double dateRequested;
 		};
 		
 		MWAMS(const std::string &filename);
@@ -73,7 +74,7 @@ class MWAMS
 		
 		void UpdateSpectralWindowInfo(int mwaCentreSubbandNr);
 		
-		void WriteMWATilePointingInfo(double start, double end, const int *delays);
+		void WriteMWATilePointingInfo(double start, double end, const int *delays, double directionRA, double directionDec);
 		
 		void WriteMWASubbandInfo(int number, double gain, bool isFlagged);
 		

@@ -137,7 +137,9 @@ void MetaFitsFile::parseKeyword(MWAHeader &header, MWAHeaderExt &headerExt, cons
 {
 	std::string name(keyName);
 	
-	if(name == "GPSTIME")
+	if(name == "SIMPLE" || name == "BITPIX" || name == "NAXIS" || name == "EXTEND" || name == "CONTINUE")
+		; //standard FITS headers; ignore.
+	else if(name == "GPSTIME")
 		headerExt.gpsTime = atoi(keyValue);
 	else if(name == "FILENAME")
 	{
@@ -145,11 +147,15 @@ void MetaFitsFile::parseKeyword(MWAHeader &header, MWAHeaderExt &headerExt, cons
 		headerExt.filename = header.fieldName;
 	}
 	else if(name == "DATE-OBS")
-		parseFitsDate(keyValue, header.year, header.month, header.day, header.refHour, header.refMinute, header.refSecond);
-	else if(name == "RA")
-		header.raHrs = atof(keyValue);
-	else if(name == "DEC")
+		headerExt.dateRequestedMJD = parseFitsDateToMJD(keyValue);
+	else if(name == "RA-PHASE")
+		header.raHrs = atof(keyValue) * (24.0 / 360.0);
+	else if(name == "DEC-PHASE")
 		header.decDegs = atof(keyValue);
+	else if(name == "RA")
+		headerExt.tilePointingRARad = atof(keyValue) * (M_PI / 180.0);
+	else if(name == "DEC")
+		headerExt.tilePointingDecRad = atof(keyValue) * (M_PI / 180.0);
 	else if(name == "GRIDNAME")
 		headerExt.gridName = parseFitsString(keyValue);
 	else if(name == "CREATOR")
@@ -180,9 +186,14 @@ void MetaFitsFile::parseKeyword(MWAHeader &header, MWAHeaderExt &headerExt, cons
 		header.bandwidthMHz = atof(keyValue);
 	else if(name == "FREQCENT")
 		header.centralFrequencyMHz = atof(keyValue);
-	//else
-	//	std::cout << "Ignored keyword: " << name << '\n';
-	std::cout << "RA=" << header.raHrs << ", DEC=" << header.decDegs << '\n';
+	else if(name == "DATESTRT")
+		parseFitsDate(keyValue, header.year, header.month, header.day, header.refHour, header.refMinute, header.refSecond);
+	else if(name == "DATE")
+		; // Date that metafits was created; ignored.
+	else if(name == "EXPOSURE" || name == "MJD" || name == "LST" || name == "HA" || name == "AZIMUTH" || name == "ALTITUDE" || name == "SUN-DIST" || name == "MOONDIST" || name == "JUP-DIST" || name == "GRIDNUM" || name == "RECVRS" || name == "CHANNELS" || name == "SUN-ALT" || name == "TILEFLAG" || name == "NAV_FREQ" || name == "FINECHAN" || name == "TIMEOFF")
+		; // Ignore these fields, they can be derived from others.
+	else
+		std::cout << "Ignored keyword: " << name << '\n';
 }
 
 std::string MetaFitsFile::parseFitsString(const char* valueStr)
@@ -211,6 +222,14 @@ void MetaFitsFile::parseFitsDate(const char* valueStr, int& year, int& month, in
 	min = (dateStr[14]-'0')*10 + (dateStr[15]-'0');
 	sec = (dateStr[17]-'0')*10 + (dateStr[18]-'0');
 	std::cout << "Date=" << year << '-' << month << '-' << day << ' ' << hour << ':' << min << ':' << sec <<'\n';
+}
+
+double MetaFitsFile::parseFitsDateToMJD(const char* valueStr)
+{
+	int year, month, day, hour, min;
+	double sec;
+	parseFitsDate(valueStr, year, month, day, hour, min, sec);
+	return Geometry::GetMJD(year, month, day, hour, min, sec);
 }
 
 void MetaFitsFile::parseIntArray(const char* valueStr, int *delays, size_t count)

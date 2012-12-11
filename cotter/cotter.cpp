@@ -934,12 +934,14 @@ void Cotter::writeMWAFields(const char *outputFilename, size_t flagWindowSize)
 	obsInfo.observationMode = _mwaConfig.HeaderExt().mode;
 	obsInfo.rawFileCreationDate = 0;
 	obsInfo.flagWindowSize = flagWindowSize;
+	obsInfo.dateRequested = _mwaConfig.HeaderExt().dateRequestedMJD*86400.0;
 	mwaMs.UpdateMWAObservationInfo(obsInfo);
 	
 	mwaMs.UpdateSpectralWindowInfo(_mwaConfig.CentreSubbandNumber());
 	
 	mwaMs.WriteMWATilePointingInfo(_mwaConfig.Header().GetStartDateMJD()*86400.0,
-		_mwaConfig.Header().GetDateLastScanMJD()*86400.0, _mwaConfig.HeaderExt().delays);
+		_mwaConfig.Header().GetDateLastScanMJD()*86400.0, _mwaConfig.HeaderExt().delays,
+		_mwaConfig.HeaderExt().tilePointingRARad, _mwaConfig.HeaderExt().tilePointingDecRad);
 	
 	for(int i=0; i!=24; ++i)
 		mwaMs.WriteMWASubbandInfo(i, sqrt(1.0/_subbandGainCorrection[i]), false);

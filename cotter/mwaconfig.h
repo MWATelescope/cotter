@@ -68,6 +68,8 @@ struct MWAHeaderExt
 	bool hasCalibrator;
 	int centreSBNumber;
 	double fibreFactor;
+	double tilePointingRARad, tilePointingDecRad;
+	double dateRequestedMJD;
 private:
 	MWAHeaderExt(const MWAHeaderExt &source) { }
 	void operator=(const MWAHeaderExt &source) { }

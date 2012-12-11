@@ -57,7 +57,9 @@ MWAHeaderExt::MWAHeaderExt() :
 	gpsTime(0), observerName("Unknown"), projectName("Unknown"),
 	gridName("Unknown"), mode("Unknown"), filename("Unknown"),
 	hasCalibrator(false), centreSBNumber(0),
-	fibreFactor(VEL_FACTOR)
+	fibreFactor(VEL_FACTOR),
+	tilePointingRARad(0.0), tilePointingDecRad(0.0),
+	dateRequestedMJD(0.0)
 {
 	for(size_t i=0; i!=16; ++i) delays[i] = 0;
 	for(size_t i=0; i!=24; ++i) subbandGains[i] = 0;

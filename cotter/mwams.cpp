@@ -8,6 +8,10 @@
 #include <tables/Tables/ScaColDesc.h>
 #include <tables/Tables/SetupNewTab.h>
 
+#include <measures/TableMeasures/TableMeasDesc.h>
+
+#include <measures/Measures/MEpoch.h>
+
 #include <stdexcept>
 #include <sstream>
 
@@ -35,14 +39,14 @@ const std::string MWAMS::_columnNames[] = {
 	"MWA_HAS_CALIBRATOR",
 	
 	/* Observation */
-	"MWA_GPS_TIME", "MWA_FILENAME", "MWA_OBSERVATION_MODE", "MWA_RAW_FILE_CREATION_DATE",
-	"MWA_FLAG_WINDOW_SIZE",
+	"MWA_GPS_TIME", "MWA_FILENAME", "MWA_OBSERVATION_MODE",
+	"MWA_FLAG_WINDOW_SIZE", "MWA_DATE_REQUESTED",
 	
 	/* Spectral window */
 	"MWA_CENTRE_SUBBAND_NR",
 	
 	/* MWA_TILE_POINTING */
-	"INTERVAL", "DELAYS",
+	"INTERVAL", "DELAYS", "DIRECTION",
 	
 	/* MWA_SUBBAND */
 	"NUMBER", "GAIN", "FLAG_ROW"
@@ -94,23 +98,32 @@ void MWAMS::addMWAFieldFields()
 
 void MWAMS::addMWAObservationFields()
 {
+	MSObservation obsTable = _data->_measurementSet.observation();
+	
 	ScalarColumnDesc<double> gpsTimeCD =
 		ScalarColumnDesc<double>(columnName(MWAMSEnums::MWA_GPS_TIME));
 	ScalarColumnDesc<casa::String> filenameCD =
 		ScalarColumnDesc<casa::String>(columnName(MWAMSEnums::MWA_FILENAME));
 	ScalarColumnDesc<casa::String> obsModeCD =
 		ScalarColumnDesc<casa::String>(columnName(MWAMSEnums::MWA_OBSERVATION_MODE));
-	ScalarColumnDesc<double> rawFileCreationDateCD =
-		ScalarColumnDesc<double>(columnName(MWAMSEnums::MWA_RAW_FILE_CREATION_DATE));
 	ScalarColumnDesc<int> flagWindowSizeCD =
 		ScalarColumnDesc<int>(columnName(MWAMSEnums::MWA_FLAG_WINDOW_SIZE));
+		
+	ScalarColumnDesc<double> dateRequestedCD =
+		ScalarColumnDesc<double>(columnName(MWAMSEnums::MWA_DATE_REQUESTED));
 	
-	MSObservation obsTable = _data->_measurementSet.observation();
 	obsTable.addColumn(gpsTimeCD);
 	obsTable.addColumn(filenameCD);
 	obsTable.addColumn(obsModeCD);
-	obsTable.addColumn(rawFileCreationDateCD);
 	obsTable.addColumn(flagWindowSizeCD);
+	obsTable.addColumn(dateRequestedCD);
+	
+	casa::Vector<Unit> unitVec(1);
+	unitVec[0] = Unit("s");
+	TableMeasRefDesc measRef(MEpoch::DEFAULT);
+	TableMeasValueDesc measVal(columnName(MWAMSEnums::MWA_DATE_REQUESTED));
+	TableMeasDesc<MEpoch> intervalColMeas(measVal, measRef, unitVec);
+	intervalColMeas.write(obsTable);
 }
 
 void MWAMS::addMWASpectralWindowFields()
@@ -128,11 +141,22 @@ void MWAMS::addMWATilePointingFields()
 	
 	ArrayColumnDesc<double> intervalCD =
 		ArrayColumnDesc<double>(columnName(MWAMSEnums::INTERVAL));
+	
 	ArrayColumnDesc<int> delaysCD =
 		ArrayColumnDesc<int>(columnName(MWAMSEnums::DELAYS));
+	ArrayColumnDesc<double> directionCD =
+		ArrayColumnDesc<double>(columnName(MWAMSEnums::DIRECTION));
 		
 	tilePointingTableDesc.addColumn(intervalCD);
 	tilePointingTableDesc.addColumn(delaysCD);
+	tilePointingTableDesc.addColumn(directionCD);
+	
+	casa::Vector<Unit> unitVec(1);
+	unitVec[0] = Unit("s");
+	TableMeasRefDesc measRef(MEpoch::DEFAULT);
+	TableMeasValueDesc measVal(tilePointingTableDesc, columnName(MWAMSEnums::INTERVAL));
+	TableMeasDesc<MEpoch> intervalColMeas(measVal, measRef, unitVec);
+	intervalColMeas.write(tilePointingTableDesc);
 	
 	SetupNewTable newTilePointingTable(_filename + '/' + tableName(MWAMSEnums::MWA_TILE_POINTING_TABLE), tilePointingTableDesc, Table::New);
 	Table tilePointingTable(newTilePointingTable);
@@ -224,16 +248,16 @@ void MWAMS::UpdateMWAObservationInfo(const MWAMS::MWAObservationInfo& info)
 		ScalarColumn<casa::String>(obsTable, columnName(MWAMSEnums::MWA_FILENAME));
 	ScalarColumn<casa::String> obsModeCol =
 		ScalarColumn<casa::String>(obsTable, columnName(MWAMSEnums::MWA_OBSERVATION_MODE));
-	ScalarColumn<double> rawFileCreationDateCol =
-		ScalarColumn<double>(obsTable, columnName(MWAMSEnums::MWA_RAW_FILE_CREATION_DATE));
 	ScalarColumn<int> flagWindowSizeCol =
 		ScalarColumn<int>(obsTable, columnName(MWAMSEnums::MWA_FLAG_WINDOW_SIZE));
+	ScalarColumn<double> dateRequestedCol =
+		ScalarColumn<double>(obsTable, columnName(MWAMSEnums::MWA_DATE_REQUESTED));
 		
 	gpsTimeCol.put(0, info.gpsTime);
 	filenameCol.put(0, info.filename);
 	obsModeCol.put(0, info.observationMode);
-	rawFileCreationDateCol.put(0, info.rawFileCreationDate);
 	flagWindowSizeCol.put(0, info.flagWindowSize);
+	dateRequestedCol.put(0, info.dateRequested);
 }
 
 void MWAMS::UpdateSpectralWindowInfo(int mwaCentreSubbandNr)
@@ -252,7 +276,7 @@ void MWAMS::UpdateSpectralWindowInfo(int mwaCentreSubbandNr)
 	centreSubbandNrCol.put(0, mwaCentreSubbandNr);
 }
 
-void MWAMS::WriteMWATilePointingInfo(double start, double end, const int* delays)
+void MWAMS::WriteMWATilePointingInfo(double start, double end, const int* delays, double directionRA, double directionDec)
 {
 	Table tilePntTable(_data->_measurementSet.rwKeywordSet().asTable(tableName(MWAMSEnums::MWA_TILE_POINTING_TABLE)));
 	
@@ -260,6 +284,8 @@ void MWAMS::WriteMWATilePointingInfo(double start, double end, const int* delays
 		ArrayColumn<double>(tilePntTable, columnName(MWAMSEnums::INTERVAL));
 	ArrayColumn<int> delaysCol =
 		ArrayColumn<int>(tilePntTable, columnName(MWAMSEnums::DELAYS));
+	ArrayColumn<double> directionCol =
+		ArrayColumn<double>(tilePntTable, columnName(MWAMSEnums::DIRECTION));
 		
 	size_t index = tilePntTable.nrow();
 	tilePntTable.addRow();
@@ -272,6 +298,10 @@ void MWAMS::WriteMWATilePointingInfo(double start, double end, const int* delays
 	casa::Vector<int> delaysVec(16);
 	for(size_t i=0; i!=16; ++i) delaysVec[i] = delays[i];
 	delaysCol.put(index, delaysVec);
+	
+	casa::Vector<double> dirVec(2);
+	dirVec[0] = directionRA; dirVec[1] = directionDec;
+	directionCol.put(index, dirVec);
 }
 
 void MWAMS::WriteMWASubbandInfo(int number, double gain, bool isFlagged)

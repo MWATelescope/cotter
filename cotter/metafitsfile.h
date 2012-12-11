@@ -21,6 +21,7 @@ private:
 	void parseKeyword(MWAHeader &header, MWAHeaderExt &headerExt, const char *keyName, const char *keyValue);
 	std::string parseFitsString(const char *valueStr);
 	void parseFitsDate(const char *valueStr, int &year, int &month, int &day, int &hour, int &min, double &sec);
+	double parseFitsDateToMJD(const char *valueStr);
 	void parseIntArray(const char* valueStr, int *delays, size_t count);
 	bool parseBool(const char *valueStr);
 	
