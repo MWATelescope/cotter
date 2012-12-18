@@ -71,7 +71,10 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		_channelFrequenciesHz[ch] = _mwaConfig.ChannelFrequencyHz(ch);
 	
 	readSubbandPassbandFile();
-	readSubbandGainsFile();
+	if(_metaFilename.empty())
+		readSubbandGainsFile();
+	else
+		initSubbandGainsFromMeta();
 	initializeSbOrder(_mwaConfig.CentreSubbandNumber());
 	
 	_flagger = new AOFlagger();
@@ -741,6 +744,20 @@ void Cotter::readSubbandGainsFile()
 			std::cout << i->second;
 			_subbandGainCorrection.push_back(1.0/i->second);
 		}
+	}
+	std::cout << '\n';
+}
+
+void Cotter::initSubbandGainsFromMeta()
+{
+	_subbandGainCorrection.clear();
+	std::cout << "Using subband gains from meta-fits file: ";
+	for(size_t sb=0; sb!=_subbandCount; ++sb)
+	{
+		double gain = _mwaConfig.HeaderExt().subbandGains[sb];
+		if(sb != 0) std::cout << ',';
+		std::cout << gain;
+		_subbandGainCorrection.push_back(1.0/(gain*gain));
 	}
 	std::cout << '\n';
 }
