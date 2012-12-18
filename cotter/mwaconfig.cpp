@@ -315,7 +315,7 @@ double MWAConfig::ArrayHeightMeters()
 
 size_t MWAConfig::CentreSubbandNumber() const
 {
-	return round(12.0 + ChannelFrequencyHz(0) / 1280000.0);
+	return round(ChannelFrequencyHz(_header.nChannels/2) / 1280000.0);
 }
 
 double MWAConfig::VelocityFactor()
