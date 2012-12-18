@@ -98,6 +98,9 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	{
 		std::cout << "WARNING! The given amount of memory is not enough for even one scan; expect swapping and very poor flagging accuracy.\n";
 		maxScansPerPart = 1;
+	} else if(maxScansPerPart<20)
+	{
+		std::cout << "WARNING! This computer does not have enough memory for accurate flagging; expect non-optimal flagging accuracy.\n"; 
 	}
 	size_t partCount = 1 + _mwaConfig.Header().nScans / maxScansPerPart;
 	if(partCount == 1)
