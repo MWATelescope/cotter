@@ -1,0 +1,17 @@
+I have no substantial comments on the content of the paper which seems well put together. One thing that I thought was lacking was a comparison to the paper of Scheuer (1957PCPS...53..764S) to which I find the method bears a marked similarity although the context/application is different.
+
+Minor points:
+
+Intro, para 2 'to only excise' split infinitive
+Intro, para 2 may be worth mentioning ground based CMB experiments to which the context is also relevant.
+Intro, para 2 LOFAR reference should be van Harlem et~al.
+Intro, para 3 'von Hoerner 1973' this reference has been superceded by many more recent works. Something by Condon may be more appropriate.
+
+Sec 2, I think the assumption that all sources have the same intrinsic intensity is a very strong one. The true distribution of intrinsic intensities, or the effect of a particular distribution, perhaps warrants further discussion.
+
+Sec 2.3, para 2 inverted comma around 'most' is backwards.
+
+Sec 3.2, eq 17 variables are not defined.
+Sec 3.2, 'where N the bin frequency' -> 'where N is the bin frequency'
+
+Sec 6 the bullet points are not particularly concise, it may be better to expand as prose.
