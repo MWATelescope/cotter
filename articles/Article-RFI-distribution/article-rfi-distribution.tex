@@ -165,9 +165,9 @@ with $\eta = 0.655 \log_{10} h_b - 4.49$, one finds the frequency density functi
 % assume(g>0,I>0,S>0);
 % diff(c*%pi*r^2,S),solve(S(r)=S,r);
 % (c=rho)
-\begin{align}
+\begin{align} \label{eq:frequency-density-with-propagation}
 f_p(S)
-= & \frac{d}{dS} \rho \pi \left( \frac{\zeta Ig }{S} \right)^{2/\eta}
+= & \frac{d}{dS} \left[ N - \rho \pi \left( \frac{\zeta Ig }{S} \right)^{2/\eta} \right]
 = \frac{\rho 2\pi}{\eta S} \left( \frac{\zeta Ig}{S} \right)^{2/\eta}.
 \end{align}
 Consequently, due to non-free-space propagation effects, the observed log-log histogram is predicted to have a $\frac{2}{\eta}-1$ slope. By substituting $\eta$, one finds
@@ -203,7 +203,7 @@ Because most of the samples will be unaffected by RFI, this will be the dominati
 \end{center}
 \end{figure}
 
-So far, these are the expected histograms for pure noise and pure RFI that propagates through free space. However, the measured distribution is a mixture of the two. A perfect RFI detector would separate the samples in two distributions; one that is not affected by RFI, and therefore contains noise only, and one that is the sum of RFI and noise. Real RFI detectors can separate these distributions to some extent, but due to false positives and false negatives, the histograms will get mixed nevertheless. Even more, we still need to take into account that the samples classified as RFI are also affected by noise. Although this effect is moderate, because 'most' RFI samples are of much higher amplitude than what is added because of the noise, we are interested in the low-level RFI samples, and the relative effect of noise on those samples is large.
+So far, these are the expected histograms for pure noise and pure RFI that propagates through free space. However, the measured distribution is a mixture of the two. A perfect RFI detector would separate the samples in two distributions; one that is not affected by RFI, and therefore contains noise only, and one that is the sum of RFI and noise. Real RFI detectors can separate these distributions to some extent, but due to false positives and false negatives, the histograms will get mixed nevertheless. Even more, we still need to take into account that the samples classified as RFI are also affected by noise. Although this effect is moderate, because `most' RFI samples are of much higher amplitude than what is added because of the noise, we are interested in the low-level RFI samples, and the relative effect of noise on those samples is large.
 
 \begin{figure}
 \begin{center}\hspace{-2mm}\includegraphics[width=8.5cm]{img/plot-rayleigh-and-rfi-combined-trimmed}
@@ -214,18 +214,16 @@ So far, these are the expected histograms for pure noise and pure RFI that propa
 
 To understand the distribution of samples consisting of RFI + noise, one needs to consider the individual contributions of the real and imaginary components. The real and imaginary components of samples that are affected by RFI, will follow a bivariate distribution: each complex component is the sum of a complex component of RFI and a noise sample. The noise comes from a Gaussian distribution with zero mean. The RFI distribution is assumed to be a power-law distribution with yet unknown exponent.
 
-To calculate the corresponding amplitude distribution that is formed by the combination of the real and imaginary component distributions, it is easier to perform numerical simulations, as analytic derivation is not trivial. The histogram can be numerically estimated by drawing complex real and imaginary samples from the two distributions and calculating and counting the amplitudes. A sample can be drawn from the RFI distribution by normalizing and inverting the cumulative frequency function in Eq.~\eqref{eq:cumulative-rfi-distribution} and evaluating it for a uniformly distributed variable. Note however that $F_{\textrm{amplitude}\le S}(S)$ is not limited; when decreasing the amplitude $S$ towards zero, the number of sources will go to infinity. Therefore, to draw a sample by using the inversion method, this would require a uniformly distributed variable $\sim U(0,\infty)$. By assuming that there are no samples beyond some limiting distance $r_L$, then $F_{\textrm{amplitude}\le S}(S) = N-\rho \pi r_L^2$ for $S < Ig/r_L^2$. Consequently, if $x_u$ is sampled from a uniform distribution with $0 \le x_u \le N-\rho \pi r_L^2$, and $x_u$ is the input to the inverse of the cumulative source count function in Eq.~\eqref{eq:cumulative-rfi-distribution}, the result is an amplitude sample $S$ with $S \ge Ig/r_L^2$, and $S\sim$ a power-law distribution.
-
-By normalizing $x_u$, a single complex RFI contaminated sample $S_{\textrm{RFI}}$ can be sampled with
+To calculate the corresponding amplitude distribution that is formed by the combination of the real and imaginary component distributions, it is easier to perform numerical simulations, as analytic derivation is not trivial. The histogram can be numerically estimated by drawing complex real and imaginary samples from the two distributions and calculating and counting the amplitudes. A sample can be drawn from the RFI distribution by scaling and inverting the cumulative frequency function in Eq.~\eqref{eq:cumulative-rfi-distribution} and evaluating it for a uniformly distributed variable. Note however that $F_{\textrm{amplitude}\le S}(S)$ is not limited; when decreasing the amplitude $S$ towards zero, the number of sources will go to infinity. Therefore, one needs to assume that there are no samples beyond some limiting distance $r_L$ to invert the cumulative function. With this assumption, a single complex RFI contaminated sample $S_{\textrm{RFI}}$ can be sampled with
 \begin{equation} \label{eq:drawing-rfi-distribution}
-\textrm{real}(S_{\textrm{RFI}})\leftarrow \frac{Ig}{x_u r_L^2}\textrm{,\hspace{1mm} imag}(S_{\textrm{RFI}}) \leftarrow \frac{Ig}{y_u r_L^2},
+S_{\textrm{RFI}} \leftarrow \frac{Ig}{x_u r_L^2} e^{i 2 \pi y_u},
 \end{equation}
-with $x_u, y_u \sim U(0, 1)$, and the corresponding formula for drawing a sample $S$ that is contaminated by both RFI and noise is
+with $x_u, y_u \sim U(0, 1)$. The result is an amplitude sample $S$, with $S \ge Ig/r_L^2$, that follows a power-law distribution. The corresponding formula for drawing a sample $S$ that is contaminated by both RFI and noise is
 \begin{equation} \label{eq:drawing-combined-distribution}
-\textrm{real}(S) \leftarrow x_n + \frac{Ig}{x_u r_L^2}
-\textrm{,\hspace{1mm} imag}(S) \leftarrow y_n + \frac{Ig}{y_u r_L^2},
+\textrm{real}(S) \leftarrow x_n + \frac{Ig \cos 2 \pi y_u}{x_u r_L^2}
+\textrm{,\hspace{1mm} imag}(S) \leftarrow y_n + \frac{Ig \sin 2 \pi y_u}{x_u r_L^2},
 \end{equation}
-with $x_n \sim N(\mu=0; \sigma=1)$. The final amplitude sample $S_A$ can be calculated with 
+with $x_n \sim N(\mu=0; \sigma)$. The final amplitude sample $S_A$ can be calculated with 
 \begin{equation} \label{eq:drawing-amplitudes}
 S_A \leftarrow |S| = \sqrt{\textrm{real}({S})^2+\textrm{imag}({S})^2}.
 \end{equation}
@@ -235,27 +233,22 @@ If we assume that $I$, the average source strength; $g$, the average instrumenta
 
 Fig.~\ref{fig:rayleigh-and-rfi-combined} shows that the left side of the graph corresponds with the original Rayleigh distribution. From the right side of the histogram, we are able to estimate $Ig/r_L^2$, as the placing of the power-law curve is independent of the Rayleigh distribution for large $S$. Methods to constrain the parameters of the RFI distribution will be discussed in \S\ref{sec:rfi-distribution-constraints}. The curves in Fig.~\ref{fig:rayleigh-and-rfi-combined} are from histograms of samples that are all contaminated by both noise and RFI. In practice, we can not make this distinction accurately, as RFI detectors have a limited accuracy. Consequently, the observed histogram will be the sum of two types of histograms: the first histogram being contaminated by both noise and RFI, the second one only by noise.
 
-% Exponential:
-% fs(x):=c*%pi*I*g/x^2;
-%
-% Gaussian:
-% fn(x):=1/(sqrt(2*%pi)*sigma)*exp(-x^2/(2*sigma^2));
-%
-% Convolution:
-% fc(x):=romberg(fs(x)*fn(x+tau), tau, -inf, inf);
-%
-% plot2d([log(fc(x)),log(fs(x)),log(fn(x))], [x,0.01, 100], [y,-10,10], [logx]), sigma=1, I=1, g=1, c=1;
+For completeness, we also show the formula for sampling apparent source strengths that include surface propagation effects, which can be used for sampling realistic source amplitudes in simulations. This is calculated by inversion and scaling of the frequency density function in Eq.~\eqref{eq:frequency-density-with-propagation}, resulting in:
+\begin{equation}
+\textrm{real}(S_{\textrm{RFI}}) \leftarrow \frac{\zeta I g}{x_u^{\eta/2} r_L^\eta},
+\textrm{imag}(S_{\textrm{RFI}}) \leftarrow \frac{\zeta I g}{x_u^{\eta/2} r_L^\eta}.
+\end{equation}
 
 \subsection{Parameter variability} \label{sec:parameter-variability}
 In reality, the parameters $\rho$, $I$ and $g$, which are the source density per unit area, source strength and instrumental gain respectively, will not be constant over time and frequency but have a stochastic nature. However, since each specific value for these parameters produces a power law, the combined distribution will still show a power law, as long as the parameters follow a distribution that is steep at high amplitudes (in $\log$--$\log$ space), such as a Gaussian or uniform distribution.
-
-We assume that the stochastic nature of $I$, that is caused by the spread of transmitters with different intrinsic strengths, has little effect on the $\log N$ -- $\log S$ histograms. Nevertheless, it is unlikely that $I$ follows a uniform or Gaussian distribution, because the distribution will contain few strong transmitters (such as radio stations) and many weak transmitters (such as remote controls). Therefore, $I$ might follow a power law by itself. Strong transmitters are probably on average transmitting longer, thus will also contaminate more samples. This weakens the effect of $I$ on the histogram somewhat. %TODO
 
 One instrumental effect that is absorbed in $g$ is the frequency response of the instrument, i.e., the antenna response in combination with the band-pass of the analogue and digital filters. Because the data that are analysed in Sect.~\ref{sec:dist-results} have initially not been band-pass calibrated, the instrumental response is not uniform over frequency. We determined that the variation due to the band-pass is about one order of magnitude for the low-band antennas (LBA, 30.1--77.5 MHz) and about a factor of two for the high-band antennas (HBA, 115.0--163.3 MHz).
 
 The effect of the band-pass on the data distribution is consequently limited to one order of magnitude or less. If the RFI sources have an apparent power-law distribution with a certain exponent, the distribution will have a feature at low amplitudes due to the frequency response, but a power law with equal exponent will still appear when the distribution is observed over a wide enough range.
 
 Another effect that is absorbed in $g$, is the beam of the instrument. At the point of writing, LOFAR beam models are still being developed and are not yet well parametrized. It is likely that most RFI sources are observed at the edges of the beam. Because most sources will be observed with similar gains (within one order of magnitude), it can be expected that the beam will have a limited effect on the histogram properties of an observation, and is comparable with the effect of the frequency response.
+
+We assume that the stochastic nature of $I$, that is caused by the spread of transmitters with different intrinsic strengths, also has little effect on the $\log N$ -- $\log S$ histograms. Nevertheless, it is unlikely that $I$ follows a uniform or Gaussian distribution, because the distribution will contain few strong transmitters (such as radio stations) and many weak transmitters (such as remote controls). Therefore, $I$ might follow a power law by itself. On average, strong transmitters transmit longer, thus will also contaminate more samples. High-power transmitters, such as radio stations, have a typical transmitting power in the order of 100 kW. Low-power transmitters, such as remote controls, transmit with an order of 100 mW. Therefore, these devices have a spread of around 6 orders of magnitudes in power. As long as the exponent of this distribution is less steep (i.e., less negative) compared to the power law caused by the spatial distribution, the spatial distribution will dominate the histogram at high amplitudes. With a spatial $-1.5$ power law and the given transmitting powers, the low-power transmitters should contaminate a factor of $10^9$ more samples compared to the high-power transmitters to dominate the high-amplitude distribution, which is unlikely.
 
 \section{Methods} \label{sec:distribution-methods}
 In this section we will briefly discuss how the histograms are created, how the slope of the underlying RFI distribution is estimated and show how to constrain some of the intrinsic RFI parameters.
@@ -270,10 +263,11 @@ The mode $\sigma$ of the Rayleigh distribution is estimated by finding the ampli
 %\end{equation}
 %In terms of the log-log histogram, the start of the interval corresponds with the point that is $1.3$ units to the right of the peak in the histogram, and the interval end corresponds with the point halfway between the start point and the maximum amplitude. This interval starts near the start of the RFI slope but past where the Rayleigh curve dominates. It also does not include the noisy data at the end of the curve. The curves are not always completely straight in this interval, but since we use the same stable way to determine the interval over which to calculate the slope, we can at least compare them.
 
-One should note that fitting straight lines to the distribution curve in a log-log plot is not the most accurate way of estimating the exponent of a power-law distribution \citep{power-law-distribution}. However, because of our enormous sample size, which allows fitting the line over a large interval, the estimator will be sufficiently accurate for our purpose. Nevertheless, we will additionally calculate a maximum likelihood estimator for comparison. The maximum-likelihood estimator for the exponent in a power-law distribution is given by the Hill estimator \citep{hill-estimator, power-law-distribution}, defined as:
+One should note that fitting straight lines to the distribution curve in a log-log plot is not the most accurate way of estimating the exponent of a power-law distribution \citep{power-law-distribution}. However, because of our enormous sample size, which allows fitting the line over a large interval, the estimator will be sufficiently accurate for our purpose. Nevertheless, we will additionally calculate a maximum likelihood estimator for comparison. The maximum-likelihood estimator for the exponent in a power-law distribution is given by the Hill estimator $\hat \alpha_H$ \citep{hill-estimator, power-law-distribution}, defined as:
 \begin{equation} \label{eq:hill}
- \alpha_H = 1 + N \left(\sum\limits_{i=1}^{N} \ln \frac{x_i}{x_\textrm{max}} \right)^{-1}.
+ \hat \alpha_H = 1 + N \left(\sum\limits_{i=1}^{N} \ln \frac{x_i}{x_\textrm{min}} \right)^{-1},
 \end{equation}
+with $N$ the number of samples and $x_i$ for $0 < i \le N$ the samples drawn from a power law with lower bound $x_\textrm{min}$.
 However, this estimator assumes the distribution is not cut-off at a high point. In our case, the distribution is cut-off at both sides, for example because of the limit of the analogue-digital converter (see \S\ref{sec:rfi-distribution-constraints}). Therefore, using this estimator will result in an estimate that is steeper (i.e., more negative) than the actual distribution. Moreover, the estimator requires reading and processing all data points, and because of the size of the data sets this is somewhat impractical. However, we can calculate Eq.~\eqref{eq:hill} by adding the bin centre values $N$ times to the calculation, where $N$ the bin frequency. Because our bin size is small and the distribution is well sampled, the resulting estimate will be close to the normal Hill estimator. This avoids the need to iterate over all data.
 
 \subsection{Determining RFI distribution limits} \label{sec:rfi-distribution-constraints}
