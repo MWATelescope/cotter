@@ -1,0 +1,121 @@
+* Abstract, second and last line
+It is mentioned that signals are "coherently present over time" (second line) and that the RFI sources "do not add
+coherently". It is probably meant that
+the signals are continuously present; coherency in signal processing usually
+means something different. Signal coherency is not the issue here, or is it? Usually RFI sources are not or only weakly 
+coherent / correlated, moreover this is only a question for sources which share the same frequency band. In such a band 
+in most cases there will be a relatively strong dominating source close to LOFAR and other sources will be much further 
+away ("cell"-frequency re-use at large distances) and therefore much weaker.
+
+- I do mean the mathematical term 'coherence' here, but I agree that the term is somewhat confusing, as it is often used to denote a very specific form of coherence in signal processing. I've replaced the occurences with more describing words ("consistently present", "add up consistently", "increase the noise linearly").
+
+* 1 Introduction, last sentence of first paragraph
+It mentions "In most cases, these methods excise enough of the interference to calibrate and image the data". This is an
+incorrect and dangerous thing to say and certainly needs to be modified. This would suggest, people may interpret it this 
+way, that radio astronomy does
+not need protection, this is a statement which obviously is not true. FM and DVB signals in populated areas, and also many strong
+satellite signals can be suppressed somewhat (order 30dB), yes, but at a cost, and I have e.g. not seen sky images in the 
+middle of the FM band nor in strong DVB-T/DAB-T bands.
+
+- It can be more subtle, but I don't think the referred statement is incorrect; LOFAR is measuring in unprotected spectrum and works indeed for "most" of the cases, indeed with the help of carefull filter design, clever algorithms, a radio-quiet zone etc. I've changed the sentence to:
+"In most cases, and with the help of carefull spectrum allocation management and radio-quiet zones, these methods excise enough of the interference to allow calibration and imaging of the data."
+to highlight the fact that spectrum allocation and radio-quiet zones are important too.
+
+* 1 Introduction, fifth line from the bottom in the second column (and further in the text)
+It mentions "prediction", I think "estimating" is a better term than "prediction". The slope of the distribution is
+estimated from experiment and, yes, predicted from theory (Hata). The slope is predicted but the uniform density (the
+offset of the log-log curve) is estimated, not predicted. Hence not the "full" spatial distribution and brightness
+distribution are predicted.
+
+- Agree, reworded where necessary.
+
+* equation (1)
+As free space attenuation is considered, isn't a factor 4 pi missing?
+
+- I don't think so, both S and I are measured in flux density, so 'I' has absorved the 4 pi term.
+
+* Three lines above equation (2)
+I understand what is meant, but I think the statement "we can treat the interferometer as a single point" is
+confusing (the crux of an interferometer is that is has a spatial dimension) and should be modified. Also, the Hata
+model is valid for distances below 20 km, so this is the same range as the LOFAR baselines, isn't it? Or did you
+restrict the baseline lengths in the analysis?
+
+- Not sure I understand the point completely, but I have reworded this to "for source count analysis we can treat the interferometer geometrically as a single point". The baseline length has not been restricted, but the baseline length has no relation to the range over which Hata's model is valid. What I mean with this sentence is, that if antenna A observes a certain distribution (power law), and B observes only noise (no RFI at all), the resulting distribution still holds a power law, even though B does not see the same sources as A. Since B observes the same power law (but possible from partially different sources), their combination again is a power law. Some sources have higher gain because they are correlated, but that's aborbed in 'g'. 
+
+* Equation (2)
+It is a bit confusing to use the same symbol g for the product g1 g2, "voltage" versus "power". It cannot be that both
+g and g1 (and g2) are the same sort of gain. Please clarify in the text.
+
+- Clarified (added "...and interferometric gain g = g1g2")
+
+* First line below equation (2)
+This assumption is a bit coarse and not needed. It can be approached in a statistical sense. Assume each service has
+for each of its users a fixed transmitter power, but different between different services (frequencies). This will give
+rise to statistics as described later in the paper. But if I understand correctly, the Hata model shows that the power
+does not influence the expected/observed power law slope. So different services with each different powers will
+give rise to the same slope. (as is describe in section 2.4)
+
+- Not completely; if the intrinsic power distribution of sources forms a power law which is steeper than the spatial power law (i.e. exp ~< -1.5), that power law will dominate the histogram on high amplitudes. The other referee also made some remarks about this, which lead to the inclusion of the last paragraph in sect 2.4. Hopefully that clarifies it.
+
+* Definition of "N" above equation (4)
+It should be mentioned here that N is finite as r_L is limited (it is mentioned later in the paper, but a statement
+here clarifies things)
+
+- Ok, done.
+
+* Definition of S
+The definition of S goes from a "strength" variable (equation (1)) to a limiting strength (equation (4)). Better
+(more clearly) to distinguish between the two by adding a index "0" in equation (4)?
+
+- It is still the same variable, I don't think that it is necessary to change the symbol for different usages (e.g. if we say that there are N items, and M>N, N is suddenly a limiting number, but normally not changed). S_0 might make it look like it is a constant, which it is not. So I prefer just to use 'S' here.
+
+* Equation (6), the line below
+Equation (6) tends to c pi r^2 for r much smaller than R; the Hata model is valid for r<20 km anyway, so this is clearly valid. So not
+really needed to include equation (6) as the conclusion is obvious.
+
+- Equation (6) was equivalent with (3). The hard thing was actually to derive (6), which indeed was skipped over. Moreover, it turned out to be much easier to proof that a spherical surface does not change the power law. The paragraph in Sect 2.1 has been partially rewritten to accomodate that.
+
+* Formula (7), section 2.2
+The Hata model has some constraints (on f , h_tr, h_rec, d_link smaller than 20km) which are not mentioned. These should
+be mentioned and discussed. Strictly speaking, the LBA antenna is outside the Hata model range.
+
+- ?? the constraints are already mentioned below that equation (now Eq (8)). In Sect. 4 this is again discussed.
+
+* Equation (10)
+Text line the equation: the sign of eta seems wrong, but is correct in eqs (11), (12)
+
+- I don't think so... \eta is defined so that it represents a loss factor comparable as the "r^2" 
+
+* Equation (13), text above it
+
+I think not the noise signal is meant but the amplitude of the cross correlation function. Please mention explicitly
+exactly which amplitude is meant here.
+
+* Paragraph below equation (16)
+
+"edges of the beam", I would say "entering via the far-side-lobes of the phased-array beam"; the edges of the beam are
+close to the beam and that is not the direction where most of the RFI enters
+
+* Section (2.4), third line
+
+"stochastic nature" is a strange concept as this was defined as a density. I can imaging that the density varies over
+service/frequency, or perhaps temporal variation, but not really stochastic. This needs to be clarified.
+
+* Section 5.1 second paragraph
+
+The text explains that different sub bands give rise to different slopes. I can imagine that this is the case as the
+transmitter height will differ for each service. There are transmitters e.g. mounted at masts (10-30m), mobile at 1-2m
+height (taxis, ambulance etc), airplane and satellite transmissions (not following Hata's model). It would be interesting
+to see how these bands behave in terms of the power-law slope. There should be sufficient data to show this (not per
+sub band or per frequency channel, but for each "service-band"). 
+
+* 6 Conclusions and discussions
+
+First paragraph: there are no 79 m height transmitters in the LBA range, for the Hata model distances in the LOFAR area
+
+One but last paragraph: "All RFI that is below the noise but is not stationary, will act like normal noise and will
+therefore be harmless":
+- in signal processing terms, stationary means that all statistical properties are not dependent on time, here in the
+paper stationary means something different I think, that may be confusing to some readers
+- that it will "therefore be harmless" because it is "normal noise": this is a strong statement, and cannot be stated
+here like this without solid proof.
