@@ -79,43 +79,54 @@ really needed to include equation (6) as the conclusion is obvious.
 The Hata model has some constraints (on f , h_tr, h_rec, d_link smaller than 20km) which are not mentioned. These should
 be mentioned and discussed. Strictly speaking, the LBA antenna is outside the Hata model range.
 
-- ?? the constraints are already mentioned below that equation (now Eq (8)). In Sect. 4 this is again discussed.
+- I don't understand what you mean; the constraints are already mentioned below that equation (now Eq (8)). In Sect. 4 this is again discussed.
 
 * Equation (10)
 Text line the equation: the sign of eta seems wrong, but is correct in eqs (11), (12)
 
-- I don't think so... \eta is defined so that it represents a loss factor comparable as the "r^2" 
+- Good catch! Also the text about eta above what now is Eq 13 was not correct, and the formulae contained some more sloppyness (N was forgotten in Eq 12, zeta should be under the fraction).
 
 * Equation (13), text above it
-
 I think not the noise signal is meant but the amplitude of the cross correlation function. Please mention explicitly
 exactly which amplitude is meant here.
 
-* Paragraph below equation (16)
+- Agree, reworded.
 
+* Paragraph below equation (16)
 "edges of the beam", I would say "entering via the far-side-lobes of the phased-array beam"; the edges of the beam are
 close to the beam and that is not the direction where most of the RFI enters
 
-* Section (2.4), third line
+- Agree, reworded.
 
+* Section (2.4), third line
 "stochastic nature" is a strange concept as this was defined as a density. I can imaging that the density varies over
 service/frequency, or perhaps temporal variation, but not really stochastic. This needs to be clarified.
 
-* Section 5.1 second paragraph
+- Well, since we do not split in time/freq, mathematically they do become stochastic (random) variables (if we take a random sample, it's density is stochastic), even though it sounds physically a bit strange to say that about a density. Reworded to
+"[they] will not be constant, but can change over time and frequency. Therefore, they act like stochastic variables."
 
+* Section 5.1 second paragraph
 The text explains that different sub bands give rise to different slopes. I can imagine that this is the case as the
 transmitter height will differ for each service. There are transmitters e.g. mounted at masts (10-30m), mobile at 1-2m
 height (taxis, ambulance etc), airplane and satellite transmissions (not following Hata's model). It would be interesting
 to see how these bands behave in terms of the power-law slope. There should be sufficient data to show this (not per
 sub band or per frequency channel, but for each "service-band"). 
 
-* 6 Conclusions and discussions
+- We've done some experiments on sub-parts of the data, but did not find any clear distinct features on different frequency ranges. E.g., we tried looking at the airtraffic bands, which are quiet large frequency spans. This might possibly be interesting for future work, but we'd like to keep it outside the scope of the article for now (the article is already quiet long). For now, we can't easily reach the data anymore as well :-(.
 
+* 6 Conclusions and discussions
 First paragraph: there are no 79 m height transmitters in the LBA range, for the Hata model distances in the LOFAR area
 
+- I've added "There are no 79 m high transmitters nearby LOFAR stations in the LBA frequency range."
+
 One but last paragraph: "All RFI that is below the noise but is not stationary, will act like normal noise and will
-therefore be harmless":
-- in signal processing terms, stationary means that all statistical properties are not dependent on time, here in the
+therefore be harmless": in signal processing terms, stationary means that all statistical properties are not dependent on time, here in the
 paper stationary means something different I think, that may be confusing to some readers
-- that it will "therefore be harmless" because it is "normal noise": this is a strong statement, and cannot be stated
+
+- That's where I use it for too, but in that sentence it is indeed used slightly wrong. Changed the sentence to "All RFI that is at that point still below the noise, will act like normal noise and will therefore be harmless."
+
+that it will "therefore be harmless" because it is "normal noise": this is a strong statement, and cannot be stated
 here like this without solid proof.
+
+- I think the proof for that is in the paper. We've shown that detection can detect samples below the noise. So, if sources are still not detectable when using all data, then it is far below the noise. Since we think that the power law histogram can be extrapolated a few order of magnitude into the noise, there should be some RFI below the noise. Since we show that the current level of leaked RFI is harmless, we expect that RFI below the noise is harmless.
+
