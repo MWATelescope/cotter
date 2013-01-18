@@ -132,11 +132,15 @@ where $\mathcal{R}(S)=\mathcal{S}^{-1}$, the inverse of $\mathcal{S}$, i.e., the
 Therefore, if we plot the histogram of the RFI amplitudes in a $\log$-$\log$ plot, we predict to see a power law with a slope of $-2$ over the interval in which the RFI sources are spread like uniform sources on a two-dimensional plane. For this, we have assumed that the variables $I$, $g$ and $\rho$ are constants. In reality, these variables have a stochastic nature. The effect of this will be discussed in \S\ref{sec:parameter-variability}.
 
 \subsection{Spherical case} \label{sec:spherical-geometry}
-If we do take into account the fact that the sources lie on a sphere instead of a plane, Eq.~\eqref{eq:cumulative-distance-function} changes. In this case, the RFI sources are distributed over the surface of a sphere. If we assume their difference in height is negligible, and by using the formula for the surface area of a hemisphere and some basic geometry, one finds that
-\begin{equation}\label{eq:cumulative-spherical}
-\tilde{F}_{\textrm{distance} \le r} = \rho 2\pi R^2\left(1-\cos(2\arcsin \frac{r}{2R})\right) \hspace{0.4cm}\textrm{with } r \le 2R,
+If we do take into account the fact that the sources lie on a sphere instead of a plane, Eq.~\eqref{eq:cumulative-distance-function} changes. In this case, the RFI sources are distributed over the surface of a sphere. If we assume their difference in height is negligible, one can use the formula for the surface area of a spherical cap,
+\begin{equation}\label{eq:spherical-cap-area}
+ A_\textrm{cap} = \pi \left( a^2 + h^2 \right) \hspace{0.4cm}\textrm{with } a \le R \wedge h \le 2R,
 \end{equation}
-with $R$ the radius of the Earth and $r$ the Euclidean distance between the source and the antenna. As shown in Appendix~\ref{sec:proof-spherical-case}, Eqs.~\eqref{eq:cumulative-distance-function} and \eqref{eq:cumulative-spherical} have the same value over the range they can be evaluated. Therefore, the spherical and 2-dimensional cases lead to a distribution with equal power law. Evaluating Eq.~\eqref{eq:cumulative-spherical} is limited to $r \le 2R$, but in practice the lowest amplitude of observed sources is further constrained because of the curvature of the Earth. This causes distant sources to settle below the horizon. Nevertheless, some of those sources might still be visible due to reflection of the ionosphere and other (semi-)spherical propagation effects.
+with $R$ the radius of the Earth, $a$ the radius of the base of the cap and $h$ the height of the cap. Because the Euclidean distance $r$ between the source and the antenna is $r^2 = a^2 + h^2$, the resulting number of sources within Euclidean distance $r$ becomes
+\begin{equation} \label{eq:cumulative-spherical}
+\tilde{F}_{\textrm{distance} \le r}(r) = \rho A_\textrm{cap} = \rho \pi r^2 \hspace{0.4cm}\textrm{with } r \le 2R,
+\end{equation}
+which equals the formule for a planar source distribution given in Eq.~\eqref{eq:cumulative-distance-function}. Therefore, the spherical and two-dimensional cases lead to a distribution with equal power law. Evaluating Eq.~\eqref{eq:cumulative-spherical} is limited to $r \le 2R$, but in practice the lowest amplitude of observed sources is further constrained because of the curvature of the Earth. This causes distant sources to settle below the horizon. Nevertheless, some of those sources might still be visible due to reflection of the ionosphere and other (semi-)spherical propagation effects.
 
 \subsection{Propagation effects}
 So far, we have assumed that the electromagnetic radiation propagates through free space, resulting in an $r^{-2}$ fall-off. In reality, the radiation will be affected by complicated propagational effects. Because of the irregular surface of the Earth (including urban areas) and the absence of a direct line of sight between transmitter and receiver, the propagation mode might be indirect. Multiple indirect paths might be formed that include reflection, refraction, diffraction and absorption of the electromagnetic wave. 
@@ -574,23 +578,6 @@ With the current strategy, it is likely that the LOFAR EoR project will encounte
 \label{lastpage}
 \section*{Acknowledgments}
 LOFAR, the Low-Frequency Array designed and constructed by ASTRON, has facilities in several countries, that are owned by various parties (each with their own funding sources), and that are collectively operated by the International LOFAR Telescope (ILT) foundation under a joint scientific policy.
-
-\appendix
-\section{Calculations with spherical geometry} \label{sec:proof-spherical-case}
-As stated in \S\ref{sec:spherical-geometry}, the distance distribution of sources for a flat geometry and a spherical surface are equal for distances smaller than the diameter of the Earth. We proof this by showing that the spherical distance function $\tilde{F}_{\textrm{distance} \le r}(r)$ of Eq.~\ref{eq:cumulative-spherical} equals the flat distance function $F_{\textrm{distance} \le r}(r)$ of Eq.~\ref{eq:cumulative-distance-function}.
-\begin{proof}
-\begin{eqnarray} \notag
-\tilde{F}_{\textrm{distance} \le r}(r) & = & \rho 2 \pi R^2 \left[1  - \cos\left(2 \arcsin \frac{r}{2R}\right)\right] \\\notag
-& & \textit{\{\hspace{1mm}Using $\cos 2\phi = 1 - 2\sin^2 \phi$\hspace{1mm}\}} \\\notag
-& = & \rho 2 \pi R^2 \left[1 - \left(1 - 2 \sin^2(\arcsin \frac{r}{2R})\right)\right] \\\notag
-& = & \rho 2 \pi R^2 \left[2 \sin^2(\arcsin \frac{r}{2R})\right] \\\notag
-& & \textit{\{\hspace{1mm}Assuming $r \le 2R$\hspace{1mm}\}} \\\notag
-& = & \rho 2 \pi R^2 \left[2 \left(\frac{r}{2R}\right)^2\right] \\\notag
-& = & \rho \pi r^2 \\
-& = & F_{\textrm{distance} \le r}(r)
-\end{eqnarray}
-\end{proof}
-
 
 \bibliographystyle{mn2e}
 \bibliography{references}
