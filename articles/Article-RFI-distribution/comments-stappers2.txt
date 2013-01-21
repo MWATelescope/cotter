@@ -7,7 +7,7 @@ coherent / correlated, moreover this is only a question for sources which share 
 in most cases there will be a relatively strong dominating source close to LOFAR and other sources will be much further 
 away ("cell"-frequency re-use at large distances) and therefore much weaker.
 
-- I do mean the mathematical term 'coherence' here, but I agree that the term is somewhat confusing, as it is often used to denote a very specific form of coherence in signal processing. I've replaced the occurences with more describing words ("consistently present", "add up consistently", "increase the noise linearly").
+- I do mean the mathematical term 'coherence' here, but I agree that the term is somewhat confusing, as it is often used to denote a very specific form of coherence in signal processing, while here it refers to general coherency. I've replaced the occurences with more describing words ("consistently present", "add up consistently", "increase the noise linearly").
 
 * 1 Introduction, last sentence of first paragraph
 It mentions "In most cases, these methods excise enough of the interference to calibrate and image the data". This is an
