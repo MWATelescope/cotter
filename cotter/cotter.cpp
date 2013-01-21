@@ -130,7 +130,7 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		{
 			for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
 			{
-				ImageSet *imageSet = new ImageSet(_flagger->MakeImageSet(_curChunkEnd-_curChunkStart, nChannels, 8));
+				ImageSet *imageSet = new ImageSet(_flagger->MakeImageSet(_curChunkEnd-_curChunkStart, nChannels, 8, 0.0));
 				_imageSetBuffers.insert(std::pair<std::pair<size_t,size_t>, ImageSet*>(
 					std::pair<size_t,size_t>(antenna1, antenna2), imageSet
 				));
