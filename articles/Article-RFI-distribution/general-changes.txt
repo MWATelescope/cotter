@@ -1,0 +1,8 @@
+General changes:
+
+- Added last sentence of abstract ("Therefore, we conclude that it is likely that most RFI sources do not linearly increase the noise, in which case RFI will not prevent an EoR detection with LOFAR.")
+- Sect 2.1 was partially rewritten; it was easier to prove this using formula for spherical cap.
+- Eq 11 and derived from there contained an error (moved Zeta below fraction).
+- The sampling equation in Sect 2.2 (Eq 15 and further) were rewritten to make clear that the phase should be uniform (previous Equations lead to non-uniform phase distribution)
+- Eq 18 was added; it is useful for simulations.
+

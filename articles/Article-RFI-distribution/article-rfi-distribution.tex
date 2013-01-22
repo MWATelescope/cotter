@@ -34,23 +34,23 @@
   A.~R.~Offringa$^{1,2}$\thanks{E-mail:
 \url{offringa@mso.anu.edu.au}},
 A.~G.~de~Bruyn$^{2,3}$,
-S.~Zaroubi$^2$,
-W.~Brouw$^{2,3}$,
-B.~Ciardi$^4$,
-I.~T.~Iliev$^5$,
-\newauthor
-G.~J.~A.~Harker$^6$,
-L.~V.~E.~Koopmans$^2$,
-G.~Mellema$^7$,
-S.~J.~Wijnholds$^3$
+S.~Zaroubi$^2$%,
+%W.~Brouw$^{2,3}$,
+%B.~Ciardi$^4$,
+%I.~T.~Iliev$^5$,
+%\newauthor
+%G.~J.~A.~Harker$^6$,
+%L.~V.~E.~Koopmans$^2$,
+%G.~Mellema$^7$,
+%S.~J.~Wijnholds$^3$
 \\
 $^{1}$Australian National University, RSAA Mt. Stromlo Observatory, Cotter Road, Weston Creek ACT 2611, Australia\\
 $^{2}$University of Groningen, Kapteyn Astronomical Institute, PO Box 800, 9700 AV Groningen, The Netherlands\\
 $^{3}$ASTRON, PO Box 2, 7990 AA Dwingeloo, The Netherlands\\
-$^{4}$Max-Planck Institute for Astrophysics, Karl-Schwarzschild-Strasse 1, 85748 Garching bei M\"unchen, Germany\\
-$^{5}$University of Sussex, Falmer, Brighton BN1 9QH, UK\\
-$^{6}$Center for Astrophysics and Space Astronomy, University of Colorado Boulder, CO 80309, USA\\
-$^7$Stockholm University, AlbaNova University Center, Stockholm Observatory, SE-106 91 Stockholm, Sweden 
+%$^{4}$Max-Planck Institute for Astrophysics, Karl-Schwarzschild-Strasse 1, 85748 Garching bei M\"unchen, Germany\\
+%$^{5}$University of Sussex, Falmer, Brighton BN1 9QH, UK\\
+%$^{6}$Center for Astrophysics and Space Astronomy, University of Colorado Boulder, CO 80309, USA\\
+%$^7$Stockholm University, AlbaNova University Center, Stockholm Observatory, SE-106 91 Stockholm, Sweden 
 }
 
 \begin{document}
@@ -134,13 +134,13 @@ Therefore, if we plot the histogram of the RFI amplitudes in a $\log$-$\log$ plo
 \subsection{Spherical case} \label{sec:spherical-geometry}
 If we do take into account the fact that the sources lie on a sphere instead of a plane, Eq.~\eqref{eq:cumulative-distance-function} changes. In this case, the RFI sources are distributed over the surface of a sphere. If we assume their difference in height is negligible, we can use the formula for the surface area of a spherical cap,
 \begin{equation}\label{eq:spherical-cap-area}
- A_\textrm{cap} = \pi \left( a^2 + h^2 \right) \hspace{0.4cm}\textrm{with } a \le R \wedge h \le 2R,
+ A_\textrm{cap} = \pi \left( a^2 + h^2 \right) \hspace{0.4cm}\textrm{with } (a \le R) \wedge (h \le 2R),
 \end{equation}
 with $R$ the radius of the Earth, $a$ the radius of the base of the cap and $h$ the height of the cap. Because the Euclidean distance $r$ between the source and the antenna is $r^2 = a^2 + h^2$, the resulting number of sources within Euclidean distance $r$ becomes
 \begin{equation} \label{eq:cumulative-spherical}
 \tilde{F}_{\textrm{distance} \le r}(r) = \rho A_\textrm{cap} = \rho \pi r^2 \hspace{0.4cm}\textrm{with } r \le 2R,
 \end{equation}
-which equals the formule for a planar source distribution given in Eq.~\eqref{eq:cumulative-distance-function}. Therefore, the spherical and two-dimensional cases lead to a distribution with equal power law. Evaluating Eq.~\eqref{eq:cumulative-spherical} is limited to $r \le 2R$, but in practice the lowest amplitude of observed sources is further constrained because of the curvature of the Earth. This causes distant sources to settle below the horizon. Nevertheless, some of those sources might still be visible due to reflection of the ionosphere and other (semi-)spherical propagation effects.
+which equals the formule for a planar source distribution given in Eq.~\eqref{eq:cumulative-distance-function}. Therefore, the spherical and two-dimensional cases lead to a distribution with equal power law. Eq.~\eqref{eq:cumulative-spherical} is valid for $r \le 2R$, but in practice the lowest amplitude of observed sources is further constrained because of the curvature of the Earth. This causes distant sources to settle below the horizon. Nevertheless, some of those sources might still be visible due to reflection of the ionosphere and other (semi-)spherical propagation effects.
 
 \subsection{Propagation effects}
 So far, we have assumed that the electromagnetic radiation propagates through free space, resulting in an $r^{-2}$ fall-off. In reality, the radiation will be affected by complicated propagational effects. Because of the irregular surface of the Earth (including urban areas) and the absence of a direct line of sight between transmitter and receiver, the propagation mode might be indirect. Multiple indirect paths might be formed that include reflection, refraction, diffraction and absorption of the electromagnetic wave. 
@@ -250,7 +250,7 @@ The effect of the band-pass on the data distribution is consequently limited to 
 
 Another effect that is absorbed in $g$, is the beam of the instrument. At the point of writing, LOFAR beam models are still being developed and are not yet well parametrized. It is likely that most RFI sources are observed at the edges of the beam. Because most sources will be observed with similar gains (within one order of magnitude), it can be expected that the beam will have a limited effect on the histogram properties of an observation, and is comparable with the effect of the frequency response.
 
-We assume that the stochastic nature of $I$, that is caused by the spread of transmitters with different intrinsic strengths, also has little effect on the $\log N$ -- $\log S$ histograms. Nevertheless, it is unlikely that $I$ follows a uniform or Gaussian distribution, because the distribution will contain few strong transmitters (such as radio stations) and many weak transmitters (such as remote controls). Therefore, variable $I$ might follow a power-law distribution by itself. It is likely that strong transmitters transmit more on average, and therefore contaminate more samples as well. High-power transmitters, such as radio stations, have a typical transmitting power in the order of 100 kW. Low-power transmitters, such as remote controls, transmit with an order of 100 mW or even less. Therefore, these devices have a spread of around 6 orders of magnitudes in power. As long as the exponent of the power law of $I$ is less steep (i.e., less negative) compared to the power law caused by the spatial distribution, the spatial distribution will dominate the histogram at high amplitudes. With a spatial $-1.5$ power law and the given transmitting powers, the low-power transmitters should contaminate a factor of $10^9$ more samples compared to the high-power transmitters to dominate the high-amplitude distribution, which is unlikely. Therefore, it is likely that the spatial distribution will dominate the power law in the histogram.
+The stochastic nature of $I$, that is caused by the spread of transmitters with different intrinsic strengths, might also have an effect on the $\log N$ -- $\log S$ histograms. It is unlikely that $I$ follows a uniform or Gaussian distribution, because the distribution will contain few strong transmitters (such as radio stations) and many weak transmitters (such as remote controls). Therefore, variable $I$ might follow a power-law distribution by itself. It is likely that strong transmitters transmit more on average, and therefore contaminate more samples as well. High-power transmitters, such as radio stations, have a typical transmitting power in the order of 100 kW. Low-power transmitters, such as remote controls, transmit with an order of 100 mW or even less. Therefore, these devices have a spread of around 6 orders of magnitudes in power. As long as the exponent of the power law of $I$ is less steep (i.e., less negative) compared to the power law caused by the spatial distribution, the spatial distribution will dominate the histogram at high amplitudes. With a spatial $-1.5$ power law and the given transmitting powers, the low-power transmitters should contaminate a factor of $10^9$ more samples compared to the high-power transmitters to dominate the high-amplitude distribution, which is unlikely. Therefore, it is likely that the spatial distribution will dominate the power law in the histogram. Otherwise, a turn-over point should be visible in the histogram.
 
 \section{Methods} \label{sec:distribution-methods}
 In this section we will briefly discuss how the histograms are created, how the slope of the underlying RFI distribution is estimated and show how to constrain some of the intrinsic RFI parameters.
@@ -493,7 +493,7 @@ If we go back to Fig.~\ref{fig:histogram-passband-corrected}, we see that in the
 \begin{minipage}{12cm}
 \caption{Estimated distribution quantities per data set. }\label{table:dist-data-quantities}
 \begin{tabular}{@{}llrr@{}}
-\textbf{Symbol} & \textbf{Name} & \textbf{LBA set}& \textbf{HBA set} \\
+\textbf{Symbol} & \textbf{Description} & \textbf{LBA set}& \textbf{HBA set} \\
 \hline
 \hline
 % LBA fitting: 10-2000
@@ -509,6 +509,7 @@ $\alpha_H$ & Hill estimator for power-law exponent & $-1.53$ & $-1.53$ \\
 $SE(\alpha_H)$ & Standard error of $\alpha_H$ & $8.9 \times 10^{-6}$ & $1.0\times10^{-5}$ \\
 $\epsilon_{\alpha}$ & Sampled estimate of standard deviation of $\alpha$ & $6.1 \times 10^{-2}$ & $1.2 \times 10^{-2}$ \\
 $\beta$ & Scaling factor of power law with exponent $\alpha$ & $4.0 \times 10^{17}$ & $3.4\times 10^{15}$ \\
+$\eta$ & Radiation fall-off speed for $\alpha$ ($\eta=2$ is free space) & 3.23 & 3.77 \\
 \hline
 \multicolumn{4}{l}{\textit{Limits}} \\
 \hline
@@ -570,7 +571,7 @@ Because of the above two arguments, when considering RFI it is a risk to use the
 
 On top of all these possible RFI reducing effects, our given RFI constraints could be too pessimistic because we have assumed 100\% of the spectrum is occupied by RFI. If, say, only 10\% of the spectrum is occupied, the expected value of the leaked RFI level decreases by about $25$\%, and if the detected 2.68\% true-positives contain all RFI, there is no leaked RFI at all. With current data, one can only speculate how much of the electromagnetic spectrum is truly occupied.
 
-Finally, future RFI excision strategies will further enhance detection accuracy. Currently, RFI excision is applied only on the raw data from single interferometers at high resolution. Once data from a large number of nights are collected, it will be possible to detect and excise RFI more accurately, by looking at the averaged data from multiple nights and/or multiple interferometers. We have shown that the current detection algorithms can detect RFI well below the noise. Therefore, if data from different nights or interferometers are summed, and there is stationary RFI in the set, it will become detectable. All RFI that is at that point still below the noise, will act like normal noise and will therefore be harmless.
+Finally, future RFI excision strategies will further enhance detection accuracy. Currently, RFI excision is applied only on the raw data from single interferometers at high resolution. Once data from a large number of nights are collected, it will be possible to detect and excise RFI more accurately, by looking at the averaged data from multiple nights and/or multiple interferometers. We have shown that the current detection algorithms can detect RFI well below the noise. Therefore, if data from different nights or interferometers are summed, and there is stationary RFI in the set, it will become detectable if it is consistently present. If it is still below the noise and not detectable, but behaves similar to the RFI we are already seeing, it will act like normal noise and will therefore be harmless.
 
 With the current strategy, it is likely that the LOFAR EoR project will encounter some RFI on some frequencies when averaging lots of observing nights, although this still remains to be seen. To mitigate this leaked RFI, the detection can be executed at higher signal-to-noise levels. The current results indicate that a lot of RFI is not coherent, and the situation is promising. Considering the current RFI results, and the availability of further mitigation steps, we conclude that RFI will likely not be problematic for the detection of the Epoch of Reionisation with LOFAR.
 

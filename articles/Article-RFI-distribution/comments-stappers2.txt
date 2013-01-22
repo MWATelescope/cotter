@@ -1,3 +1,10 @@
+Dear referee,
+
+Thank you for your useful feedback. Below I will give an answer to each of your remarks.
+
+Kind regards,
+André Offringa
+
 * Abstract, second and last line
 It is mentioned that signals are "coherently present over time" (second line) and that the RFI sources "do not add
 coherently". It is probably meant that
@@ -17,9 +24,9 @@ not need protection, this is a statement which obviously is not true. FM and DVB
 satellite signals can be suppressed somewhat (order 30dB), yes, but at a cost, and I have e.g. not seen sky images in the 
 middle of the FM band nor in strong DVB-T/DAB-T bands.
 
-- It can be more subtle, but I don't think the referred statement is incorrect; LOFAR is measuring in unprotected spectrum and works indeed for "most" of the cases, indeed with the help of carefull filter design, clever algorithms, a radio-quiet zone etc. I've changed the sentence to:
+- It can be more diplomatic, but I don't think the referred statement is incorrect; LOFAR is measuring in unprotected spectrum and works indeed for "most" of the cases, indeed with the help of carefull filter design, clever algorithms, a radio-quiet zone etc. I've changed the sentence to:
 "In most cases, and with the help of carefull spectrum allocation management and radio-quiet zones, these methods excise enough of the interference to allow calibration and imaging of the data."
-to highlight the fact that spectrum allocation and radio-quiet zones are important too.
+to highlight the fact that spectrum allocation and radio-quiet zones are important too. As a side note, I think that a student of Albert Jan Boonstra had some success in cyclostationary filtering of FM bands.
 
 * 1 Introduction, fifth line from the bottom in the second column (and further in the text)
 It mentions "prediction", I think "estimating" is a better term than "prediction". The slope of the distribution is
@@ -73,13 +80,13 @@ The definition of S goes from a "strength" variable (equation (1)) to a limiting
 Equation (6) tends to c pi r^2 for r much smaller than R; the Hata model is valid for r<20 km anyway, so this is clearly valid. So not
 really needed to include equation (6) as the conclusion is obvious.
 
-- Equation (6) was equivalent with (3). The hard thing was actually to derive (6), which indeed was skipped over. Moreover, it turned out to be much easier to proof that a spherical surface does not change the power law. The paragraph in Sect 2.1 has been partially rewritten to accomodate that.
+- Equation (6) was equivalent with (3). The somewhat non-obvious point here was to derive (6), which indeed was skipped over. Moreover, it turned out to be much easier to proof that a spherical surface does not change the power law. The paragraph in Sect 2.1 has been partially rewritten to accomodate that.
 
 * Formula (7), section 2.2
 The Hata model has some constraints (on f , h_tr, h_rec, d_link smaller than 20km) which are not mentioned. These should
 be mentioned and discussed. Strictly speaking, the LBA antenna is outside the Hata model range.
 
-- I don't understand what you mean; the constraints are already mentioned below that equation (now Eq (8)). In Sect. 4 this is again discussed.
+- I don't understand what you mean; the constraints are already mentioned below that equation (now Eq (8)), although different symbols are used (but the same as in Hata's paper). In Sect. 4 this is again discussed.
 
 * Equation (10)
 Text line the equation: the sign of eta seems wrong, but is correct in eqs (11), (12)
@@ -112,7 +119,7 @@ height (taxis, ambulance etc), airplane and satellite transmissions (not followi
 to see how these bands behave in terms of the power-law slope. There should be sufficient data to show this (not per
 sub band or per frequency channel, but for each "service-band"). 
 
-- We've done some experiments on sub-parts of the data, but did not find any clear distinct features on different frequency ranges. E.g., we tried looking at the airtraffic bands, which are quiet large frequency spans. This might possibly be interesting for future work, but we'd like to keep it outside the scope of the article for now (the article is already quiet long). For now, we can't easily reach the data anymore as well :-(.
+- We've done some experiments on sub-parts of the data, but did not find any clear distinct features on different frequency ranges. E.g., we tried looking at the airtraffic bands, which are quiet large frequency spans. There wasn't an obvious nice relation to be find there... This might possibly be interesting for future work, but we'd like to keep it outside the scope of the article for now (the article is already quiet long). We can't anymore easily reach the data anymore as well.
 
 * 6 Conclusions and discussions
 First paragraph: there are no 79 m height transmitters in the LBA range, for the Hata model distances in the LOFAR area
@@ -128,5 +135,5 @@ paper stationary means something different I think, that may be confusing to som
 that it will "therefore be harmless" because it is "normal noise": this is a strong statement, and cannot be stated
 here like this without solid proof.
 
-- I think the proof for that is in the paper. We've shown that detection can detect samples below the noise. So, if sources are still not detectable when using all data, then it is far below the noise. Since we think that the power law histogram can be extrapolated a few order of magnitude into the noise, there should be some RFI below the noise. Since we show that the current level of leaked RFI is harmless, we expect that RFI below the noise is harmless.
-
+- I reworded the sentence slightly, but I think this is a valid implication/conclusion from the work in the paper. We've shown that detection can detect samples below the noise. So, if sources are still not detectable when using all data, then it is far below the noise. Since we think that the power-law histogram can be extrapolated a few order of magnitude into the noise, there should now already be some RFI below the noise. Since we show that the current level of leaked RFI is harmless, we expect that RFI below the noise is harmless. The sentence is now:
+"If [the RFI] is still below the noise and not detectable, but behaves similar to the RFI we are already seeing, it will act like normal noise and will therefore be harmless."
