@@ -8,7 +8,6 @@
 void GPUFileReader::openFiles()
 {
 	int status = 0;
-
 	for(size_t i=0; i!=_filenames.size(); ++i)
 	{
 		fitsfile *fptr;
@@ -22,6 +21,17 @@ void GPUFileReader::openFiles()
 			
 			_fitsHDUCounts.push_back(hduCount);
 			std::cout << "There are " << hduCount << " HDUs in file " << _filenames[i] << '\n';
+			
+			long thisFileTime;
+			fits_read_key(fptr, TLONG, "TIME", &thisFileTime, 0, &status);
+			checkStatus(status);
+			
+			if(i == 0) _startTime = thisFileTime;
+			if(_startTime != thisFileTime)
+			{
+				std::cout << "WARNING: file number " << (i+1) << " of current time range has different start time!\n"
+					"Current file start time: " << thisFileTime << " previous file had: " << _startTime << ".\n";
+			}
 		}
 		else {
 			throwError(status, std::string("Cannot open file ") + _filenames[i]);

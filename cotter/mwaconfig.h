@@ -51,6 +51,7 @@ struct MWAHeader
 			return dateFirstScanMJD + (integrationTime/86400.0)*nScans;
 		}
 		double GetStartDateMJD() const;
+		double GetDateFirstScanFromFields() const;
 		
 		void Validate(bool lockPointing);
 	private:
@@ -137,6 +138,8 @@ class MWAConfig
 		static double ArrayLongitudeRad();
 		static double ArrayHeightMeters();
 		static double VelocityFactor();
+		
+		MWAHeader &HeaderRW() { return _header; }
 	private:
 		std::vector<MWAInput> _inputs;
 		std::vector<MWAAntenna> _antennae;

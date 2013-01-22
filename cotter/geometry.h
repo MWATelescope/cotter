@@ -219,6 +219,7 @@ public:
 		Z = (EARTH_RAD_WGS84*(1.0-E_SQUARED)/chi + height_meters)*s_lat;
 	}
 	
+	
 };
 
 #endif

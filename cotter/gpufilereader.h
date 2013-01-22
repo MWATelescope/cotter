@@ -1,5 +1,6 @@
 #include <string>
 #include <vector>
+#include <ctime>
 
 #include <fitsio.h>
 #include <stdexcept>
@@ -66,6 +67,7 @@ class GPUFileReader : private FitsUser
 		{
 			return _isConjugated[(ant1 * 2 + pol1) * _nAntenna * 2 + (ant2 * 2 + pol2)];
 		}
+		std::time_t StartTime() const { return _startTime; }
 	private:
 		const static int pfb_output_to_input[64];
 		
@@ -94,4 +96,5 @@ class GPUFileReader : private FitsUser
 		std::vector<BaselineBuffer> _mappedBuffers;
 		std::vector<size_t> _corrInputToOutput;
 		std::vector<bool> _isConjugated;
+		std::time_t _startTime;
 };

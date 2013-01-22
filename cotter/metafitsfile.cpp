@@ -162,7 +162,10 @@ void MetaFitsFile::parseKeyword(MWAHeader &header, MWAHeaderExt &headerExt, cons
 		header.fieldName = stripBand(headerExt.filename);
 	}
 	else if(name == "DATE-OBS")
+	{
+		parseFitsDate(keyValue, header.year, header.month, header.day, header.refHour, header.refMinute, header.refSecond);
 		headerExt.dateRequestedMJD = parseFitsDateToMJD(keyValue);
+	}
 	else if(name == "RAPHASE")
 		header.raHrs = atof(keyValue) * (24.0 / 360.0);
 	else if(name == "DECPHASE")
@@ -202,7 +205,7 @@ void MetaFitsFile::parseKeyword(MWAHeader &header, MWAHeaderExt &headerExt, cons
 	else if(name == "FREQCENT")
 		header.centralFrequencyMHz = atof(keyValue);
 	else if(name == "DATESTRT")
-		parseFitsDate(keyValue, header.year, header.month, header.day, header.refHour, header.refMinute, header.refSecond);
+		; //parseFitsDate(keyValue, header.year, header.month, header.day, header.refHour, header.refMinute, header.refSecond);
 	else if(name == "DATE")
 		; // Date that metafits was created; ignored.
 	else if(name == "EXPOSURE" || name == "MJD" || name == "LST" || name == "HA" || name == "AZIMUTH" || name == "ALTITUDE" || name == "SUN-DIST" || name == "MOONDIST" || name == "JUP-DIST" || name == "GRIDNUM" || name == "RECVRS" || name == "CHANNELS" || name == "SUN-ALT" || name == "TILEFLAG" || name == "NAV_FREQ" || name == "FINECHAN" || name == "TIMEOFF")

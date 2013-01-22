@@ -186,7 +186,12 @@ void MWAHeader::Validate(bool lockPointing)
 	if(haHrsStart == -99.0 && lockPointing)
 		throw std::runtime_error("HA must be specified in header when locking pointing.");
 	
-	dateFirstScanMJD = 0.5*(integrationTime/86400.0) + Geometry::GetMJD(
+	dateFirstScanMJD = GetDateFirstScanFromFields();
+}
+
+double MWAHeader::GetDateFirstScanFromFields() const
+{
+	return 0.5*(integrationTime/86400.0) + Geometry::GetMJD(
 		year, month, day, refHour, refMinute, refSecond);
 }
 

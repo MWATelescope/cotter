@@ -142,7 +142,37 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		do {
 			initializeReader();
 			
+			bool firstRead = (bufferPos == 0 && chunkIndex == 0);
+			
 			bool moreAvailableInCurrentFile = _reader->Read(bufferPos, _curChunkEnd-_curChunkStart);
+			
+			if(firstRead)
+			{
+				std::time_t startTime = _reader->StartTime();
+				std::tm startTimeTm;
+				gmtime_r(&startTime, &startTimeTm);
+				if(startTimeTm.tm_year+1900 != _mwaConfig.Header().year ||
+					startTimeTm.tm_mon+1 != _mwaConfig.Header().month ||
+					startTimeTm.tm_mday != _mwaConfig.Header().day ||
+					startTimeTm.tm_hour != _mwaConfig.Header().refHour ||
+					startTimeTm.tm_min != _mwaConfig.Header().refMinute ||
+					startTimeTm.tm_sec != _mwaConfig.Header().refSecond)
+				{
+					std::cout << "WARNING: start time according to raw files is "
+						<< startTimeTm.tm_year+1900  << '-' << startTimeTm.tm_mon+1 << '-' << startTimeTm.tm_mday << ' '
+						<< startTimeTm.tm_hour << ':' << startTimeTm.tm_min << ':' << startTimeTm.tm_sec << ",\nbut meta files say "
+						<< _mwaConfig.Header().year << '-' << _mwaConfig.Header().month << '-' << _mwaConfig.Header().day << ' '
+						<< _mwaConfig.Header().refHour << ':' << _mwaConfig.Header().refMinute << ':' << _mwaConfig.Header().refSecond <<
+					" !\nWill use start time from raw file, which should be most accurate.\n";
+					_mwaConfig.HeaderRW().year = startTimeTm.tm_year+1900;
+					_mwaConfig.HeaderRW().month = startTimeTm.tm_mon+1;
+					_mwaConfig.HeaderRW().day = startTimeTm.tm_mday;
+					_mwaConfig.HeaderRW().refHour = startTimeTm.tm_hour;
+					_mwaConfig.HeaderRW().refMinute = startTimeTm.tm_min;
+					_mwaConfig.HeaderRW().refSecond = startTimeTm.tm_sec;
+					_mwaConfig.HeaderRW().dateFirstScanMJD = _mwaConfig.Header().GetDateFirstScanFromFields();
+				}
+			}
 			
 			if(!moreAvailableInCurrentFile && bufferPos < (_curChunkEnd-_curChunkStart))
 			{
