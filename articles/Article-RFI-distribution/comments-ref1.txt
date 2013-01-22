@@ -1,11 +1,12 @@
 Dear referee,
 
-Thank you for your useful feedback. Below I will give an answer to each of your remarks.
+Thank you for your valuable feedback. Below I will give an answer to each of your remarks. 
 
 Kind regards,
 André Offringa
 
 I have no substantial comments on the content of the paper which seems well put together. One thing that I thought was lacking was a comparison to the paper of Scheuer (1957PCPS...53..764S) to which I find the method bears a marked similarity although the context/application is different.
+- The paper has indeed some similarities, so I've now added a citation with a few sentences about this paper. Thank you for pointing that out. I don't think I can compare it more extensively than this, because Scheuer uses different math and it has a different context.
 
 Minor points:
 
