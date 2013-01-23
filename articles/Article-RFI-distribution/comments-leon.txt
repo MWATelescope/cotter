@@ -1,0 +1,106 @@
+Hi Leon,
+
+Bedankt voor al je nuttige feedback! Je noemt een aantal dingen waar ik nog niet aan gedacht had, dus het is erg nuttig.
+
+De meeste puntjes heb ik verbeterd, hieronder nog wat reacties op je punten:
+
+"Could the sources still be coherent, but concentrate near the horizon such that they do not show up near the
+phase-center of images that are at high elevations? Can you exclude that scenario?"
+- This is very briefly covered in Sect 6.2. When observing RFI sources at the horizon for longer durations, the sources will move through their own sidelobes in image plane. Therefore, they average out at their "actual" locations (i.e., near the horizon). However, their sidelobes will concentrate at the pole and this can cause artefacts to appear there. That can be good and bad...
+
+"How is 'r' defined here. Comment in the text on this. Is it the shortest distance confined to the surface of a sphere
+or is it the Euclidean distance in 3D space? This makes a difference. If is is the shortest distance on the surface
+then eq. 2 & 3 are not correct. Coud you comment on this?"
+- 'r' is Euclidean distance.
+
+Right below that:
+"Only by approximation, correct? Just because r<<R. Maybe say this explicitly."
+- Not sure what you mean with this; the distance of the Earth is in the end not important, because Equation (6) equals (3), thus by simplifying (6) the R can be removed. But the R appears when calculating surface etc., so R is supposed to be the exact diameter.
+
+"Is there any physics associated with this model? If so, maybe summarize it. Or is it no more than a fitting function?
+It looks like a rather ugly function (eqn (7))."
+- It is empirical and has no underlying physical model; they just fitted a function to measurements (but it is widely accepted and used).
+
+"Why do you only use the information in the amplitude and not the phases to help separate RFi from signal. Could
+this be done? Maybe comment on this."
+- There might be some information in the phase indeed (and polarization as well). The main reason to do it like this was that it would be easier. I've quickly looked at phase distributions at some point, and I found that the phase distribution remains uniform, also for the RFI contaminated part of the data, so there is not immediately something interesting to be learned from it, although a detailed look might be interesting at some point... for now outside the scope I think.
+
+"[..] The fact we don't see any RFI residuals in the NCP I think really comes from the fact that all/most RFI comes from far outside the station beam and hence smears over the entire sky/beam per emitter [..]"
+I don't disagree with that and I think we do mention this, but in a different way. Just for info, remember that sidelobes of things on the horizon do coherently add up at the pole, so they do not "smear" at that point. If you calculate what a constant 1 Jy source will do in one baseline over a long time, you'll see it adds exactly 1 Jy on the NCP. There it can add destructively with other baselines, etc, and that effect is mentioned. But it's not entirely correct to say that being on the horizon is good enough for RFI sources to become fainter.
+
+On 08/01/13 20:42, Leon Koopmans wrote:
+> Hi Andre,
+> Thanks again for a very thorough paper! I attached my still somewhat extensive
+> comment and suggestion to clarify some points which were not clear to me and
+> maybe neither to a general reader. I worked on your first version since I had already
+> gone half-way through it.
+> You are free to 'excise' any comments/suggestions I have made as 'interference'
+> from my side! :-)
+> I also found a few errors in the eqns, which might just be typo's rather than errors. 
+> Below I attached all my comments in a marked-up PDF. I'm happy to comment
+> on them if needed.
+> My main point, which I think is not clear in the paper but quite important, is that most
+> RFI comes from (near) the horizon, and even if fully coherent and in the far field (lesser
+> assumptions will only make things better) will let the horizon act as an emitter that 
+> has a varying time/freq./angular intensity. However, only its side-lobes will smear 
+> over the EoR field, just as we see from sources outside the primary beam. Under
+> the above assumption(s) you could calculate how much all RFI sources (after some
+> level of excision) can still contribute to the intensity in the EoR field. My feeling is
+> that this will be small, given that you claim that ~few Jy REFD is left after excision. But
+> because this flux comes from smeared over the horizon, its side-lobe level should be 
+> small in the EoR field. Of course all other effects will decrease this, such as incoherency,
+> the fact that not all stations see all RFI, etc. However, conceptually this seems to me
+> an easier way of looking at the problem, to place it in context and to asses some
+> maximum impact that RFI can have. The fact we don't see any RFI residuals in the NCP
+> I think really comes from the fact that all/most RFI comes from far outside the station
+> beam and hence smears over the entire sky/beam per emitter and causes a side-lobe
+> noise similar (conceptually) to unsubtracted sources outside the primary beam as
+> discussed in Sarod's paper. It would be interesting to see a discussion on this in 
+> the paper. A simple comparison could be so compare your REFD with the integrated 
+> flux-density of un-subtracted source (USEFD: " Unsubtracted-Source Equivalent 
+> Flux Density") around the NCP field and compare that with the REFD. I would suspect
+> that the the REFD is less than the USEFD since we don't see any increase in noise
+> due to the RFI.  
+> Just an idea...
+> Great paper that I think takes the wind out of any commentary that LOFAR can not do EoR
+> science because of RFI!
+> Cheers,
+>  Leon
+> On Jan 4, 2013, at 8:46 AM, André Offringa wrote:
+>> Dear EoR all,
+>>
+>> Small update on the RFI distribution paper: thanks for all the feedback so far! I am processing the feedback (I'll answer all replies), but since the LOFAR internal referees are still working on the paper, I thought it might be useful to move the deadline for the EoR group to 11 January. So, if you've missed the paper due to the holidays, I hope this provides a second chance :-) !
+>>
+>> So: new deadline 11 January.
+>>
+>> Cheers,
+>> Andre
+>>
+>> On 12/18/2012 08:36 AM, André Offringa wrote:
+>>> Dear EoR members, 
+>>> Attached is the prepared version of our article on the distribution of RFI. It will be submitted to the LOFAR publication committee to go through the LOFAR commissioning paper procedure. 
+>>> Since this paper has been written by using EoR commissing data, it will also be an LOFAR-EoR group paper. If you would like to be author on the paper, please read it carefully and give me your comments before January 1. There's a strict deadline, because there might be a paper in preparation that covers a similar subject, but I do appreciate feedback! 
+>>> Kind regards, 
+>>> André Offringa 
+>>
+>>
+>> <article-rfi-distribution.pdf>
+> -- 
+> ----------------------------------------------------------------------------
+> Prof. dr. L.V.E. Koopmans (Leon)
+> Kapteyn Astronomical Institute    e-mail : koopmans@astro.rug.nl
+> P.O.Box 800                       Phone  : +31-(0)50-3636519
+> 9700AV Groningen                  Fax    : +31-(0)50-3636100
+> The Netherlands                   Web    : www.astro.rug.nl/~koopmans
+> ---------------------------------------------------------------------------- 
+>
+>
+
+
+-- 
+Dr. A.R. Offringa
+Phone: (02) 6125 0272
+Australian National University
+RSAA The Mount Stromlo Observatory, DF 29
+
+
