@@ -37,7 +37,8 @@ Cotter::Cotter() :
 	_metaFilename(),
 	_statistics(0),
 	_correlatorMask(0),
-	_fullysetMask(0)
+	_fullysetMask(0),
+	_disableGeometricCorrections(false)
 {
 }
 
@@ -64,6 +65,8 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	} else {
 		_mwaConfig.ReadMetaFits(_metaFilename.c_str(), lockPointing);
 	}
+	if(_disableGeometricCorrections)
+		_mwaConfig.HeaderRW().geomCorrection = false;
 	_mwaConfig.CheckSetup();
 	
 	_channelFrequenciesHz.resize(_mwaConfig.Header().nChannels);
@@ -439,6 +442,11 @@ void Cotter::processAndWriteTimestep(size_t timeIndex)
 					__m128 outb = _mm_add_ps(_mm_mul_ps(rb, rgeom), _mm_mul_ps(ib, igeom));
 					_mm_store_ps((float*) outDataPtr, outa);
 					_mm_store_ps((float*) (outDataPtr+2), outb);
+				} else {
+					*outDataPtr = std::complex<float>(*realAPtr, *imagAPtr);
+					*(outDataPtr+1) = std::complex<float>(*realBPtr, *imagBPtr);
+					*(outDataPtr+2) = std::complex<float>(*realCPtr, *imagCPtr);
+					*(outDataPtr+3) = std::complex<float>(*realDPtr, *imagDPtr);
 				}
 				*outputFlagPtr = *flagPtr; ++outputFlagPtr;
 				*outputFlagPtr = *flagPtr; ++outputFlagPtr;

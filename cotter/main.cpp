@@ -44,7 +44,8 @@ void usage()
 	"                     When averaging: flagging, collecting statistics and cable length fixes will be done\n"
 	"                     at highest resolution. UVW positions will be recalculated for new timesteps.\n"
 	"  -norfi             Disable RFI detection\n"
-	"  -nostats           Disable collecting statistics\n\n"
+	"  -nostats           Disable collecting statistics\n"
+	"  -nogeom            Disable geometric corrections\n\n"
 	"The filenames of the input gpu files should end in '...nn_mm.fits', where nn >= 1 is the\n"
 	"gpu box number and mm >= 0 is the time step number.\n";
 }
@@ -77,6 +78,10 @@ int main(int argc, char **argv)
 		else if(strcmp(argv[argi], "-nostats") == 0)
 		{
 			cotter.SetCollectStatistics(false);
+		}
+		else if(strcmp(argv[argi], "-nogeom") == 0)
+		{
+			cotter.SetDisableGeometricCorrections(true);
 		}
 		else if(strcmp(argv[argi], "-timeavg") == 0)
 		{

@@ -37,6 +37,7 @@ class Cotter : private UVWCalculater
 		void SetHistoryInfo(const std::string &commandLine) { _commandLine = commandLine; }
 		void SetMetaFilename(const char *metaFilename) { _metaFilename = metaFilename; }
 		void SetMaxBufferSize(const size_t bufferSizeInSamples) { _maxBufferSize = bufferSizeInSamples; }
+		void SetDisableGeometricCorrections(bool disableCorrections) { _disableGeometricCorrections = disableCorrections; }
 		
 	private:
 		MWAConfig _mwaConfig;
@@ -73,6 +74,7 @@ class Cotter : private UVWCalculater
 		bool *_outputFlags;
 		std::complex<float> *_outputData;
 		float *_outputWeights;
+		bool _disableGeometricCorrections;
 		
 		void createReader(const std::vector<std::string> &curFileset);
 		void initializeReader();
