@@ -33,25 +33,27 @@
 \author[A.~R.~Offringa et al.]{
   A.~R.~Offringa$^{1,2,3}$\thanks{E-mail:
 \url{offringa@mso.anu.edu.au}},
-A.~G.~de~Bruyn$^{3,4}$ and
-S.~Zaroubi$^3$%,
-%W.~Brouw$^{3,4}$,
-%B.~Ciardi$^5$,
-%I.~T.~Iliev$^6$,
-%\newauthor
-%G.~J.~A.~Harker$^7$,
-%L.~V.~E.~Koopmans$^3$,
-%G.~Mellema$^8$,
-%S.~J.~Wijnholds$^4$
-\\
-$^{1}$Australian National University, RSAA Mt. Stromlo Observatory, Cotter Road, Weston Creek ACT 2611, Australia\\
-$^{2}$ARC Centre of Excellence for All-sky Astrophysics (CAASTRO)\\
-$^{3}$University of Groningen, Kapteyn Astronomical Institute, PO Box 800, 9700 AV Groningen, The Netherlands\\
-$^{4}$ASTRON, PO Box 2, 7990 AA Dwingeloo, The Netherlands\\
-%$^{5}$Max-Planck Institute for Astrophysics, Karl-Schwarzschild-Strasse 1, 85748 Garching bei M\"unchen, Germany\\
-%$^{6}$University of Sussex, Falmer, Brighton BN1 9QH, UK\\
-%$^{7}$Center for Astrophysics and Space Astronomy, University of Colorado Boulder, CO 80309, USA\\
-%$^8$Stockholm University, AlbaNova University Center, Stockholm Observatory, SE-106 91 Stockholm, Sweden 
+A.~G.~de~Bruyn$^{3,4}$,
+S.~Zaroubi$^3$,
+L.~V.~E.~Koopmans$^3$,
+\newauthor
+S.~J.~Wijnholds$^4$,
+F.~B.~Abdalla$^5$,
+W.~Brouw$^{3,4}$,
+B.~Ciardi$^6$,
+I.~T.~Iliev$^7$,
+G.~J.~A.~Harker$^8$,
+\newauthor
+G.~Mellema$^8$\\
+$^1$Australian National University, RSAA Mt. Stromlo Observatory, Cotter Road, Weston Creek ACT 2611, Australia\\
+$^2$ARC Centre of Excellence for All-sky Astrophysics (CAASTRO)\\
+$^3$University of Groningen, Kapteyn Astronomical Institute, PO Box 800, 9700 AV Groningen, The Netherlands\\
+$^4$ASTRON, PO Box 2, 7990 AA Dwingeloo, The Netherlands\\
+$^5$ UCL Department of Physics and Astronomy, London WC1E 6BT, United Kingdom\\
+$^6$Max-Planck Institute for Astrophysics, Karl-Schwarzschild-Strasse 1, 85748 Garching bei M\"unchen, Germany\\
+$^7$University of Sussex, Falmer, Brighton BN1 9QH, UK\\
+$^8$Center for Astrophysics and Space Astronomy, University of Colorado Boulder, CO 80309, USA\\
+$^9$Stockholm University, AlbaNova University Center, Stockholm Observatory, SE-106 91 Stockholm, Sweden 
 }
 
 \begin{document}
@@ -102,7 +104,7 @@ In every dynamic spectrum we can measure the number of times that the flux densi
 \begin{equation}
  \mathcal{S}(r_1, r_2) = I \frac{g_1 g_2}{r_1 r_2},
 \end{equation}
-with (amplitude) gains $g_1,g_2>0$ and $r_\textrm{L} > r_1,r_2 > 0$. Here, $r_\textrm{L}$ is a limiting distance, which will be well below the diameter of the Earth. The formula represents a spherically propagating wave in free space. We will limit our analysis to cross-correlated antennas; the auto-correlations will be ignored.
+with (real-valued amplitude) gains $g_1,g_2>0$ and $r_\textrm{L} > r_1,r_2 > 0$. Here, $r_\textrm{L}$ is a limiting distance, which will be well below the diameter of the Earth. The formula represents a spherically propagating wave in free space. We will limit our analysis to cross-correlated antennas; the auto-correlations will be ignored.
 
 We assume that the source observed is fully coherent, but a possible decoherence factor can be absorbed in the gains. Due to the small bandwidth of most interfering sources, most RFI will be received coherently, because of the narrow-band condition. For example, if the bandwidth of the signal $\Delta\nu=1$ kHz, the narrow-band condition $\Delta \nu \ll (2\pi \tau)^{-1}$ with correlation delay $\tau$ will hold for baselines up to a few km, because it holds as long as the baseline length is significantly less than $\Delta x = c (2 \pi \Delta \nu)^{-1} \approx$ 50 km.
 
@@ -180,7 +182,7 @@ Consequently, due to non-free-space propagation effects, the observed log-log hi
 \end{equation}
 \begin{figure}
 \begin{center}\hspace{-1cm}\includegraphics[width=6cm]{img/transmitter-height/plot-transmitter-height-trimmed}
-\caption{Effect of transmitter height on the slope of a log-log histogram.}
+\caption{Effect of transmitter height on the slope of a log-log histogram. According to Hata's model, this is valid for the range 30--200 m. The trend of the slope will not continue indefinitely when increasing the height further. Instead it will converge to a $-2$ slope, which corresponds with free-space propagation.}
 \label{fig:plot-transmitter-height}
 \end{center}
 \end{figure}
@@ -207,7 +209,7 @@ Because most of the samples will be unaffected by RFI, this will be the dominati
 \end{center}
 \end{figure}
 
-So far, these are the expected histograms for pure noise and pure RFI that propagates through free space. However, the measured distribution is a mixture of the two. A perfect RFI detector would separate the samples in two distributions; one that is not affected by RFI, and therefore contains noise only, and one that is the sum of RFI and noise. Real RFI detectors can separate these distributions to some extent, but due to false positives and false negatives, the histograms will get mixed nevertheless. Even more, we still need to take into account that the samples classified as RFI are also affected by noise. Although this effect is moderate, because `most' RFI samples are of much higher amplitude than what is added because of the noise, we are interested in the low-level RFI samples, and the relative effect of noise on those samples is large.
+So far, these are the expected histograms for pure noise and pure RFI that propagates through free space. However, the measured distribution is a mixture of the two. A perfect RFI detector would classify the samples in two groups; one group of samples that are not affected by RFI, and therefore contain noise only, and one one group of samples that are contaminated, and are the sum of RFI and noise. Real RFI detectors can classify samples into these groups to some extent, but due to false positives and false negatives, the groups will get mixed nevertheless. Even more, we still need to take into account that the samples classified as RFI are also affected by noise. Although this effect is moderate, because `most' RFI samples are of much higher amplitude than what is added because of the noise, we are interested in the low-level RFI samples, and the relative effect of noise on those samples is large.
 
 \begin{figure}
 \begin{center}\hspace{-2mm}\includegraphics[width=8.5cm]{img/plot-rayleigh-and-rfi-combined-trimmed}
@@ -249,7 +251,7 @@ One instrumental effect that is absorbed in $g$ is the frequency response of the
 
 The effect of the band-pass on the data distribution is consequently limited to one order of magnitude or less. If the RFI sources have an apparent power-law distribution with a certain exponent, the distribution will have a feature at low amplitudes due to the frequency response, but a power law with equal exponent will still appear when the distribution is observed over a wide enough range.
 
-Another effect that is absorbed in $g$, is the beam of the instrument. At the point of writing, LOFAR beam models are still being developed and are not yet well parametrized. It is likely that most RFI sources are observed at the edges of the beam. Because most sources will be observed with similar gains (within one order of magnitude), it can be expected that the beam will have a limited effect on the histogram properties of an observation, and is comparable with the effect of the frequency response.
+Another effect that is absorbed in $g$, is the beam of the instrument. At the point of writing, LOFAR beam models are still being developed and are not yet well parametrized near the horizon. It is likely that most RFI sources are observed at the edges of the beam. Nevertheless, most sources will be observed with similar gains (within one order of magnitude), and it can be expected that the beam will have a limited effect on the histogram properties of an observation. It is therefore comparable with the effect of the frequency response.
 
 The stochastic nature of $I$, that is caused by the spread of transmitters with different intrinsic strengths, might also have an effect on the $\log N$ -- $\log S$ histograms. It is unlikely that $I$ follows a uniform or Gaussian distribution, because the distribution will contain few strong transmitters (such as radio stations) and many weak transmitters (such as remote controls). Therefore, variable $I$ might follow a power-law distribution by itself. It is likely that strong transmitters transmit more on average, and therefore contaminate more samples as well. High-power transmitters, such as radio stations, have a typical transmitting power in the order of 100 kW. Low-power transmitters, such as remote controls, transmit with an order of 100 mW or even less. Therefore, these devices have a spread of around 6 orders of magnitudes in power. As long as the exponent of the power law of $I$ is less steep (i.e., less negative) compared to the power law caused by the spatial distribution, the spatial distribution will dominate the histogram at high amplitudes. With a spatial $-1.5$ power law and the given transmitting powers, the low-power transmitters should contaminate a factor of $10^9$ more samples compared to the high-power transmitters to dominate the high-amplitude distribution, which is unlikely. Therefore, it is likely that the spatial distribution will dominate the power law in the histogram. Otherwise, a turn-over point should be visible in the histogram.
 
@@ -287,7 +289,7 @@ h(S) = \beta S^\alpha.
 \end{center}
 \end{figure}
 
-Assume also that the histogram contains $N_\textrm{part}$ (RFI) samples with amplitude $> S_1$, as sketched in Fig.~\ref{fig:explanation-constraints}. The hypothetical upper limit $S_U$ of the distribution can now be found, i.e., the highest amplitude that would be observed when the distribution follows the power law up to that point, by solving
+$S_1$ and $S_2$ are selected by visually inspection of the histogram. Assume that the histogram contains $N_\textrm{part}$ (RFI) samples with amplitude $> S_1$, as sketched in Fig.~\ref{fig:explanation-constraints}, and that the effect of the Rayleigh component on the histogram $> S_1$ is negligible. The hypothetical upper limit $S_U$ of the distribution can now be found, i.e., the highest amplitude that would be observed when the distribution follows the power law up to that point, by solving
 \begin{equation} \label{eq:upper-limit-constrained}
  \int\limits_{S_1}^{S_U} h(S) dS = N_\textrm{part}.
 \end{equation}
@@ -329,7 +331,7 @@ Substitution and simplification of these two results in
 {\left( S_U^{\alpha+2} - S_L^{\alpha+2}\right)\left(\alpha+1\right)} 
 {\left(S_U^{\alpha+1} - S_L^{\alpha+1}\right) \left(\alpha+2 \right)}.
 \end{align}
-This is essentially the flux density that is caused by RFI without using RFI detection or excision algorithms. $E(S_R)$ has the same units as $S_L$ and $S_U$, thus after calibration (see \S\ref{sec:calibration}) could be given in Jy. In practice, the increase of system noise after correlation is much less severe because of RFI flagging, which excises a part of the RFI. One can assume that all RFI above a certain power level is found by the detector. Since modern RFI detection algorithms can find all RFI that is detectable ``by eye'' \citep{post-correlation-rfi-classification}, this power level will be near the level of the noise mode. In
+This is essentially the average flux density that is caused by RFI without using RFI detection or excision algorithms. $E(S_R)$ has the same units as $S_L$ and $S_U$, thus after calibration (see \S\ref{sec:calibration}) could be given in Jy. In practice, the increase of data noise after correlation is much less severe because of RFI flagging, which excises a part of the RFI. One can assume that all RFI above a certain power level is found by the detector. Since modern RFI detection algorithms can find all RFI that is detectable ``by eye'' \citep{post-correlation-rfi-classification}, this power level will be near the level of the noise mode. In
 \citet{lofar-radio-environment}
 the false-positives rate for the AOFlagger is estimated to be 0.5\%. An estimate of $S_d$, the average lower limit of detected RFI, can be calculated by finding the point on the distribution where the area under the distribution to the right of $S_d$ equals the real number (true positives) of RFI samples. Therefore, the limit is calculated similar to Eq.~\eqref{eq:lower-limit-1}, where the term $N_\textrm{part} - N_\textrm{total}$ needs to be replaced with $N_\textrm{RFI}$, which equals the total number of samples detected as RFI minus the 0.5\% false positives.
 
@@ -354,7 +356,7 @@ An estimate for the standard deviation of the slope estimator $\hat \alpha$ can 
 \begin{equation} \label{eq:stderr-slope}
  \textrm{SE}(\hat \alpha) = \sqrt{\frac{SS_{yy}-\hat\alpha SS_{xy}}{\left(n - 2\right) SS_{xx}}},
 \end{equation}
-where $SS_{xx}$, $SS_{xy}$ and $SS_{yy}$ are the sums of squares, e.g., $SS_{xy}=\sum_{i=1}^n (x_i - \bar x) (y_i - \bar y)$ and $n$ is the number of samples. However, we found that this is not a representative error in our case, because the errors in the slope are not normally distributed. The noise in the part of the histogram over which the slope is calculated, is very small due to the large amount of samples. Consequently, the estimated standard deviation of $\hat \alpha$ is very low. Nevertheless, when the slope is calculated over subsections of the original range over which the slope is calculated, one finds the line is not completely straight and the slope is changing more than is predicted by the standard error. Therefore, we introduce an error estimate $\epsilon_\alpha$ that quantifies a normalized standard deviation of the slope over the range. This error is formed by calculating the slope over $n_\alpha$ smaller subranges in the histogram, creating $n_\alpha$ estimates $\alpha_i$. If the errors in $\alpha_i$ are normally distributed with mean zero, the standard deviation over the full range will be $\sqrt{n_\alpha}$ times smaller. Therefore, an estimate of the variance of $\hat \alpha$ can be calculated with
+where $SS_{xx}$, $SS_{xy}$ and $SS_{yy}$ are the sums of squares, e.g., $SS_{xy}=\sum_{i=1}^n (x_i - \bar x) (y_i - \bar y)$ and $n$ is the number of samples. However, we found that this is not a representative error in our case, because the errors in the slope are not normally distributed. The noise in the part of the histogram over which the slope is calculated, is very small due to the large number of samples. Consequently, the estimated standard deviation of $\hat \alpha$ is very low. Nevertheless, when the slope is calculated over subsections of the original range over which the slope is calculated, one finds the line is not completely straight and the slope is changing more than is predicted by the standard error. Therefore, we introduce an error estimate $\epsilon_\alpha$ that quantifies a normalized standard deviation of the slope over the range. This error is formed by calculating the slope over $n_\alpha$ smaller subranges in the histogram, creating $n_\alpha$ estimates $\alpha_i$. If the errors in $\alpha_i$ are normally distributed with mean zero, the standard deviation over the full range will be $\sqrt{n_\alpha}$ times smaller. Therefore, an estimate of the variance of $\hat \alpha$ can be calculated with
 \begin{equation}
  \epsilon_{\hat\alpha} = \sqrt{\frac{\sum \left( \alpha_i - \hat\alpha \right)^2 }{n^2_\alpha - n_\alpha}}.
 \end{equation}
@@ -423,7 +425,7 @@ In this section we present the histograms of the LBA and HBA sets and the result
 \end{figure}
 
 \subsection{Histogram analysis}
-Fig.~\ref{fig:Histograms-raw} shows the histograms with logarithmic axes for the LBA and HBA sets. In both sets, it is clear that at least one component with a Rayleigh and one with a power-law distribution have been observed. The left part of the histogram matches the Rayleigh distribution well up to the mode of the distribution. The bulge around the mode of the LBA histogram is wider due to the larger effect of the antenna response as discussed in \S\ref{sec:parameter-variability}. As can be seen in Fig.~\ref{fig:plot-dist-per-frequency-LBA}, the Rayleigh-bulges of individual sub-bands are not that wide, but they are not aligned because of the differing noise levels. This effect is not so strong in histograms of the HBA sub-bands in Fig.~\ref{fig:plot-dist-per-frequency-HBA}, because the HBA antenna response changes less over frequency.
+Fig.~\ref{fig:Histograms-raw} shows the histograms with logarithmic axes for the LBA and HBA sets. In both sets, it is clear that at least one component with a Rayleigh and one with a power-law distribution have been observed. The left part of the histogram matches the Rayleigh distribution well up to the mode of the distribution. The bulge around the mode of the LBA histogram is wider due to the larger effect of the antenna response, i.e., variability of $g$ as discussed in \S\ref{sec:parameter-variability}. As can be seen in Fig.~\ref{fig:plot-dist-per-frequency-LBA}, the Rayleigh-bulges of individual sub-bands are not that wide, but they are not aligned because of the differing noise levels. This effect is not so strong in histograms of the HBA sub-bands in Fig.~\ref{fig:plot-dist-per-frequency-HBA}, because the HBA antenna response changes less over frequency.
 
 \begin{figure}
 \begin{center}
@@ -532,11 +534,11 @@ REFD& RFI equivalent flux density & $18.9$--$19.3$ Jy & $6.5$--$6.7$ Jy \\
 On the assumption that the histogram is zero below amplitude $S_L$, we find that $S_L=21$ mJy for the LBA and $S_L=6.2$ mJy for the HBA (see Table~\ref{table:dist-data-quantities}). If instead it is assumed that the histogram has a uniform distribution below some amplitude $\tilde{S_L}$, we find that the amplitude at which the power-law distribution breaks down is approximately a factor two higher. The two different assumptions on how the power-law distribution breaks down have a small effect on $E(S_\textrm{leak})$, the expected value of the leaked RFI. By using $\tilde{S}_L$ instead of $S_L$, it is a few percent lower. By assuming a 100\% RFI occupancy, we find that the expected value of leaked RFI is $484$--$496$ mJy for the LBA and $167$--$171$ mJy for the HBA. By assuming $10$\% occupancy, the value for $E(S_\textrm{leak})$ is about $25$\% reduced. The RFI occupancy only starts to have a significant effect on $E(S_\textrm{leak})$ if it is well below $10$\%. 
 
 \section{Conclusions and discussion} \label{sec:dist-discussion}
-We have analysed the histogram of visibility amplitudes of LOFAR observations and found that, within a significant range of the histogram, the contribution of RFI sources follows a power-law distribution. The found power-law exponents of $-1.62$ and $-1.53$ for the 30--78~MHz LBA and 115--163~MHz HBA observations respectively, can be explained by a uniform spatial distribution of RFI sources, affected by propagation described surprisingly well by Hata's electromagnetic propagation model. Taken at face value these exponents imply in Hata's model that the average transmitting heights for sources affecting the LBA and HBA are $79$ and $13$~m respectively. There are no 79 m high transmitters nearby LOFAR stations in the LBA frequency range. Hata's model only goes down to 150 MHz, and it is possible that the electromagnetic fall-off due to propagation will be different for lower frequencies, e.g. because the effect of the ionosphere becomes stronger. Intervals for the exponents with representative $3\sigma$ confidence boundaries are $[-1.80;-1.44]$ for the LBA and $[-1.53;-1.49]$ for the HBA. The estimate of the HBA is thus more accurate, because its histogram deviates less from the power law.
+We have analysed the histogram of visibility amplitudes of LOFAR observations and found that, within a significant range of the histogram, the contribution of RFI sources follows a power-law distribution. The found power-law exponents of $-1.62$ and $-1.53$ for the 30--78~MHz LBA and 115--163~MHz HBA observations respectively, can be explained by a uniform spatial distribution of RFI sources, affected by propagation described surprisingly well by Hata's electromagnetic propagation model. Taken at face value these exponents imply in Hata's model that the average transmitting heights for sources affecting the LBA and HBA are $79$ and $13$~m respectively. There are no 79 m high transmitters nearby LOFAR stations in the LBA frequency range. Hata's model only goes down to 150 MHz, and it is possible that the electromagnetic fall-off due to propagation will be different for lower frequencies, e.g. because the effect of the ionosphere becomes stronger. Intervals for the exponents with representative $3\sigma$ boundaries are $[-1.80;-1.44]$ for the LBA and $[-1.53;-1.49]$ for the HBA. The estimate of the HBA is thus more accurate, because its histogram deviates less from the power law.
 
-On the assumption that the power-law distribution for RFI sources will continue down into the noise, we have constructed a full parametrization of the RFI apparent flux distribution. By assuming that all samples contain some contribution of RFI, we find that the average flux density of RFI that leaks through the detector is $484$--$496$~mJy for the LBA and $167$--$171$~mJy for the HBA (depending on the used method). These values should be compared to the noise in individual samples of $770$~Jy (LBA) and $77$~Jy (HBA) (see Table~\ref{table:dist-data-quantities}), and are upper limits for what can be expected. If in fact not all samples are affected by RFI, the leaked RFI flux will be smaller, and will of course be zero in the extreme case that the detector has found and removed all RFI.
+On the assumption that the power-law distribution for RFI sources will continue down into the noise, we have constructed a full parametrization of the RFI apparent flux distribution. By assuming that all samples contain some contribution of RFI, we find that the average flux density of RFI after excision by automated flagging is $484$--$496$~mJy for the LBA and $167$--$171$~mJy for the HBA. These values should be compared to the noise in individual samples of $770$~Jy (LBA) and $77$~Jy (HBA) (see Table~\ref{table:dist-data-quantities}), and are upper limits for what can be expected. If in fact not all samples are affected by RFI, the leaked RFI flux will be smaller, and will of course be zero in the extreme case that the detector has found and removed all RFI.
 
-In experiments such as the LOFAR EoR project, a simulation pipeline is used to create a realistic estimate of the signal that can be expected. Currently, these simulations do not include the effects of RFI. With the construction of empirical models for the RFI source distributions, we are one step closer to including these effects in the simulation. Using Eq.~\eqref{eq:sample-with-propagation}, one can sample a realistic strength of a single RFI source, add the feature to the data and run the AOFlagger. What is still needed for accurate simulation, is to obtain a likely distribution for the duration that one such source affects the data. For example, it is neither realistic that all RFI sources are continuously transmitting nor that they affect only one sample. The RFI detector is highly depending on the morphology of the feature in the time-frequency domain. Finally, the coherency properties of the RFI might be even more important to simulate correctly, but these have been not been explored. However, these have large implications for observations with high sensitivity. This will be discussed in the next section. 
+In projects such as the EoR detection experiment with LOFAR, a simulation pipeline is used to create a realistic estimate of the signal that can be expected. Currently, these simulations do not include the effects of RFI. With the construction of empirical models for the RFI source distributions, we are one step closer to including these effects in the simulation. Using Eq.~\eqref{eq:sample-with-propagation}, one can sample a realistic strength of a single RFI source, add the feature to the data and run the AOFlagger. What is still needed for accurate simulation, is to obtain a likely distribution for the duration that one such source affects the data. For example, it is neither realistic that all RFI sources are continuously transmitting nor that they affect only one sample. The RFI detector is highly depending on the morphology of the feature in the time-frequency domain. Finally, the coherency properties of the RFI might be even more important to simulate correctly, but these have been not been explored. However, these have large implications for observations with high sensitivity. This will be discussed in the next section. 
 
 The derived values for the average lower level of detected RFI, $S_d$, show that the AOFlagger has detected a large part of the RFI that is well below the sample noise. In both sets, $S_d$ is more than one order of magnitude below the Rayleigh mode. This can be explained with two of the algorithms it implements. The first one is the {\tt SumThreshold} method \citep{post-correlation-rfi-classification}, that thresholds on combinations of samples, and is thus able to detect RFI that is weaker than the sample noise. The second one is the scale-invariant rank (SIR) operator \citep{scale-invariant-rank-operator}. This operator is not dependent on the sample amplitude, but flags based on morphology.
 
@@ -570,7 +572,7 @@ Some standard data processing actions can also attenuate RFI, especially fringe 
 
 Because of the above two arguments, when considering RFI it is a risk to use the NCP as one of the EoR target fields. At the same time, this field is useful for analysing the RFI coherency properties. It is also a simple field to observe with LOFAR, because it is always at high declination in the Netherlands and it does not contain bright foreground sources. Preliminary analysis of EoR NCP observations of a single night have reached the thermal noise (Yatawatta et al. 2013, \textit{in press}), but do not show leaked RFI at the pole.
 
-On top of all these possible RFI reducing effects, our given RFI constraints could be too pessimistic because we have assumed 100\% of the spectrum is occupied by RFI. If, say, only 10\% of the spectrum is occupied, the expected value of the leaked RFI level decreases by about $25$\%, and if the detected 2.68\% true-positives contain all RFI, there is no leaked RFI at all. With current data, one can only speculate how much of the electromagnetic spectrum is truly occupied.
+On top of all these possible RFI reducing effects, our given RFI constraints could be too pessimistic because we have assumed 100\% of the spectrum is occupied by RFI over the entire duration of the observation. If, say, only 10\% of the samples are affected by RFI, the expected value of the leaked RFI level decreases by about $25$\%, and if the detected 2.68\% true-positives contain all RFI, there is no leaked RFI at all. With current data, one can only speculate how much of the electromagnetic spectrum is truly occupied.
 
 Finally, future RFI excision strategies will further enhance detection accuracy. Currently, RFI excision is applied only on the raw data from single interferometers at high resolution. Once data from a large number of nights are collected, it will be possible to detect and excise RFI more accurately, by looking at the averaged data from multiple nights and/or multiple interferometers. We have shown that the current detection algorithms can detect RFI well below the noise. Therefore, if data from different nights or interferometers are summed, and there is stationary RFI in the set, it will become detectable if it is consistently present. If it is still below the noise and not detectable, but behaves similar to the RFI we are already seeing, it will act like normal noise and will therefore be harmless.
 
