@@ -33,27 +33,28 @@
 \author[A.~R.~Offringa et al.]{
   A.~R.~Offringa$^{1,2,3}$\thanks{E-mail:
 \url{offringa@mso.anu.edu.au}},
-A.~G.~de~Bruyn$^{3,4}$,
-S.~Zaroubi$^3$,
-L.~V.~E.~Koopmans$^3$,
-\newauthor
-S.~J.~Wijnholds$^4$,
-F.~B.~Abdalla$^5$,
-W.~Brouw$^{3,4}$,
-B.~Ciardi$^6$,
-I.~T.~Iliev$^7$,
-G.~J.~A.~Harker$^8$,
-\newauthor
-G.~Mellema$^8$\\
+A.~G.~de~Bruyn$^{3,4}$
+and S.~Zaroubi$^3$%,
+%L.~V.~E.~Koopmans$^3$,
+%\newauthor
+%S.~J.~Wijnholds$^4$,
+%F.~B.~Abdalla$^5$,
+%W.~Brouw$^{3,4}$,
+%B.~Ciardi$^6$,
+%I.~T.~Iliev$^7$,
+%G.~J.~A.~Harker$^8$,
+%\newauthor
+%G.~Mellema$^8$
+\\
 $^1$Australian National University, RSAA Mt. Stromlo Observatory, Cotter Road, Weston Creek ACT 2611, Australia\\
 $^2$ARC Centre of Excellence for All-sky Astrophysics (CAASTRO)\\
 $^3$University of Groningen, Kapteyn Astronomical Institute, PO Box 800, 9700 AV Groningen, The Netherlands\\
 $^4$ASTRON, PO Box 2, 7990 AA Dwingeloo, The Netherlands\\
-$^5$ UCL Department of Physics and Astronomy, London WC1E 6BT, United Kingdom\\
-$^6$Max-Planck Institute for Astrophysics, Karl-Schwarzschild-Strasse 1, 85748 Garching bei M\"unchen, Germany\\
-$^7$University of Sussex, Falmer, Brighton BN1 9QH, UK\\
-$^8$Center for Astrophysics and Space Astronomy, University of Colorado Boulder, CO 80309, USA\\
-$^9$Stockholm University, AlbaNova University Center, Stockholm Observatory, SE-106 91 Stockholm, Sweden 
+%$^5$ UCL Department of Physics and Astronomy, London WC1E 6BT, United Kingdom\\
+%$^6$Max-Planck Institute for Astrophysics, Karl-Schwarzschild-Strasse 1, 85748 Garching bei M\"unchen, Germany\\
+%$^7$University of Sussex, Falmer, Brighton BN1 9QH, UK\\
+%$^8$Center for Astrophysics and Space Astronomy, University of Colorado Boulder, CO 80309, USA\\
+%$^9$Stockholm University, AlbaNova University Center, Stockholm Observatory, SE-106 91 Stockholm, Sweden 
 }
 
 \begin{document}
@@ -66,7 +67,7 @@ $^9$Stockholm University, AlbaNova University Center, Stockholm Observatory, SE-
 \label{firstpage}
 
 \begin{abstract}
-Faint undetected sources of radio-frequency interference (RFI) might become visible after long time integration of radio observations if they are stationary and consistently present over time. Thereby, they might obstruct the detection of the weak astronomical signals of interest. This issue is especially important for Epoch of Reionisation (EoR) projects that try to detect the faint redshifted HI signals from the time of the earliest structures in the Universe. We explore the low-frequency RFI situation by studying brightness histograms of visibility data observed with LOFAR, similar to radio source count analyses that are used in cosmology. The histograms show an RFI distribution that follows a power-law distribution with an estimated exponent around -1.5. With several assumptions, this can be explained with a uniform distribution of terrestrial radio sources whose radiation follows existing propagation models. Extrapolation of the power law would imply that the current LOFAR EoR observations should be severely RFI limited if these sources add up consistently. These observations almost reach the thermal noise and are thought not to be limited by RFI. Therefore, we conclude that it is likely that most RFI sources do not linearly increase the noise, in which case RFI will not prevent an EoR detection with LOFAR.
+Faint undetected sources of radio-frequency interference (RFI) might become visible after long time integration of radio observations if they are stationary and consistently present over time. Thereby, they might obstruct the detection of the weak astronomical signals of interest. This issue is especially important for Epoch of Reionisation (EoR) projects that try to detect the faint redshifted HI signals from the time of the earliest structures in the Universe. We explore the low-frequency RFI situation by studying brightness histograms of visibility data observed with LOFAR, similar to radio-source-count analyses that are used in cosmology. The histograms show an RFI distribution that follows a power-law distribution with an estimated exponent around -1.5. With several assumptions, this can be explained with a uniform distribution of terrestrial radio sources whose radiation follows existing propagation models. Extrapolation of the power law would imply that the current LOFAR EoR observations should be severely RFI limited if these sources add up consistently. These observations almost reach the thermal noise and are thought not to be limited by RFI. Therefore, we conclude that it is likely that most RFI sources do not linearly increase the noise, in which case RFI will not prevent an EoR detection with LOFAR.
 \end{abstract}
 
 \begin{keywords}
@@ -74,12 +75,12 @@ atmospheric effects -- instrumentation: interferometers -- methods: observationa
 \end{keywords}
 
 \section{Introduction}
-Radio astronomy concerns itself with the observation of radiation from celestial sources at radio wavelengths. However, astronomical radio observations can be affected by radio-frequency interference (RFI), which makes it difficult to calibrate the instrument and achieve high sensitivities \citep{impact-of-warc79,interference-and-radioastronomy-1991,interference-model-lemmon,rfi-mitigation-overview-fridman-baan}. Many techniques have been designed to mitigate this effect, such as detection and flagging of data \citep{chi-square-time-blanking-weber, multichannel-rfi-mitigation, exoplanet-detection-with-rfi, wsrt-rfims, pulse-blanking, effelsberg-rfi-mitigation, LOFAR-RFI-pipeline}, adaptive cancellation techniques \citep{adaptive-cancellation,post-correlation-reference-signal} and spatial filtering \citep{multichannel-rfi-mitigation, ellingson-spatial-nulling-2002, hampson-spatial-nulling-2002, boonstra-dissertation, spatial-filtering-parkes-multibeam-for-pulses, post-correlation-filtering}. In most cases, and with the help of carefull spectrum allocation management and radio-quiet zones, these methods excise enough of the interference to allow calibration and imaging of the data.
+Radio astronomy concerns itself with the observation of radiation from celestial sources at radio wavelengths. However, astronomical radio observations can be affected by radio-frequency interference (RFI), which makes it difficult to calibrate the instrument and achieve high sensitivities \citep{impact-of-warc79,interference-and-radioastronomy-1991,interference-model-lemmon,rfi-mitigation-overview-fridman-baan}. Many techniques have been designed to mitigate this effect, such as detection and flagging of data \citep{chi-square-time-blanking-weber, multichannel-rfi-mitigation, exoplanet-detection-with-rfi, wsrt-rfims, pulse-blanking, effelsberg-rfi-mitigation, LOFAR-RFI-pipeline}, adaptive cancellation techniques \citep{adaptive-cancellation,post-correlation-reference-signal} and spatial filtering \citep{multichannel-rfi-mitigation, ellingson-spatial-nulling-2002, hampson-spatial-nulling-2002, boonstra-dissertation, spatial-filtering-parkes-multibeam-for-pulses, post-correlation-filtering}. In most cases, and with the help of careful spectrum allocation management and radio-quiet zones, these methods excise enough of the interference to allow calibration and imaging of the data.
 
 Typical radio observations record a few hours of data, and the results are integrated. In these cases, excising only the interference that is apparent and thus above the noise often suffices, i.e., the observation can still reach the thermal noise limit of the instrument. A new challenge arises, however, when one desires much deeper observations, and hundreds of hours of observations need to be integrated. In such a case, weak interference caused by stationary sources might not manifest itself above the noise in individual observations, but might be coherently present in the data. Subsequently, when averaging these data, the interference might become apparent and occlude the signal of interest. This is very relevant for the 21-cm Epoch of Reionisation (EoR) experiments, because they involve long integration times. Several such experiments are underway, to either measure the angular power spectrum \citep{gmrt-eor-2011-paciga,de-bruyn-eor-ursi-2011,eor-paper-2011-jacobs,eor-mwa-2012-williams} or the global signal \citep{edges}. Ground-based Cosmic Microwave Background (CMB) experiments are another class of experiments involving long integration times (e.g., \citealt{ska-cmb-subrahmanyan}). For these experiments, it is important to know the possible effect of low-level interferences on the data, as these might overshadow or alter the signal of interest. In this article, we will connect new insights about RFI to the angular Epoch of Reionisation experiment that is using the Low-Frequency Array (LOFAR) (\citealt{de-bruyn-eor-ursi-2011}, van Haarlem et al. 2013, \textit{submitted}).
 % TODO correct reference if van Haarlem et al is published
 
-This work explores the information that is present in interference distributions, in order to analyse possible low-level interference that is not detectable by standard detection methods. Our approach is similar to the radio source count analysis that is used in cosmology \citep{condon-cosm-evol-of-radio-sources}, also named $\log N$ -- $\log S$ analysis, where $N$ and $S$ refer to the celestial source count and brightness respectively. The slope in such a plot contains information about source populations, their luminosity functions and the geometry of the Universe. We analyse such a double-logarithmic plot for the case of terrestrial sources, with the ultimate goal of estimating their full spatial and brightness distributions. This results in a better insight into the effects of low-level interference and allows one to simulate the effects of interference more accurately. A distribution can be expressed either as a differential or cumulative function. This work uses differential distributions, because they are better suited for visualizing the parameters we are interested in, although the two distributions basically convey the same information.
+This work explores the information that is present in interference distributions, in order to analyse possible low-level interference that is not detectable by standard detection methods. Our approach is similar to the radio-source-count analyses that are used in cosmology \citep{condon-cosm-evol-of-radio-sources}, also named $\log N$ -- $\log S$ analyses, where $N$ and $S$ refer to the celestial source count and brightness respectively. The slope in such a plot contains information about source populations, their luminosity functions and the geometry of the Universe. We analyse such a double-logarithmic plot for the case of terrestrial sources, with the ultimate goal of estimating their full spatial and brightness distributions. This results in a better insight into the effects of low-level interference and allows one to simulate the effects of interference more accurately. A distribution can be expressed either as a differential or cumulative function. This work uses differential distributions, because they are better suited for visualizing the parameters we are interested in, although the two distributions basically convey the same information.
 
 %TODO maybe also discuss atmospheric (lightning), e.g. see 'Harry M. Hall, A New Model for ``Impulsive'' phenomena: application to atmospheric-noise communication channels', as contains also discussion on energy distributions.
 
@@ -106,7 +107,7 @@ In every dynamic spectrum we can measure the number of times that the flux densi
 \end{equation}
 with (real-valued amplitude) gains $g_1,g_2>0$ and $r_\textrm{L} > r_1,r_2 > 0$. Here, $r_\textrm{L}$ is a limiting distance, which will be well below the diameter of the Earth. The formula represents a spherically propagating wave in free space. We will limit our analysis to cross-correlated antennas; the auto-correlations will be ignored.
 
-We assume that the source observed is fully coherent, but a possible decoherence factor can be absorbed in the gains. Due to the small bandwidth of most interfering sources, most RFI will be received coherently, because of the narrow-band condition. For example, if the bandwidth of the signal $\Delta\nu=1$ kHz, the narrow-band condition $\Delta \nu \ll (2\pi \tau)^{-1}$ with correlation delay $\tau$ will hold for baselines up to a few km, because it holds as long as the baseline length is significantly less than $\Delta x = c (2 \pi \Delta \nu)^{-1} \approx$ 50 km.
+We assume that the source observed is fully coherent, but a possible de-coherence factor can be absorbed in the gains. Due to the small bandwidth of most interfering sources, most RFI will be received coherently, because of the narrow-band condition. For example, if the bandwidth of the signal $\Delta\nu=1$ kHz, the narrow-band condition $\Delta \nu \ll (2\pi \tau)^{-1}$ with correlation delay $\tau$ will hold for baselines up to a few km, because it holds as long as the baseline length is significantly less than $\Delta x = c (2 \pi \Delta \nu)^{-1} \approx$ 50 km.
 
 Although two antennas do not necessarily observe the same RFI sources, for source count analysis we can treat the interferometer geometrically as a single point, as both antennas will see the same distribution. Then, we can express the received amplitude $\mathcal{S}$ for a given distance $r$ and interferometric gain $g = g_1 g_2$ as
 \begin{equation} \label{eq:amplitude-fall-off-in-free-space}
@@ -143,7 +144,7 @@ with $R$ the radius of the Earth, $a$ the radius of the base of the cap and $h$ 
 \begin{equation} \label{eq:cumulative-spherical}
 \tilde{F}_{\textrm{distance} \le r}(r) = \rho A_\textrm{cap} = \rho \pi r^2 \hspace{0.4cm}\textrm{with } r \le 2R,
 \end{equation}
-which equals the formule for a planar source distribution given in Eq.~\eqref{eq:cumulative-distance-function}. Therefore, the spherical and two-dimensional cases lead to a distribution with equal power law. Eq.~\eqref{eq:cumulative-spherical} is valid for $r \le 2R$, but in practice the lowest amplitude of observed sources is further constrained because of the curvature of the Earth. This causes distant sources to settle below the horizon. Nevertheless, some of those sources might still be visible due to reflection of the ionosphere and other (semi-)spherical propagation effects.
+which equals the formula for a planar source distribution given in Eq.~\eqref{eq:cumulative-distance-function}. Therefore, the spherical and two-dimensional cases lead to a distribution with equal power law. Eq.~\eqref{eq:cumulative-spherical} is valid for $r \le 2R$, but in practice the lowest amplitude of observed sources is further constrained because of the curvature of the Earth. This causes distant sources to settle below the horizon. Nevertheless, some of those sources might still be visible due to reflection of the ionosphere and other (semi-)spherical propagation effects.
 
 \subsection{Propagation effects}
 So far, we have assumed that the electromagnetic radiation propagates through free space, resulting in an $r^{-2}$ fall-off. In reality, the radiation will be affected by complicated propagational effects. Because of the irregular surface of the Earth (including urban areas) and the absence of a direct line of sight between transmitter and receiver, the propagation mode might be indirect. Multiple indirect paths might be formed that include reflection, refraction, diffraction and absorption of the electromagnetic wave. 
@@ -356,11 +357,11 @@ An estimate for the standard deviation of the slope estimator $\hat \alpha$ can 
 \begin{equation} \label{eq:stderr-slope}
  \textrm{SE}(\hat \alpha) = \sqrt{\frac{SS_{yy}-\hat\alpha SS_{xy}}{\left(n - 2\right) SS_{xx}}},
 \end{equation}
-where $SS_{xx}$, $SS_{xy}$ and $SS_{yy}$ are the sums of squares, e.g., $SS_{xy}=\sum_{i=1}^n (x_i - \bar x) (y_i - \bar y)$ and $n$ is the number of samples. However, we found that this is not a representative error in our case, because the errors in the slope are not normally distributed. The noise in the part of the histogram over which the slope is calculated, is very small due to the large number of samples. Consequently, the estimated standard deviation of $\hat \alpha$ is very low. Nevertheless, when the slope is calculated over subsections of the original range over which the slope is calculated, one finds the line is not completely straight and the slope is changing more than is predicted by the standard error. Therefore, we introduce an error estimate $\epsilon_\alpha$ that quantifies a normalized standard deviation of the slope over the range. This error is formed by calculating the slope over $n_\alpha$ smaller subranges in the histogram, creating $n_\alpha$ estimates $\alpha_i$. If the errors in $\alpha_i$ are normally distributed with mean zero, the standard deviation over the full range will be $\sqrt{n_\alpha}$ times smaller. Therefore, an estimate of the variance of $\hat \alpha$ can be calculated with
+where $SS_{xx}$, $SS_{xy}$ and $SS_{yy}$ are the sums of squares, e.g., $SS_{xy}=\sum_{i=1}^n (x_i - \bar x) (y_i - \bar y)$ and $n$ is the number of samples. However, we found that this is not a representative error in our case, because the errors in the slope are not normally distributed. The noise in the part of the histogram over which the slope is calculated, is very small due to the large number of samples. Consequently, the estimated standard deviation of $\hat \alpha$ is very low. Nevertheless, when the slope is calculated over subsections of the original range over which the slope is calculated, one finds the line is not completely straight and the slope is changing more than is predicted by the standard error. Therefore, we introduce an error estimate $\epsilon_\alpha$ that quantifies a normalized standard deviation of the slope over the range. This error is formed by calculating the slope over $n_\alpha$ smaller sub-ranges in the histogram, creating $n_\alpha$ estimates $\alpha_i$. If the errors in $\alpha_i$ are normally distributed with mean zero, the standard deviation over the full range will be $\sqrt{n_\alpha}$ times smaller. Therefore, an estimate of the variance of $\hat \alpha$ can be calculated with
 \begin{equation}
  \epsilon_{\hat\alpha} = \sqrt{\frac{\sum \left( \alpha_i - \hat\alpha \right)^2 }{n^2_\alpha - n_\alpha}}.
 \end{equation}
-This estimate is slightly depending on the number of subranges that is used, $n_\alpha$, because the errors are not Gaussian distributed, but we found that $\epsilon_{\hat\alpha}$ is more representative than the standard error of $\hat\alpha$. 
+This estimate is slightly depending on the number of sub-ranges that is used, $n_\alpha$, because the errors are not Gaussian distributed, but we found that $\epsilon_{\hat\alpha}$ is more representative than the standard error of $\hat\alpha$. 
 
 The Hill estimator of Eq.~\eqref{eq:hill} is a different estimation method for the exponent in the power-law distribution, and yields therefore also a different standard error. The standard error of the Hill estimator is \citep{power-law-distribution}
 \begin{equation} \label{eq:stderr-hill}
@@ -559,7 +560,7 @@ In summary, some class of stationary RFI sources are expected to be coherent ove
 \end{equation}
 where $\textrm{REFD}$ is the RFI equivalent flux density at $1$ Hz and $1$ s resolution for a single station, in analogue to how the SEFD is defined. This only holds when the observational integrated bandwidth $\Delta \nu$ is substantially higher than the average bandwidth of a single RFI source. Otherwise, if the $\Delta \nu$ is small relative to the average bandwidth of RFI sources, some RFI might show up earlier. The empirically found upper limits in this work are $\textrm{REFD}_\textrm{LBA}=18.9$--$19.3$~Jy and $\textrm{REFD}_\textrm{HBA}=6.5$--$6.7$~Jy (see Table~\ref{table:dist-data-quantities}).
 
-For the EoR project with $1$~MHz resolution, Eq.~\ref{eq:rfi-noise-level} results in $\sigma_\textrm{RFI}\approx 4.7$ mJy. However, the first EoR results of observations of one day have approximately reached the thermal noise of about $1.7$ mJy per 0.2~MHz subband (Yatawatta et al. 2013, \textit{in press}), and the resulting images show no signs of RFI. This implies that either the upper limit is far from the actual RFI situation, or Eq.~\ref{eq:rfi-noise-level} is not applicable to most of the RFI that is observed with LOFAR. In the following section we will discuss effects that could cause a reduced contribution of RFI.
+For the EoR project with $1$~MHz resolution, Eq.~\ref{eq:rfi-noise-level} results in $\sigma_\textrm{RFI}\approx 4.7$ mJy. However, the first EoR results of observations of one day have approximately reached the thermal noise of about $1.7$ mJy per 0.2~MHz sub-band (Yatawatta et al. 2013, \textit{in press}), and the resulting images show no signs of RFI. This implies that either the upper limit is far from the actual RFI situation, or Eq.~\ref{eq:rfi-noise-level} is not applicable to most of the RFI that is observed with LOFAR. In the following section we will discuss effects that could cause a reduced contribution of RFI.
 
 \subsection{Interference-reducing effects} \label{sec:coherence-reduction}
 When integrating data, it is likely that the actual noise limit from low-level RFI will be significantly lower than the given upper limit, which was determined at highest LOFAR resolution, before further averaging. There are several reasons for this, which we will summarize one by one.
