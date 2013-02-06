@@ -406,9 +406,9 @@ void MSWriter::WriteRow(double time, double timeCentroid, size_t antenna1, size_
 	casa::Array<float> weightSpectrumArr(shape);
 	
 	// Fill the casa arrays
-	casa::Array<std::complex<float> >::iterator dataPtr = dataArr.begin();
-	casa::Array<bool>::iterator flagPtr = flagArr.begin();
-	casa::Array<float>::iterator weightSpectrumPtr = weightSpectrumArr.begin();
+	casa::Array<std::complex<float> >::contiter dataPtr = dataArr.cbegin();
+	casa::Array<bool>::contiter flagPtr = flagArr.cbegin();
+	casa::Array<float>::contiter weightSpectrumPtr = weightSpectrumArr.cbegin();
 	for(size_t i=0; i!=valCount; ++i)
 	{
 		*dataPtr = data[i]; ++dataPtr;
