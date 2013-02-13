@@ -1,17 +1,20 @@
-#ifndef MSWRITER_H
-#define MSWRITER_H
+#ifndef FITSWRITER_H
+#define FITSWRITER_H
 
+#include "fitsuser.h"
 #include "writer.h"
+
+#include <fitsio.h>
 
 #include <complex>
 #include <vector>
 #include <string>
 
-class MSWriter : public Writer
+class FitsWriter : public Writer, private FitsUser
 {
 	public:
-		MSWriter(const char *filename);
-		virtual ~MSWriter();
+		FitsWriter(const char *filename);
+		virtual ~FitsWriter();
 		
 		virtual void WriteBandInfo(const std::string& name, const std::vector<ChannelInfo>& channels, double refFreq, double totalBandwidth, bool flagRow);
 		virtual void WriteAntennae(const std::vector<AntennaInfo>& antennae, double time);
@@ -32,6 +35,7 @@ class MSWriter : public Writer
 		size_t _rowIndex;
 		
 		size_t _nChannels;
+		fitsfile *_fptr;
 };
 
 #endif

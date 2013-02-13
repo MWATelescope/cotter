@@ -30,6 +30,7 @@ class Cotter : private UVWCalculater
 		
 		void Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAvgFactor);
 		
+		void SetOutputInFitsFormat(bool outputInFitsFormat) { _outputInFitsFormat = outputInFitsFormat; }
 		void SetFileSets(const std::vector<std::vector<std::string> >& fileSets) { _fileSets = fileSets; }
 		void SetThreadCount(size_t threadCount) { _threadCount = threadCount; }
 		void SetRFIDetection(bool performRFIDetection) { _rfiDetection = performRFIDetection; }
@@ -42,6 +43,9 @@ class Cotter : private UVWCalculater
 	private:
 		MWAConfig _mwaConfig;
 		Writer *_writer;
+		/** In case a averaging writer is used, the writerParent will do the actual writer,
+		 *  while the _writer will average and forward the calls. */
+		Writer *_writerParent;
 		GPUFileReader *_reader;
 		aoflagger::AOFlagger *_flagger;
 		aoflagger::Strategy *_strategy;
@@ -56,7 +60,7 @@ class Cotter : private UVWCalculater
 		size_t _quackSampleCount;
 		size_t _missingEndScans;
 		size_t _curChunkStart, _curChunkEnd;
-		bool _rfiDetection, _collectStatistics;
+		bool _rfiDetection, _collectStatistics, _outputInFitsFormat;
 		std::string _commandLine;
 		std::string _metaFilename;
 		

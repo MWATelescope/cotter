@@ -14,8 +14,8 @@ class UVWCalculater
 class AveragingMSWriter : public Writer
 {
 	public:
-		AveragingMSWriter(const char *filename, size_t timeCount, size_t freqAvgFactor, UVWCalculater &uvwCalculater)
-		: _writer(filename), _timeAvgFactor(timeCount), _freqAvgFactor(freqAvgFactor), _rowsAdded(0),
+		AveragingMSWriter(Writer &writer, size_t timeCount, size_t freqAvgFactor, UVWCalculater &uvwCalculater)
+		: _writer(writer), _timeAvgFactor(timeCount), _freqAvgFactor(freqAvgFactor), _rowsAdded(0),
 		_originalChannelCount(0), _avgChannelCount(0), _antennaCount(0), _uvwCalculater(uvwCalculater)
 		{
 		}
@@ -226,7 +226,7 @@ class AveragingMSWriter : public Writer
 			_buffers.clear();
 		}
 		
-		MSWriter _writer;
+		Writer &_writer;
 		size_t _timeAvgFactor, _freqAvgFactor, _rowsAdded;
 		size_t _originalChannelCount, _avgChannelCount, _antennaCount;
 		UVWCalculater &_uvwCalculater;

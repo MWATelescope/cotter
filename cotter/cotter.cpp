@@ -1,6 +1,7 @@
 #include "cotter.h"
 
 #include "baselinebuffer.h"
+#include "fitswriter.h"
 #include "geometry.h"
 #include "mswriter.h"
 #include "mwams.h"
@@ -25,6 +26,7 @@ using namespace aoflagger;
 
 Cotter::Cotter() :
 	_writer(0),
+	_writerParent(0),
 	_reader(0),
 	_flagger(0),
 	_strategy(0),
@@ -34,6 +36,7 @@ Cotter::Cotter() :
 	_quackSampleCount(4),
 	_rfiDetection(true),
 	_collectStatistics(true),
+	_outputInFitsFormat(false),
 	_metaFilename(),
 	_statistics(0),
 	_correlatorMask(0),
@@ -47,6 +50,7 @@ Cotter::~Cotter()
 	delete _correlatorMask;
 	delete _fullysetMask;
 	delete _writer;
+	delete _writerParent;
 	delete _reader;
 	delete _flagger;
 	delete _strategy;
@@ -86,10 +90,17 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	const size_t antennaCount = _mwaConfig.NAntennae();
 	size_t maxScansPerPart = _maxBufferSize / (nChannels*(antennaCount+1)*antennaCount*2);
 	
-	if(freqAvgFactor == 1 && timeAvgFactor == 1)
-		_writer = new MSWriter(outputFilename);
+	Writer *rootWriter;
+	if(_outputInFitsFormat)
+		rootWriter = new FitsWriter(outputFilename);
 	else
-		_writer = new AveragingMSWriter(outputFilename, timeAvgFactor, freqAvgFactor, *this);
+		rootWriter = new MSWriter(outputFilename);
+	if(freqAvgFactor == 1 && timeAvgFactor == 1)
+		_writer = rootWriter;
+	else {
+		_writerParent = rootWriter;
+		_writer = new AveragingMSWriter(*rootWriter, timeAvgFactor, freqAvgFactor, *this);
+	}
 	writeAntennae();
 	writeSPW();
 	writeSource();
@@ -278,6 +289,8 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	
 	delete _writer;
 	_writer = 0;
+	delete _writerParent;
+	_writerParent = 0;
 	delete _reader;
 	_reader = 0;
 	
