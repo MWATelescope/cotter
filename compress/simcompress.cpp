@@ -8,6 +8,16 @@
 #include <iostream>
 #include <stdexcept>
 
+/**
+ * @file
+ * @brief Contains the main function for the simcompress application.
+ * 
+ * simcompress is a tool to simulate the effects of compression. It won't change the actual
+ * storage manager, but will change all values in a column to the values that they would have
+ * if they were compressed and decompressed.
+ * @author André Offringa
+ */
+
 int main(int argc, char *argv[])
 {
 	if(argc < 4)

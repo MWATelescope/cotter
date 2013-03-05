@@ -3,6 +3,19 @@
 
 #include <stdexcept>
 
+/**
+ * Class for bit packing of values.
+ * 
+ * Contains several methods that can pack and unpack an array of unsigned
+ * values into a bit-packed array, using as few bytes as possible.
+ * The number of bits used is fixed for all values in the array. All methods
+ * assume that the specified output array has at least enough space to store
+ * the packed / unpacked data. When packing, the amount of space needed is
+ * ceil(symbolCount / bitCount).
+ * 
+ * The @ref pack() and @ref unpack() methods can call the method with given
+ * bitcount at runtime.
+ */
 class BytePacker
 {
 	public:
