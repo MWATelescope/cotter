@@ -67,6 +67,9 @@ void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, cons
 	std::cout << "Processing field \"" << nameCol(fieldIndex) << "\": "
 		<< dirToString(phaseDirection) << " -> "
 		<< dirToString(newDirection) << "\n";
+	MDirection refDirection =
+		MDirection::Convert(newDirection,
+												MDirection::Ref(MDirection::J2000))();
 	
 	for(unsigned row=0; row!=set.nrow(); ++row)
 	{
@@ -80,17 +83,14 @@ void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, cons
 			//MVEpoch b = time2.getValue() + 1.0/24.0;//7.778/24.0;
 			//MEpoch time(b, time2.getRef());
 			//MeasFrame refFrame(time, phaseDirection);
-			MDirection refDirection =
-				MDirection::Convert(newDirection,
-														MDirection::Ref(MDirection::J2000))();
 			
 			Muvw uvw1 = calculateUVW(antennas[antenna1], antennas[0], time, refDirection);
 			Muvw uvw2 = calculateUVW(antennas[antenna2], antennas[0], time, refDirection);
 			
 			if(row < 4)
 			{
-				std::cout << "uvw1: " << uvw1 << " (" << length(uvw1) << ")\n";
-				std::cout << "uvw2: " << uvw2 << " (" << length(uvw2) << ")\n";
+				//std::cout << "uvw1: " << uvw1 << " (" << length(uvw1) << ")\n";
+				//std::cout << "uvw2: " << uvw2 << " (" << length(uvw2) << ")\n";
 				//std::cout << "Antenna1: " << a1Pos << '\n';
 				//std::cout << "Antenna2: " << a2Pos << '\n';
 				std::cout << "Old " << uvw << " (" << length(uvw) << ")\n";
@@ -110,7 +110,11 @@ void readAntennas(MeasurementSet &set, std::vector<MPosition> &antennas)
 	for(unsigned i=0; i!=antennaTable.nrow(); ++i)
 	{
 		antennas[i] = MPosition::Convert(posCol(i), MPosition::ITRF)();
+		Vector<double> diff = antennas[i].getValue().getVector()-antennas[0].getValue().getVector();
+		std::cout << diff[0] << "\t" << diff[1] << "\t" << diff[2] << '\n';
 	}
+	Vector<double> diff = antennas[0].getValue().getVector();
+	std::cout << diff[0]/5000.0 << "\t" << diff[1]/5000.0 << "\t" << diff[2]/5000.0 << '\n';
 }
 
 int main(int argc, char **argv)
