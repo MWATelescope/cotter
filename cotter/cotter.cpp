@@ -646,7 +646,6 @@ void Cotter::writeAntennae()
 {
 	double arrayX, arrayY, arrayZ;
 	Geometry::Geodetic2XYZ(_mwaConfig.ArrayLattitudeRad(), _mwaConfig.ArrayLongitudeRad(), _mwaConfig.ArrayHeightMeters(), arrayX, arrayY, arrayZ);
-	
 	std::vector<MSWriter::AntennaInfo> antennae;
 	for(size_t i=0; i!=_mwaConfig.NAntennae(); ++i)
 	{
@@ -656,9 +655,24 @@ void Cotter::writeAntennae()
 		antennaInfo.station = "MWA";
 		antennaInfo.type = "GROUND-BASED";
 		antennaInfo.mount = "ALT-AZ"; // TODO should be "FIXED", but Casa does not like
-		antennaInfo.x = mwaAnt.position[0] + arrayX;
-		antennaInfo.y = mwaAnt.position[1] + arrayY;
-		antennaInfo.z = mwaAnt.position[2] + arrayZ;
+		double
+			x = mwaAnt.position[0],
+			y = mwaAnt.position[1],
+			z = mwaAnt.position[2];
+		// The following rotation is necessary because we found that the XYZ locations are
+		// still in local frame (local meridian). However, the UVW calculations depend on
+		// this assumption, so that's why I rotate them only when writing...
+		// This fixes UVW calculations in Casa, but I believe the calculated positions are
+		// still wrong, as they are not perpendicular to the Earth's normal. For a full fix,
+		// I think three rotations are required; longitude, latitude, and finally correcting
+		// the orientation.
+		Geometry::Rotate(_mwaConfig.ArrayLongitudeRad(), x, y);
+		x += arrayX;
+		y += arrayY;
+		z += arrayZ;
+		antennaInfo.x = x;
+		antennaInfo.y = y;
+		antennaInfo.z = z;
 		antennaInfo.diameter = 4; /** TODO can probably give more exact size! */
 		antennaInfo.flag = false;
 		

@@ -27,6 +27,29 @@ public:
 		z = north * latCos + height * latSin;
 	}
 	
+	static void Rotate(double rotationRad, double &x, double &y)
+	{
+		double cosRotation = cos(rotationRad), sinRotation = sin(rotationRad);
+		double xtemp = x * cosRotation - y * sinRotation;
+		y = x * sinRotation + y * cosRotation;
+		x = xtemp;
+	}
+	
+	static void RotateLongLat(double longRad, double latRad, double &x, double &y, double &z)
+	{
+		double r = sqrt(x*x + y*y + z*z);
+		if(r != 0)
+		{
+			double azi = atan2(y, x);
+			double elev = acos(z / r);
+			elev += latRad;
+			azi += longRad;
+			x = r * sin(elev) * cos(azi);
+			y = r * sin(elev) * sin(azi);
+			z = r * cos(elev);
+		}
+	}
+	
 	struct UVWTimestepInfo
 	{
 		double rmatpr[3][3];
