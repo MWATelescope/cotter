@@ -153,6 +153,7 @@ void readAntennas(MeasurementSet &set, std::vector<MPosition> &antennas)
 
 int main(int argc, char **argv)
 {
+	std::cout << "Program to change phase centre of a measurement set.\nWritten by André Offringa (offringa@gmail.com).\n";
 	if(argc != 4)
 	{
 		std::cerr << "Syntax: chgcentre <ms> <new ra> <new dec>\n";
