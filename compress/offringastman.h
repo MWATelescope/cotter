@@ -17,8 +17,10 @@
 class OffringaStManColumn;
 
 /**
- * A storage manager for the compression technique describe in
- * Offringa et al (2013). 
+ * A storage manager for the compression technique to be described in
+ * Offringa et al (2013).
+ * 
+ * TODO describe file format here.
  * 
  * The method prototypes and some documentation were copied from the
  * LOFAR storage manager written by Ger van Diepen.
@@ -26,6 +28,10 @@ class OffringaStManColumn;
 class OffringaStMan : public casa::DataManager
 {
 public:
+	/**
+	 * TODO add quantization count?
+	 * TODO add dithering method
+	 */
 	explicit OffringaStMan(double globalStddev, const casa::String& name = "OffringaStMan");
 
 	OffringaStMan(const casa::String& name, const casa::Record& spec);

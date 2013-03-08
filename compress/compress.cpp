@@ -283,6 +283,11 @@ void MeasureError(casa::MeasurementSet &ms, const std::string &columnName, doubl
 		<< "Max error (using weight encoder): " << maxWErr << '\n';
 }
 
+/**
+ * Compress a given measurement set.
+ * @param argc Command line parameter count
+ * @param argv Command line parameters.
+ */
 int main(int argc, char *argv[])
 {
 	register_offringastman();

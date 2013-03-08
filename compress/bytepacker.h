@@ -14,17 +14,37 @@
  * ceil(symbolCount / bitCount).
  * 
  * The @ref pack() and @ref unpack() methods can call the method with given
- * bitcount at runtime.
+ * bitcount at runtime. If the bitcount is known at compile time, one of the
+ * other methods can be used. For each of these calls, the input symbols are
+ * assumed to occupy at most the given number of bits. The number of bytes
+ * written during pack operations is ceil(symbolCount * bitCount / 8).
+ * unpack operations will write symbolCount symbols into the output buffer.
  */
 class BytePacker
 {
 	public:
-		static void pack(unsigned bitCount, unsigned char* dest, const unsigned* symbolBuffer, size_t symbolCount);
-		static void unpack(unsigned bitCount, unsigned* symbolBuffer, unsigned char* packedBuffer, size_t symbolCount);
 		/**
-		 * Pack the symbols from symbolBuffer into the destination array. The symbols
-		 * are assumed to occupy at most 6 bits each. It will write 
-		 * ceil(symbolCount / 4) bytes into dest.
+		 * Call a pack..() function for a given bit count. Will forward the pack operation to
+		 * the one for the given bit count.
+		 * @param bitCount the number of bits to use per symbol
+		 * @param dest output buffer (see class desc for size)
+		 * @param symbolBuffer the input buffer
+		 * @param symbolCount number of symbols in @p symbolBuffer.
+		 */
+		static void pack(unsigned bitCount, unsigned char* dest, const unsigned* symbolBuffer, size_t symbolCount);
+		
+		/**
+		 * Call an unpack..() function for a given bit count. Will forward the unpack operation to
+		 * the one for the given bit count.
+		 * @param bitCount the number of bits used per symbol
+		 * @param symbolBuffer output buffer
+		 * @param packedBuffer the input buffer with the packed symbols
+		 * @param symbolCount number of symbols that will be unpacked into @p symbolBuffer.
+		 */
+		static void unpack(unsigned bitCount, unsigned* symbolBuffer, unsigned char* packedBuffer, size_t symbolCount);
+		
+		/**
+		 * Pack the symbols from symbolBuffer into the destination array using bitCount=6. 
 		 */
 		static void pack6(unsigned char* dest, const unsigned* symbolBuffer, size_t symbolCount);
 		
@@ -33,13 +53,31 @@ class BytePacker
 		 */
 		static void unpack6(unsigned* symbolBuffer, unsigned char* packedBuffer, size_t symbolCount);
 
+		/**
+		 * Pack the symbols from symbolBuffer into the destination array using bitCount=4. 
+		 */
 		static void pack4(unsigned char* dest, const unsigned* symbolBuffer, size_t symbolCount);
+		/**
+		 * Reverse of pack4(). Will write symbolCount items into the symbolBuffer.
+		 */
 		static void unpack4(unsigned* symbolBuffer, unsigned char* packedBuffer, size_t symbolCount);
 		
+		/**
+		 * Pack the symbols from symbolBuffer into the destination array using bitCount=8. 
+		 */
 		static void pack8(unsigned char* dest, const unsigned* symbolBuffer, size_t symbolCount);
+		/**
+		 * Reverse of pack8(). Will write symbolCount items into the symbolBuffer.
+		 */
 		static void unpack8(unsigned* symbolBuffer, unsigned char* packedBuffer, size_t symbolCount);
 	
+		/**
+		 * Pack the symbols from symbolBuffer into the destination array using bitCount=12. 
+		 */
 		static void pack12(unsigned char* dest, const unsigned* symbolBuffer, size_t symbolCount);
+		/**
+		 * Reverse of pack12(). Will write symbolCount items into the symbolBuffer.
+		 */
 		static void unpack12(unsigned* symbolBuffer, unsigned char* packedBuffer, size_t symbolCount);
 };
 

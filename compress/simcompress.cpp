@@ -18,6 +18,11 @@
  * @author André Offringa
  */
 
+/**
+ * Simulate compressing a given measurement set.
+ * @param argc Command line parameter count
+ * @param argv Command line parameters.
+ */
 int main(int argc, char *argv[])
 {
 	if(argc < 4)

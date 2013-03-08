@@ -17,22 +17,56 @@
  * is easier than encoding. Decoding is a single indexing into an array, thus
  * extremely fast and with constant time complexity. Encoding is a binary
  * search through the quantizaton values, thus takes O(log quantcount).
- * Typical performance of encoding is 100 MB/s
+ * Typical performance of encoding is 100 MB/s.
+ * 
+ * If the values are encoded into a number of bits which are not divisible by
+ * eight, the BytePacker class can be used to pack the values.
+ * 
  * @author André Offringa (offringa@gmail.com)
  */
 template<typename ValueType=float>
 class GausEncoder
 {
 	public:
+		/**
+		 * Construct encoder for given dictionary size and Gaussian stddev.
+		 * @param quantCount The number of quantization values, i.e., the dictionary
+		 * size.
+		 * @param stddev The standard deviation of the data. The closer this value is
+		 * to the real stddev, the more accurate the encoder will be.
+		 * @param gaussianMapping Used for testing with non-gaussian distributions.
+		 */
 		GausEncoder(size_t quantCount, ValueType stddev, bool gaussianMapping = true);
 		
+		/**
+		 * Unsigned integer type used for representing encoded symbols.
+		 */
 		typedef unsigned symbol_t;
+		
+		/**
+		 * Template type used for representing floating point values.
+		 */
 		typedef ValueType value_t;
 		
+		/**
+		 * Get the quantized symbol for the given floating point value.
+		 * This method is implemented with a binary search, so takes
+		 * O(log N), with N the dictionary size (2^bitcount).
+		 * Use Decode() on the returned symbol to get an estimate of
+		 * the unquantized value.
+		 * @param value Floating point value to be encoded.
+		 */
 		symbol_t Encode(ValueType value) const
 		{
 			return _encDictionary.symbol(_encDictionary.lower_bound(value));
 		}
+		
+		/**
+		 * Will return the right boundary of the given symbol.
+		 * The right boundary is the smallest value that would not be
+		 * quantized to the given symbol anymore. If no such boundary
+		 * exists, 0.0 is returned.
+		 */
 		value_t RightBoundary(symbol_t symbol) const
 		{
 			if(symbol != _encDictionary.size())
@@ -63,6 +97,9 @@ class GausEncoder
 				return _dictionary.symbol(iter);
 		}*/
 		
+		/**
+		 * Get the centroid value that belongs to the given symbol.
+		 */
 		ValueType Decode(symbol_t symbol) const
 		{
 			return _decDictionary.value(symbol);
