@@ -22,6 +22,32 @@ class OffringaStManColumn;
  * 
  * TODO describe file format here.
  * 
+ * The procedure used by Casa when initializing a new OffringaStMan:
+ * 1. A OffringaStMan is constructed
+ * 2. makeDirArrColumn() is called
+ * 3. OffringaStManColumn::setShapeColumn() is called on each column
+ * 4. create() is called.
+ * 5. prepare() is called.
+ * 6. Data can be read/written using the column.
+ * 
+ * Procedure when initializing the manager for set with an existing
+ * OffringaStMan:
+ * 1. A OffringaStMan is constructed
+ * 2. makeDirArrColumn() is called for all existing OffringaStMan columns
+ * 3. OffringaStManColumn::setShapeColumn() is called
+ * 4. when all existing columns are added, open() is called
+ * 5. prepare() is called.
+ * 6. Data can be read/written
+ * 
+ * Finally, if a new column is created on a set with already existing
+ * columns, the procedure is:
+ * 1. makeDirArrColumn() is called
+ * 2. OffringaStManColumn::setShapeColumn() is called
+ * 3. addColumn() is called
+ * 4. Data can be read/written
+ * Note that no prepare() is called, so addColumn should prepare everything
+ * is necessary for reading/writing.
+ * 
  * The method prototypes and some documentation were copied from the
  * LOFAR storage manager written by Ger van Diepen.
  */
@@ -29,6 +55,7 @@ class OffringaStMan : public casa::DataManager
 {
 public:
 	/**
+	 * TODO global stddev should be replaced by a dynamic stddev
 	 * TODO add quantization count?
 	 * TODO add dithering method
 	 */

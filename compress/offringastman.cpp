@@ -85,13 +85,62 @@ casa::Bool OffringaStMan::flush(casa::AipsIO& , casa::Bool doFsync)
 
 void OffringaStMan::create(casa::uInt nRow)
 {
+	ZMutex::scoped_lock lock(_mutex);
+	std::cout << "create(" << nRow << ")\n";
 	_nRow = nRow;
+	_fStream.reset(new std::fstream(fileName().c_str(), std::ios_base::in | std::ios_base::out | std::ios_base::trunc));
+	if(_fStream->fail())
+		throw casa::DataManError("I/O error: could not create new file '" + fileName() + "'");
+	_fStream->clear();
+	_fStream->seekp(0, std::ios_base::beg);
+	if(_fStream->fail())
+		throw casa::DataManError("I/O error: could not seek to beginning of file before write task");
+	Header header;
+	_headerSize = sizeof(header);
+	header.headerSize = sizeof(header);
+	header.columnHeaderOffset = sizeof(header);
+	header.columnCount = 0;
+	header.versionMajor = VERSION_MAJOR;
+	header.versionMinor = VERSION_MINOR;
+	header.globalStddev = _globalStddev;
+	_fStream->write(reinterpret_cast<char*>(&header), sizeof(header));
+	if(_fStream->fail())
+		throw casa::DataManError("I/O error: could not write to file");
+	_nRowInFile = 0;
 }
 
 void OffringaStMan::open(casa::uInt nRow, casa::AipsIO& )
 {
+	ZMutex::scoped_lock lock(_mutex);
 	std::cout << "open(" << nRow << ")\n";
 	_nRow = nRow;
+	_fStream.reset(new std::fstream(fileName().c_str()));
+	if(_fStream->fail())
+		throw casa::DataManError("I/O error: could not open file '" + fileName() + "', which should be an existing file");
+	Header header;
+	_fStream->read(reinterpret_cast<char*>(&header), sizeof(header));
+	_headerSize = header.headerSize;
+	_globalStddev = header.globalStddev;
+	_fStream->seekg(0, std::ios_base::end);
+	std::streampos size = _fStream->tellg();
+	
+	RecalculateStride();
+	
+	if(_rowStride==0)
+	{
+		if(size > 0)
+		{
+			std::ostringstream s;
+			s << "File is non-empty, but casa thinks it is empty (size=" << size << ") : corrupted?";
+			throw casa::DataManError(s.str());
+		}
+		_nRowInFile = 0;
+	} else {
+		if(size > _headerSize)
+			_nRowInFile = ((size_t) size - _headerSize) / _rowStride;
+		else
+			_nRowInFile = 0;
+	}
 }
 
 casa::DataManagerColumn* OffringaStMan::makeScalarColumn(const casa::String& name, int dataType, const casa::String& dataTypeID)
@@ -145,62 +194,6 @@ void OffringaStMan::prepare()
 {
 	ZMutex::scoped_lock lock(_mutex);
 	std::cout << "prepare()\n";
-	_fStream.reset(new std::fstream(fileName().c_str()));
-	bool newFile;
-	if(_fStream->fail())
-	{
-		_fStream.reset(new std::fstream(fileName().c_str(), std::ios_base::in | std::ios_base::out | std::ios_base::trunc));
-		if(_fStream->fail())
-			throw casa::DataManError("I/O error: could not open file '" + fileName() + "'");
-		newFile = true;
-	} else {
-		newFile = false;
-	}
-	Header header;
-	std::streampos size;
-	if(!newFile)
-	_fStream->read(reinterpret_cast<char*>(&header), sizeof(header));
-	if(newFile || _fStream->fail())
-	{
-		_fStream->clear();
-		_fStream->seekp(0, std::ios_base::beg);
-		if(_fStream->fail())
-			throw casa::DataManError("I/O error: could not seek to beginning of file before write task");
-		_headerSize = sizeof(header);
-		header.headerSize = sizeof(header);
-		header.columnHeaderOffset = sizeof(header);
-		header.columnCount = 0;
-		header.versionMajor = VERSION_MAJOR;
-		header.versionMinor = VERSION_MINOR;
-		header.globalStddev = _globalStddev;
-		_fStream->write(reinterpret_cast<char*>(&header), sizeof(header));
-		if(_fStream->fail())
-			throw casa::DataManError("I/O error: could not write to file");
-		size = sizeof(header);
-	} else {
-		_headerSize = header.headerSize;
-		_globalStddev = header.globalStddev;
-		_fStream->seekg(0, std::ios_base::end);
-		size = _fStream->tellg();
-	}
-
-	RecalculateStride();
-	
-	if(_rowStride==0)
-	{
-		if(size > 0)
-		{
-			std::ostringstream s;
-			s << "File is non-empty, but casa thinks it is empty (size=" << size << ") : corrupted?";
-			throw casa::DataManError(s.str());
-		}
-		_nRowInFile = 0;
-	} else {
-		if(size > _headerSize)
-			_nRowInFile = ((size_t) size - _headerSize) / _rowStride;
-		else
-			_nRowInFile = 0;
-	}
 	
 	// At this point, the stddev *has* to be set, otherwise
 	// encoding will fail.
