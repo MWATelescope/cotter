@@ -2,6 +2,7 @@
 
 #include <ms/MeasurementSets/MeasurementSet.h>
 
+#include <measures/TableMeasures/ArrayMeasColumn.h>
 #include <measures/TableMeasures/ScalarMeasColumn.h>
 
 #include <measures/Measures/MBaseline.h>
@@ -58,8 +59,10 @@ void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, cons
 {
 	BandData bandData(set.spectralWindow());
 	ROScalarColumn<casa::String> nameCol(fieldTable, fieldTable.columnName(MSFieldEnums::NAME));
-	MDirection::ROScalarColumn phaseCol(fieldTable, fieldTable.columnName(MSFieldEnums::PHASE_DIR));
+	MDirection::ArrayColumn phaseDirCol(fieldTable, fieldTable.columnName(MSFieldEnums::PHASE_DIR));
 	MEpoch::ROScalarColumn timeCol(set, set.columnName(MSMainEnums::TIME));
+	MDirection::ArrayColumn delayDirCol(fieldTable, fieldTable.columnName(MSFieldEnums::DELAY_DIR));
+	MDirection::ArrayColumn refDirCol(fieldTable, fieldTable.columnName(MSFieldEnums::REFERENCE_DIR));
 	
 	ROScalarColumn<int>
 		antenna1Col(set, set.columnName(MSMainEnums::ANTENNA1)),
@@ -72,7 +75,8 @@ void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, cons
 	ArrayColumn<double>
 		uvwOutCol(set, set.columnName(MSMainEnums::UVW));
 	
-	MDirection phaseDirection = phaseCol(fieldIndex);
+	Vector<MDirection> phaseDirVector = phaseDirCol(fieldIndex);
+	MDirection phaseDirection = phaseDirVector[0];
 	std::cout << "Processing field \"" << nameCol(fieldIndex) << "\": "
 		<< dirToString(phaseDirection) << " -> "
 		<< dirToString(newDirection) << "\n";
@@ -133,6 +137,10 @@ void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, cons
 			uvwOutCol.put(row, newUVW.getVector());
 		}
 	}
+	phaseDirVector[0] = newDirection;
+	phaseDirCol.put(fieldIndex, phaseDirVector);
+	delayDirCol.put(fieldIndex, phaseDirVector);
+	refDirCol.put(fieldIndex, phaseDirVector);
 }
 
 void readAntennas(MeasurementSet &set, std::vector<MPosition> &antennas)
