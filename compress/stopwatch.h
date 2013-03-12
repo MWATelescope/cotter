@@ -24,6 +24,8 @@
 
 #include <string>
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+
 /**
 	@author A.R. Offringa <offringa@astro.rug.nl>
 */
@@ -52,5 +54,8 @@ class Stopwatch{
 		boost::posix_time::ptime _startTime;
 		boost::posix_time::time_duration _sum;
 };
+
+// end of Doxygen skip
+#endif
 
 #endif

@@ -14,7 +14,10 @@
 
 class OffringaStMan;
 
-template <typename T> class GausEncoder;
+template <typename T> class DynamicGausEncoder;
+namespace casa {
+	template <typename T> class ROScalarColumn;
+}
 
 class OffringaComplexColumn : public OffringaStManColumn
 {
@@ -24,14 +27,15 @@ public:
 		_bitsPerSymbol(8),
 		_symbolsPerCell(0),
 		_encoder(0),
+		_ant1Col(0),
+		_ant2Col(0),
+		_fieldCol(0),
 		_symbolReadBuffer(0),
 		_destruct(false)
 	{
 	}
   
   virtual ~OffringaComplexColumn();
-	
-  virtual casa::Bool isWritable() const { return true; }
 	
   virtual void setShapeColumn(const casa::IPosition& shape);
 	
@@ -62,6 +66,7 @@ private:
 		
 		float *buffer;
 		bool isBeingWritten;
+		int antenna1, antenna2, fieldId;
 	};
 	
 	struct EncodingThreadFunctor
@@ -77,7 +82,8 @@ private:
 	
 	unsigned _bitsPerSymbol, _symbolsPerCell;
 	casa::IPosition _shape;
-	GausEncoder<float> *_encoder;
+	DynamicGausEncoder<float> *_encoder;
+	casa::ROScalarColumn<int> *_ant1Col, *_ant2Col, *_fieldCol;
 	unsigned char *_symbolReadBuffer;
 	cache_t _cache;
 	bool _destruct;

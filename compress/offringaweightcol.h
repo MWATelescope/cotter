@@ -35,8 +35,6 @@ public:
   
   virtual ~OffringaWeightColumn();
 	
-  virtual casa::Bool isWritable() const { return true; }
-	
   virtual void setShapeColumn(const casa::IPosition& shape);
 	
 	virtual casa::IPosition shape(casa::uInt rownr) { return _shape; }

@@ -20,13 +20,13 @@ void OffringaWeightColumn::setShapeColumn(const casa::IPosition& shape)
 	_packBuffer = new unsigned char[Stride()];
 	_dataCopyBuffer.resize(_symbolsPerCell);
 	
-	parent().RecalculateStride();
+	recalculateStride();
 	std::cout << "OffringaWeightColumn::setShapeColumn() : symbols per cell=" << _symbolsPerCell << ", Stride()=" << Stride() << '\n';
 }
 
 void OffringaWeightColumn::getArrayfloatV(casa::uInt rowNr, casa::Array<float>* dataPtr)
 {
-	parent().ReadCompressedData(rowNr, this, _packBuffer);
+	readCompressedData(rowNr, _packBuffer);
 	
 	BytePacker::unpack6(&_symbolBuffer[0], _packBuffer + sizeof(float), _symbolsPerCell);
 	
@@ -52,7 +52,7 @@ void OffringaWeightColumn::putArrayfloatV(casa::uInt rowNr, const casa::Array<fl
 	
 	BytePacker::pack6(_packBuffer + sizeof(float), &_symbolBuffer[0], _symbolsPerCell);
 	
-	parent().WriteCompressedData(rowNr, this, _packBuffer);
+	writeCompressedData(rowNr, _packBuffer);
 }
 
 void OffringaWeightColumn::Prepare()

@@ -1,4 +1,3 @@
-#include "register.h"
 #include "offringastman.h"
 #include "gausencoder.h"
 #include "weightencoder.h"
@@ -44,7 +43,8 @@ void createColumn(casa::MeasurementSet &ms, const std::string &name, const casa:
 	} catch(std::exception &e)
 	{
 		std::cout << "Constructing storage manager...\n";
-		OffringaStMan dataManager(stddev);
+		OffringaStMan::RMSTable rmsTable;
+		OffringaStMan dataManager(rmsTable);
 		std::cout << "Adding column...\n";
 		ms.addColumn(columnDesc, dataManager);
 		isAlreadyUsed = false;

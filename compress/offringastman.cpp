@@ -7,40 +7,87 @@ const unsigned short
 	OffringaStMan::VERSION_MAJOR = 1,
 	OffringaStMan::VERSION_MINOR = 0;
 
-OffringaStMan::OffringaStMan(double globalStddev, const casa::String& name) :
+OffringaStMan::OffringaStMan(class RMSTable &rmsTable, const casa::String& name) :
 	DataManager(),
 	_nRow(0),
-	_globalStddev(globalStddev),
+	_rmsTable(rmsTable),
 	_name(name)
 {
-	_spec.define("global_stddev", _globalStddev);
+	// TODO _spec.define("global_stddev", _globalStddev);
 }
 
 OffringaStMan::OffringaStMan(const casa::String& name, const casa::Record& spec) :
 	DataManager(),
 	_nRow(0),
-	_globalStddev(0.0),
+	_rmsTable(),
 	_name(name),
 	_spec(spec)
 {
-	int i = spec.description().fieldNumber("global_stddev");
-	if(i >= 0)
-		_globalStddev = spec.asDouble("global_stddev");
+	setRMSTableFromSpec();
 }
 
 OffringaStMan::OffringaStMan(const OffringaStMan& source) :
 	DataManager(),
 	_nRow(0),
-	_globalStddev(source._globalStddev),
+	_rmsTable(source._rmsTable),
 	_name(source._name),
 	_spec(source._spec)
 {
-	_spec.define("global_stddev", _globalStddev);
+	initializeSpec();
 }
 
 OffringaStMan& OffringaStMan::operator=(const OffringaStMan& source)
 {
 	throw casa::DataManError("operator=() was called on OffringaStMan. OffringaStMan should never be assigned to.");
+}
+
+void OffringaStMan::setRMSTableFromSpec()
+{
+	std::cout << "setRMSTableFromSpec()\n";
+	int i = _spec.description().fieldNumber("RMSTable");
+	if(i >= 0)
+	{
+		casa::Vector<double> rmsTableVector = _spec.asArrayDouble("RMSTable");
+		casa::IPosition shape = rmsTableVector.shape();
+		size_t fieldCount = shape[2];
+		size_t antennaCount = shape[1];
+		_rmsTable = RMSTable(antennaCount, fieldCount);
+		casa::Vector<double>::const_contiter rmsIter = rmsTableVector.cbegin();
+		for(unsigned f=0; f!=fieldCount; ++f)
+		{
+			for(unsigned a1=0; a1!=antennaCount; ++a1)
+			{
+				for(unsigned a2=0; a2!=antennaCount; ++a2)
+				{
+					_rmsTable.Value(a1, a2, f) = *rmsIter;
+					++rmsIter;
+				}
+			}
+		}
+	}
+}
+
+void OffringaStMan::initializeSpec()
+{
+	std::cout << "initializeSpec()\n";
+	casa::IPosition shape(3);
+	shape[0] = _rmsTable.AntennaCount();
+	shape[1] = _rmsTable.AntennaCount();
+	shape[2] = _rmsTable.FieldCount();
+	casa::Vector<double> rmsTableVector(shape);
+	casa::Vector<double>::contiter rmsIter = rmsTableVector.cbegin();
+	for(unsigned f=0; f!=_rmsTable.FieldCount(); ++f)
+	{
+		for(unsigned a1=0; a1!=_rmsTable.AntennaCount(); ++a1)
+		{
+			for(unsigned a2=0; a2!=_rmsTable.AntennaCount(); ++a2)
+			{
+				*rmsIter = _rmsTable.Value(a1, a2, f);
+				++rmsIter;
+			}
+		}
+	}
+	_spec.define("RMSTable", rmsTableVector);
 }
 
 void OffringaStMan::makeEmpty()
@@ -61,15 +108,9 @@ casa::Record OffringaStMan::dataManagerSpec() const
 	return _spec;
 }
 
-casa::Record OffringaStMan::getProperties() const
+void register_offringastman()
 {
-	std::cout << "getProperties()\n";
-	return _spec;
-}
-
-void OffringaStMan::setProperties(const casa::Record& spec)
-{
-	std::cout << "setProperties()\n";
+	OffringaStMan::registerClass();
 }
 
 void OffringaStMan::registerClass()
@@ -96,17 +137,46 @@ void OffringaStMan::create(casa::uInt nRow)
 	if(_fStream->fail())
 		throw casa::DataManError("I/O error: could not seek to beginning of file before write task");
 	Header header;
-	_headerSize = sizeof(header);
-	header.headerSize = sizeof(header);
-	header.columnHeaderOffset = sizeof(header);
+	_headerSize = sizeof(header) + _rmsTable.AntennaCount() * _rmsTable.AntennaCount() *
+		_rmsTable.FieldCount() * sizeof(RMSTable::rms_t);
+	header.headerSize = _headerSize;
+	header.columnHeaderOffset = _headerSize;
 	header.columnCount = 0;
 	header.versionMajor = VERSION_MAJOR;
 	header.versionMinor = VERSION_MINOR;
-	header.globalStddev = _globalStddev;
+	header.rmsTableAntennaCount = _rmsTable.AntennaCount();
+	header.rmsTableFieldCount = _rmsTable.FieldCount();
 	_fStream->write(reinterpret_cast<char*>(&header), sizeof(header));
 	if(_fStream->fail())
 		throw casa::DataManError("I/O error: could not write to file");
+	_rmsTable.Write(*_fStream);
 	_nRowInFile = 0;
+}
+
+void OffringaStMan::RMSTable::Write(std::fstream& stream)
+{
+	for(size_t f=0; f!=_fieldCount; ++f)
+	{
+		for(size_t a1=0; a1!=_antennaCount; ++a1)
+		{
+			stream.write(reinterpret_cast<char*>(_rmsTable[f][a1]), sizeof(RMSTable::rms_t) * _antennaCount);
+			if(stream.fail())
+				throw casa::DataManError("I/O error: could not write RMSTable to file");
+		}
+	}
+}
+
+void OffringaStMan::RMSTable::Read(std::fstream& stream)
+{
+	for(size_t f=0; f!=_fieldCount; ++f)
+	{
+		for(size_t a1=0; a1!=_antennaCount; ++a1)
+		{
+			stream.read(reinterpret_cast<char*>(_rmsTable[f][a1]), sizeof(RMSTable::rms_t) * _antennaCount);
+			if(stream.fail())
+				throw casa::DataManError("I/O error: could not read RMSTable from file");
+		}
+	}
 }
 
 void OffringaStMan::open(casa::uInt nRow, casa::AipsIO& )
@@ -120,11 +190,12 @@ void OffringaStMan::open(casa::uInt nRow, casa::AipsIO& )
 	Header header;
 	_fStream->read(reinterpret_cast<char*>(&header), sizeof(header));
 	_headerSize = header.headerSize;
-	_globalStddev = header.globalStddev;
+	_rmsTable = RMSTable(header.rmsTableAntennaCount, header.rmsTableFieldCount);
+	_rmsTable.Read(*_fStream);
 	_fStream->seekg(0, std::ios_base::end);
 	std::streampos size = _fStream->tellg();
 	
-	RecalculateStride();
+	recalculateStride();
 	
 	if(_rowStride==0)
 	{
@@ -195,10 +266,10 @@ void OffringaStMan::prepare()
 	ZMutex::scoped_lock lock(_mutex);
 	std::cout << "prepare()\n";
 	
-	// At this point, the stddev *has* to be set, otherwise
+	// At this point, the rms-es *have* to be set, otherwise
 	// encoding will fail.
-	if(_globalStddev == 0.0)
-		throw casa::DataManError("The global stddev parameter of the OffringaStMan was not set!\nOffringaStMan was not correctly initialized by your tool.");
+	if(_rmsTable.Empty())
+		throw casa::DataManError("The RMS table of the OffringaStMan was not set!\nOffringaStMan was not correctly initialized by your tool.");
 	
 	for(std::vector<OffringaStManColumn*>::iterator col=_columns.begin(); col!=_columns.end(); ++col)
 		(*col)->Prepare();
@@ -224,7 +295,7 @@ void OffringaStMan::addColumn(casa::DataManagerColumn* column)
 	OffringaComplexColumn *offCol = static_cast<OffringaComplexColumn*>(column);
 	if(_nRowInFile != 0)
 		throw casa::DataManError("Can't add columns while data has been committed to table");
-	RecalculateStride();
+	recalculateStride();
 	offCol->Prepare();
 }
 
@@ -235,7 +306,7 @@ void OffringaStMan::removeColumn(casa::DataManagerColumn* column)
 		throw casa::DataManError("Can't remove columns while data has been committed to table");
 }
 
-void OffringaStMan::ReadCompressedData(size_t rowIndex, const OffringaStManColumn *column, unsigned char *dest)
+void OffringaStMan::readCompressedData(size_t rowIndex, const OffringaStManColumn *column, unsigned char *dest)
 {
 	ZMutex::scoped_lock lock(_mutex);
 	if(_nRowInFile <= rowIndex)
@@ -248,7 +319,7 @@ void OffringaStMan::ReadCompressedData(size_t rowIndex, const OffringaStManColum
 		throw casa::DataManError("I/O error: error while reading file '" + fileName() + "'");
 }
 
-void OffringaStMan::WriteCompressedData(size_t rowIndex, const OffringaStManColumn *column, const unsigned char *data)
+void OffringaStMan::writeCompressedData(size_t rowIndex, const OffringaStManColumn *column, const unsigned char *data)
 {
 	ZMutex::scoped_lock lock(_mutex);
 	if(_nRowInFile <= rowIndex)
@@ -261,7 +332,7 @@ void OffringaStMan::WriteCompressedData(size_t rowIndex, const OffringaStManColu
 		throw casa::DataManError("I/O error: error while writing file '" + fileName() + "'");
 }
 
-void OffringaStMan::RecalculateStride()
+void OffringaStMan::recalculateStride()
 {
 	_rowStride = 0;
 	for(std::vector<OffringaStManColumn*>::iterator col=_columns.begin(); col!=_columns.end(); ++col)
