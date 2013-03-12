@@ -1,4 +1,5 @@
 #include <iostream>
+#include <memory>
 
 #include <ms/MeasurementSets/MeasurementSet.h>
 
@@ -55,6 +56,24 @@ Muvw calculateUVW(const MPosition &antennaPos,
 	return Muvw(uvw, Muvw::J2000);
 }
 
+void rotateVisibilities(const BandData &bandData, double wShiftFactor, unsigned polarizationCount, Array<Complex>::contiter dataIter)
+{
+	for(unsigned ch=0; ch!=bandData.ChannelCount(); ++ch)
+	{
+		const double wShiftRad = wShiftFactor / bandData.ChannelWavelength(ch);
+		double rotSin, rotCos;
+		sincos(wShiftRad, &rotSin, &rotCos);
+		for(unsigned p=0; p!=polarizationCount; ++p)
+		{
+			Complex v = *dataIter;
+			*dataIter = Complex(
+				v.real() * rotCos  -  v.imag() * rotSin,
+				v.real() * rotSin  +  v.imag() * rotCos);
+			++dataIter;
+		}
+	}
+}
+
 void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, const MDirection &newDirection)
 {
 	BandData bandData(set.spectralWindow());
@@ -74,6 +93,21 @@ void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, cons
 		uvwCol(set, set.columnName(MSMainEnums::UVW));
 	ArrayColumn<double>
 		uvwOutCol(set, set.columnName(MSMainEnums::UVW));
+	
+	const bool
+		hasCorrData = set.isColumn(casa::MSMainEnums::CORRECTED_DATA),
+		hasModelData = set.isColumn(casa::MSMainEnums::MODEL_DATA);
+	std::auto_ptr<ArrayColumn<Complex> > correctedDataCol, modelDataCol;
+	if(hasCorrData)
+	{
+		correctedDataCol.reset(new ArrayColumn<Complex>(set,
+			set.columnName(MSMainEnums::CORRECTED_DATA)));
+	}
+	if(hasModelData)
+	{
+		modelDataCol.reset(new ArrayColumn<Complex>(set,
+			set.columnName(MSMainEnums::MODEL_DATA)));
+	}
 	
 	Vector<MDirection> phaseDirVector = phaseDirCol(fieldIndex);
 	MDirection phaseDirection = phaseDirVector[0];
@@ -112,28 +146,28 @@ void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, cons
 			}
 			
 			// Read the visibilities and phase-rotate them
-			dataCol.get(row, dataArray);
-			Array<Complex>::contiter dataIter = dataArray.cbegin();
 			double wShiftFactor =
 				-2.0*M_PI* (newUVW.getVector()[2] - oldUVW.getValue().getVector()[2]);
-			for(unsigned ch=0; ch!=bandData.ChannelCount(); ++ch)
+
+			dataCol.get(row, dataArray);
+			rotateVisibilities(bandData, wShiftFactor, polarizationCount, dataArray.cbegin());
+			dataCol.put(row, dataArray);
+				
+			if(hasCorrData)
 			{
-				const double wShiftRad = wShiftFactor / bandData.ChannelWavelength(ch);
-				double rotSin, rotCos;
-				sincos(wShiftRad, &rotSin, &rotCos);
-				for(unsigned p=0; p!=polarizationCount; ++p)
-				{
-					Complex v = *dataIter;
-					*dataIter = Complex(
-						v.real() * rotCos  -  v.imag() * rotSin,
-						v.real() * rotSin  +  v.imag() * rotCos);
-					++dataIter;
-				}
+				correctedDataCol->get(row, dataArray);
+				rotateVisibilities(bandData, wShiftFactor, polarizationCount, dataArray.cbegin());
+				correctedDataCol->put(row, dataArray);
 			}
 			
-			// Store all
-			dataCol.put(row, dataArray);
-			//Muvw outUVW(newUVW, Muvw::J2000);
+			if(hasModelData)
+			{
+				modelDataCol->get(row, dataArray);
+				rotateVisibilities(bandData, wShiftFactor, polarizationCount, dataArray.cbegin());
+				modelDataCol->put(row, dataArray);
+			}
+			
+			// Store uvws
 			uvwOutCol.put(row, newUVW.getVector());
 		}
 	}
