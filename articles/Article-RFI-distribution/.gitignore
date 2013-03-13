@@ -7,3 +7,5 @@ article-rfi-distribution.pdf
 *.backup
 *~
 *.kilepr
+Article*.pdf
+*.tar.gz
