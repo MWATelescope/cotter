@@ -48,12 +48,12 @@ void OffringaStMan::setRMSTableFromSpec()
 	int i = _spec.description().fieldNumber("RMSTable");
 	if(i >= 0)
 	{
-		casa::Vector<double> rmsTableVector = _spec.asArrayDouble("RMSTable");
-		casa::IPosition shape = rmsTableVector.shape();
+		casa::Array<double> rmsTableArray = _spec.asArrayDouble("RMSTable");
+		casa::IPosition shape = rmsTableArray.shape();
 		size_t fieldCount = shape[2];
 		size_t antennaCount = shape[1];
 		_rmsTable = RMSTable(antennaCount, fieldCount);
-		casa::Vector<double>::const_contiter rmsIter = rmsTableVector.cbegin();
+		casa::Vector<double>::const_contiter rmsIter = rmsTableArray.cbegin();
 		for(unsigned f=0; f!=fieldCount; ++f)
 		{
 			for(unsigned a1=0; a1!=antennaCount; ++a1)
@@ -75,8 +75,8 @@ void OffringaStMan::initializeSpec()
 	shape[0] = _rmsTable.AntennaCount();
 	shape[1] = _rmsTable.AntennaCount();
 	shape[2] = _rmsTable.FieldCount();
-	casa::Vector<double> rmsTableVector(shape);
-	casa::Vector<double>::contiter rmsIter = rmsTableVector.cbegin();
+	casa::Array<double> rmsTableVector(shape);
+	casa::Array<double>::contiter rmsIter = rmsTableVector.cbegin();
 	for(unsigned f=0; f!=_rmsTable.FieldCount(); ++f)
 	{
 		for(unsigned a1=0; a1!=_rmsTable.AntennaCount(); ++a1)

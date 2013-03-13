@@ -43,7 +43,9 @@ void createColumn(casa::MeasurementSet &ms, const std::string &name, const casa:
 	} catch(std::exception &e)
 	{
 		std::cout << "Constructing storage manager...\n";
-		RMSTable rmsTable;
+		size_t antennaCount = ms.antenna().nrow();
+		size_t fieldCount = ms.field().nrow();
+		RMSTable rmsTable(antennaCount, fieldCount, stddev);
 		OffringaStMan dataManager(rmsTable);
 		std::cout << "Adding column...\n";
 		ms.addColumn(columnDesc, dataManager);
@@ -150,7 +152,6 @@ void weightEncode(const WeightEncoder<float> &encoder, std::vector<float> &vals,
 	encoder.Encode(scaleVal, temp, vals);
 	encoder.Decode(vals, scaleVal, temp);
 }
-
 
 long double getSqErr(casa::Complex valA, casa::Complex valB)
 {
