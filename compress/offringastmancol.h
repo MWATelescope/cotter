@@ -104,7 +104,10 @@ protected:
 	 * @see Stride(), RowOffset()
 	 */
 	void recalculateStride();
-	
+	/**
+	 * Get the RMS table from the parent.
+	 * @returns The RMS table that maps baseline to RMS value.
+	 */
 	const class RMSTable &rmsTable() const;
 	
 private:

@@ -95,7 +95,7 @@ public:
 	* TODO add dithering method
 	* TODO stddev should actually be RMS
 	*/
-	explicit OffringaStMan(RMSTable &rmsTable, const casa::String& name = "OffringaStMan");
+	explicit OffringaStMan(const RMSTable &rmsTable, const casa::String& name = "OffringaStMan");
 
 	/**
 	* This constructor is called by Casa when it needs to create a LofarStMan.
@@ -196,6 +196,10 @@ public:
 	*/
 	static void registerClass();
 	
+	/**
+	 * Retrieve the RMS table. These values are used for encoding.
+	 * @returns The RMS table that contains the RMS values per baseline.
+	 */
 	const RMSTable &GetRMSTable() const { return _rmsTable; }
 	
 protected:

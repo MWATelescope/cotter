@@ -22,10 +22,18 @@ class OffringaStMan;
 
 template <typename T> class DynamicGausEncoder;
 
+/**
+ * A column for storing compressed complex values with an approximate Gaussian distribution.
+ * @author André Offringa
+ */
 class OffringaComplexColumn : public OffringaStManColumn
 {
 public:
-  explicit OffringaComplexColumn(OffringaStMan* parent, int dtype) :
+	/**
+	 * Create a new column. Internally called by OffringaStMan when creating a
+	 * new column.
+	 */
+  OffringaComplexColumn(OffringaStMan* parent, int dtype) :
 		OffringaStManColumn(parent, dtype),
 		_bitsPerSymbol(8),
 		_symbolsPerCell(0),
@@ -39,18 +47,42 @@ public:
 	{
 	}
   
+  /** Destructor. */
   virtual ~OffringaComplexColumn();
 	
+	/** Set the dimensions of values in this column. */
   virtual void setShapeColumn(const casa::IPosition& shape);
 	
+	/** Get the dimensions of the values in a particular row.
+	 * @param rownr The row to get the shape for. */
 	virtual casa::IPosition shape(casa::uInt rownr) { return _shape; }
 	
+	/**
+	 * Read the values for a particular row. This will read the required
+	 * data and decode it.
+	 * @param rowNr The row number to get the values for.
+	 * @param dataPtr The array of values, which should be a contiguous array.
+	 */
 	virtual void getArrayComplexV(casa::uInt rowNr, casa::Array<casa::Complex>* dataPtr);
 	
+	/**
+	 * Write values into a particular row. This will add the values into the cache
+	 * and returns immediately afterwards. A pool of threads will encode the items
+	 * in the cache and write them to disk.
+	 * @param rowNr The row number to write the values to.
+	 * @param dataPtr The data pointer, which should be a contiguous array.
+	 */
 	virtual void putArrayComplexV(casa::uInt rowNr, const casa::Array<casa::Complex>* dataPtr);
 	
+	/**
+	 * Number of bytes per row that this column occupies in the stman file.
+	 * @returns Number of bytes.
+	 */
 	virtual unsigned Stride() const { return (_symbolsPerCell * _bitsPerSymbol + 7) / 8; }
 
+	/**
+	 * Prepare this column for reading/writing. Used internally by the stman.
+	 */
 	virtual void Prepare();
 
 private:

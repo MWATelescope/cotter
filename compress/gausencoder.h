@@ -33,7 +33,9 @@ class GausEncoder
 	public:
 		/**
 		 * Construct encoder for given dictionary size and Gaussian stddev.
-		 * @param quantCount The number of quantization values, i.e., the dictionary
+		 * This constructor initializes the lookup table, and is therefore
+		 * quite slow.
+		 * @param quantCount The number of quantization levels, i.e., the dictionary
 		 * size.
 		 * @param stddev The standard deviation of the data. The closer this value is
 		 * to the real stddev, the more accurate the encoder will be.
@@ -42,12 +44,13 @@ class GausEncoder
 		GausEncoder(size_t quantCount, ValueType stddev, bool gaussianMapping = true);
 		
 		/**
-		 * Unsigned integer type used for representing encoded symbols.
+		 * Unsigned integer type used for representing the encoded symbols.
 		 */
 		typedef unsigned symbol_t;
 		
 		/**
-		 * Template type used for representing floating point values.
+		 * Template type used for representing floating point values that
+		 * are to be encoded.
 		 */
 		typedef ValueType value_t;
 		

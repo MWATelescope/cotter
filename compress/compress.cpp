@@ -1,6 +1,7 @@
 #include "offringastman.h"
 #include "gausencoder.h"
 #include "weightencoder.h"
+#include "rmscollector.h"
 
 #include <ms/MeasurementSets/MeasurementSet.h>
 
@@ -31,7 +32,7 @@ void copyValues(casa::ArrayColumn<T> &newColumn, casa::ArrayColumn<T> &oldColumn
 }
 
 template<typename T>
-void createColumn(casa::MeasurementSet &ms, const std::string &name, const casa::IPosition &shape, double stddev)
+void createColumn(casa::MeasurementSet &ms, const std::string &name, const casa::IPosition &shape, const RMSTable& rmsTable)
 {
 	std::cout << "Constructing new column...\n";
 	casa::ArrayColumnDesc<T> columnDesc(name, "", "OffringaStMan", "OffringaStMan", shape);
@@ -45,9 +46,6 @@ void createColumn(casa::MeasurementSet &ms, const std::string &name, const casa:
 	} catch(std::exception &e)
 	{
 		std::cout << "Constructing storage manager...\n";
-		size_t antennaCount = ms.antenna().nrow();
-		size_t fieldCount = ms.field().nrow();
-		RMSTable rmsTable(antennaCount, fieldCount, stddev);
 		OffringaStMan dataManager(rmsTable);
 		std::cout << "Adding column...\n";
 		ms.addColumn(columnDesc, dataManager);
@@ -60,27 +58,31 @@ void createColumn(casa::MeasurementSet &ms, const std::string &name, const casa:
 	}
 }
 
-bool makeComplexColumn(casa::MeasurementSet &ms, const std::string columnName, double stddev)
+bool makeComplexColumn(casa::MeasurementSet &ms, const std::string columnName)
 {
 	const std::string dataManager = getStorageManager<casa::Complex>(ms, columnName);
 	std::cout << "Current data manager of " + columnName + " column: " << dataManager << '\n';
 	
 	if(dataManager != "OffringaStMan")
 	{
+		RMSCollector rmsCollector(ms.antenna().nrow(), ms.field().nrow());
+		rmsCollector.CollectRMS(ms, columnName);
+		rmsCollector.Summarize();
+		
 		std::string tempName = std::string("TEMP_") + columnName;
 		std::cout << "Renaming old " + columnName + " column...\n";
 		ms.renameColumn(tempName, columnName);
 		
 		casa::ArrayColumn<casa::Complex> oldColumn(ms, tempName);
 			
-		createColumn<casa::Complex>(ms, columnName, oldColumn.shape(0), stddev);
+		createColumn<casa::Complex>(ms, columnName, oldColumn.shape(0), rmsCollector.GetRMSTable());
 		return true;
 	} else {
 		return false;
 	}
 }
 
-bool makeWeightColumn(casa::MeasurementSet &ms, const std::string columnName, double stddev)
+bool makeWeightColumn(casa::MeasurementSet &ms, const std::string columnName)
 {
 	const std::string dataManager = getStorageManager<float>(ms, columnName);
 	std::cout << "Current data manager of " + columnName + " column: " << dataManager << '\n';
@@ -93,7 +95,7 @@ bool makeWeightColumn(casa::MeasurementSet &ms, const std::string columnName, do
 		
 		casa::ArrayColumn<float> oldColumn(ms, tempName);
 			
-		createColumn<float>(ms, columnName, oldColumn.shape(0), stddev);
+		createColumn<float>(ms, columnName, oldColumn.shape(0), RMSTable());
 		return true;
 	} else {
 		return false;
@@ -324,9 +326,8 @@ int main(int argc, char *argv[])
 		else
 			MeasureError<casa::Complex>(*ms, columnName, stddev, quantCount);
 	} else {
-		
-		bool isDataReplaced = makeComplexColumn(*ms, "DATA", stddev);
-		bool isWeightReplaced = makeWeightColumn(*ms, "WEIGHT_SPECTRUM", stddev);
+		bool isDataReplaced = makeComplexColumn(*ms, "DATA");
+		bool isWeightReplaced = makeWeightColumn(*ms, "WEIGHT_SPECTRUM");
 		
 		if(isDataReplaced)
 			moveColumnData<casa::Complex>(*ms, "DATA");

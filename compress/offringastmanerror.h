@@ -5,12 +5,18 @@
 
 namespace offringastman
 {
-	
+
+/**
+ * Represents a runtime exception that occured within the OffringaStMan.
+ */
 class OffringaStManError : public casa::DataManError
 {
 public:
+	/** Constructor */
 	OffringaStManError() : casa::DataManError()
 	{	}
+	/** Construct with message.
+	 * @param message The exception message. */
 	OffringaStManError(const std::string& message) : casa::DataManError(message + " -- Error occured inside the OffringaStMan")
 	{ }
 };

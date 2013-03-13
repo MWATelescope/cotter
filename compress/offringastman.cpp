@@ -18,7 +18,7 @@ const unsigned short
 	OffringaStMan::VERSION_MAJOR = 1,
 	OffringaStMan::VERSION_MINOR = 0;
 
-OffringaStMan::OffringaStMan(class RMSTable &rmsTable, const casa::String& name) :
+OffringaStMan::OffringaStMan(const class RMSTable &rmsTable, const casa::String& name) :
 	DataManager(),
 	_nRow(0),
 	_rmsTable(rmsTable),
