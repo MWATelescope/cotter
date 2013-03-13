@@ -1,0 +1,5 @@
+*.backup
+*~
+*.kilepr
+*.tar.gz
+related/

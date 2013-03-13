@@ -1,0 +1,48 @@
+"Algorithm for Compressing Time-Series Data"
+http://naca.larc.nasa.gov/search.jsp?R=20120010460&qs=N%3D4294916357
+Hawkins, S. Edward, III; Darlington, Edward Hugo 
+Summary: Chebyshev polynomials effects lossy compression of time-series data
+
+A New Compression Method for FITS Tables
+William Pence1, Rob Seaman2 , and Richard L. White3
+November 07, 2010
+Applies gzip compression on tables in FITS file.
+
+Space and Earth Science Data Compression Workshop
+NASA Conference Publication
+proceedings.
+
+Murakami, H., Matsumoto, S., and Yamamoto, H., "Algorithm for Construction of Variable Length Code with Limited Maximum Word Length," IEEE Trans. Commun., vol. COM-32, pp. 1157-1159, Oct 1984
+-> modification of Huffman code, lossless, max word size.
+
+Least squares quantization in PCM
+Volume:28 Issue:2
+Information Theory, IEEE Transactions on
+Mar 1982, Lloyd, S. 
+(important paper!)
+
+Entropy-constrained vector quantization
+Variable rate coders. 
+Philip A. Chou, Tom Lookabaugh and Robert M. Gray.
+
+Dither Signals and Their Effect on Quantization Noise
+http://ieeexplore.ieee.org/xpls/abs_all.jsp?arnumber=1088973&tag=1
+Communication Technology, IEEE Transactions on
+December 1964, Schuchman, L.
+Volume: 12, Issue: 4
+Page(s): 162 - 165
+(no biblio! :-/ describes dithering reasonably close to how I want it; if none better found can be used for citation).
+
+Statistical Theory of Quantization, Bernard Widrow, IEEE trans on instr and meas, vol 45, no 2, apr 1996.
+Contains statement that Gaussian input has quant noise that is uncorrelated to input signal, even when quant step q=sigma.
+
+DISTRIBUTION DENSITIES OF THE MANTISSA AND EXPONENT OF
+FLOATING POINT NUMBERS
+A. Lacroix and E Hartwig
+1992 IEEE
+Brief, slightly related article showing Mantissa and Exponent often are "reciprocally" distributed
+
+To look at:
+Huffman, "A method for the construction of minimum-redundancy codes", proc IRE, vol 40, pp 1098-1101, Sept 1952
+
+
