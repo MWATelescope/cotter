@@ -50,7 +50,6 @@ Muvw calculateUVW(const MPosition &antennaPos,
 	MVPosition relativePos(posVec[0]-refVec[0], posVec[1]-refVec[1], posVec[2]-refVec[2]);
 	MeasFrame frame(time, refPos, direction);
 	MBaseline baseline(MVBaseline(relativePos), MBaseline::Ref(MBaseline::ITRF, frame));
-	//baseline.getRefPtr()->set(frame);
 	MBaseline j2000Baseline = MBaseline::Convert(baseline, MBaseline::J2000)();
 	MVuvw uvw(j2000Baseline.getValue(), direction.getValue());
 	return Muvw(uvw, Muvw::J2000);
