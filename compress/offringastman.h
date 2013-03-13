@@ -34,7 +34,7 @@ extern "C" {
 	* that has this specific name ("register_" + storage manager's name in
 	* lowercase) to be able to be automatically called when the library is
 	* loaded.
-	* @ingroup Globals
+	* @ingroup offringastman
 	* @see OffringaStMan::registerClass()
 	*/
 	void register_offringastman();

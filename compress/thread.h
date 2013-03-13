@@ -10,19 +10,14 @@
  */
 
 /**
- * @defgroup Thread Threading operations
- * This module contains threading classes similar to the boost threading
+ * Threading operations.
+ * This namespace contains threading classes similar to the boost threading
  * library. Unfortunately, casapy is using boost too, and linking a shared library that uses
  * a different boost implementation is giving problems. Hence, I've re-implemented
  * the most important parts of boost threading here. Interface is similar, but
  * it's a quick/simple implementation so details might be slightly different.
  * @author André Offringa
  */
-
-/** \addtogroup Thread
- *  @{
- */
-
 namespace altthread {
 
 /**
@@ -116,7 +111,7 @@ class threadgroup
 };
 
 /**
- * A mutex. Use ZMutex::scoped_lock to safely lock it.
+ * A mutex. Use mutex::scoped_lock to safely lock it.
  */
 class mutex
 {
