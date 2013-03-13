@@ -42,6 +42,12 @@ extern "C" {
 }
 #endif
 
+/**
+ * "Offringa storage manager" for compressing CASA Measurement sets.
+ * Contains the main OffringaStMan class and several required subclasses.
+ * 
+ * @author André Offringa
+ */
 namespace offringastman {
 
 class OffringaStManColumn;

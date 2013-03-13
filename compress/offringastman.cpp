@@ -54,7 +54,6 @@ OffringaStMan& OffringaStMan::operator=(const OffringaStMan& source)
 
 void OffringaStMan::setRMSTableFromSpec()
 {
-	std::cout << "setRMSTableFromSpec()\n";
 	int i = _spec.description().fieldNumber("RMSTable");
 	if(i >= 0)
 	{
@@ -80,7 +79,6 @@ void OffringaStMan::setRMSTableFromSpec()
 
 void OffringaStMan::initializeSpec()
 {
-	std::cout << "initializeSpec()\n";
 	casa::IPosition shape(3);
 	shape[0] = _rmsTable.AntennaCount();
 	shape[1] = _rmsTable.AntennaCount();
@@ -110,12 +108,10 @@ void OffringaStMan::makeEmpty()
 OffringaStMan::~OffringaStMan()
 {
 	makeEmpty();
-	std::cout << "~OffringaStMan()\n";
 }
 
 casa::Record OffringaStMan::dataManagerSpec() const 
 {
-	std::cout << "dataManagerSpec()\n";
 	return _spec;
 }
 
@@ -126,13 +122,11 @@ void OffringaStMan::registerClass()
 
 casa::Bool OffringaStMan::flush(casa::AipsIO& , casa::Bool doFsync)
 {
-	std::cout << "flush()\n";
 	return false;
 }
 
 void OffringaStMan::create(casa::uInt nRow)
 {
-	std::cout << "create(" << nRow << ")\n";
 	_nRow = nRow;
 	_fStream.reset(new std::fstream(fileName().c_str(), std::ios_base::in | std::ios_base::out | std::ios_base::trunc));
 	if(_fStream->fail())
@@ -164,7 +158,6 @@ void OffringaStMan::writeHeader()
 
 void OffringaStMan::open(casa::uInt nRow, casa::AipsIO& )
 {
-	std::cout << "open(" << nRow << ")\n";
 	_nRow = nRow;
 	_fStream.reset(new std::fstream(fileName().c_str()));
 	if(_fStream->fail())
@@ -205,9 +198,6 @@ casa::DataManagerColumn* OffringaStMan::makeScalarColumn(const casa::String& nam
 
 casa::DataManagerColumn* OffringaStMan::makeDirArrColumn(const casa::String& name, int dataType, const casa::String& dataTypeID)
 {
-	// TODO
-	std::cout << "makeDirArrColumn(" << name << "," << dataType << ',' << dataTypeID << ")\n";
-	
 	OffringaStManColumn *col = 0;
 	switch(dataType)
 	{
@@ -234,19 +224,16 @@ casa::DataManagerColumn* OffringaStMan::makeIndArrColumn(const casa::String& nam
 
 void OffringaStMan::resync(casa::uInt nRow)
 {
-	std::cout << "resync()\n";
 }
 
 void OffringaStMan::deleteManager()
 {
-	std::cout << "deleteManager()\n";
-	// TODO
+	unlink(fileName().c_str());
 }
 
 void OffringaStMan::prepare()
 {
 	mutex::scoped_lock lock(_mutex);
-	std::cout << "prepare()\n";
 	
 	// At this point, the rms-es *have* to be set, otherwise
 	// encoding will fail.
@@ -263,17 +250,18 @@ void OffringaStMan::reopenRW()
 
 void OffringaStMan::addRow(casa::uInt nrrow)
 {
-	std::cout << "addRow()\n";
+	_nRow += nrrow;
 }
 
 void OffringaStMan::removeRow(casa::uInt rowNr)
 {
-	std::cout << "removeRow()\n";
+	if(rowNr != _nRow-1)
+		throw OffringaStManError("Trying to remove a row in the middle of the file: the OffringaStMan does not support this");
+	_nRow--;
 }
 
 void OffringaStMan::addColumn(casa::DataManagerColumn* column)
 {
-	std::cout << "addColumn(" << column->columnName() << ")\n";
 	OffringaComplexColumn *offCol = static_cast<OffringaComplexColumn*>(column);
 	if(_nRowInFile != 0)
 		throw OffringaStManError("Can't add columns while data has been committed to table");
@@ -283,7 +271,6 @@ void OffringaStMan::addColumn(casa::DataManagerColumn* column)
 
 void OffringaStMan::removeColumn(casa::DataManagerColumn* column)
 {
-	std::cout << "removeColumn(" << column->columnName() << ")\n";
 	if(_nRowInFile != 0)
 		throw OffringaStManError("Can't remove columns while data has been committed to table");
 }

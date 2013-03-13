@@ -34,6 +34,8 @@ OffringaComplexColumn::~OffringaComplexColumn()
 	delete _ant1Col;
 	delete _ant2Col;
 	delete _fieldCol;
+	delete[] _packedSymbolReadBuffer;
+	delete[] _unpackedSymbolReadBuffer;
 }
 
 void OffringaComplexColumn::setShapeColumn(const casa::IPosition& shape)
@@ -47,7 +49,6 @@ void OffringaComplexColumn::setShapeColumn(const casa::IPosition& shape)
 	delete[] _unpackedSymbolReadBuffer;
 	_unpackedSymbolReadBuffer = new unsigned int[Stride()];
 	recalculateStride();
-	std::cout << "setShapeColumn() : symbols per cell=" << _symbolsPerCell << '\n';
 }
 
 void OffringaComplexColumn::getArrayComplexV(casa::uInt rowNr, casa::Array<casa::Complex>* dataPtr)

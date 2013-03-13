@@ -1,0 +1,74 @@
+namespace offringastman {
+
+/** 
+@mainpage OffringaStMan compressing storage manager
+The OffringaStMan (Offringa storage manager) is a CASA storage manager that can
+compress visibilities and weights. 
+
+ Visibilities are stored with a non-linear quantization scheme,
+with a least-squared error quantizer for Gaussian values. "Error"
+is here the difference between original and encoded value. The
+encoding scheme is created by the GausEncoder class. However,
+this class uses a single RMS estimate for all data that it encodes.
+
+The assumption that all data has the same RMS does not hold when comparing
+auto-correlations to cross-correlations, as these
+have typically "squared" more power. Also, in the case of different
+baseline lengths and (strongly) sky-noise dominated obervations, the
+shorted baselines might see more power (e.g., because of the Galaxy).
+Therefore, the DynamicGausEncoder class was created that can scale
+input values, which allows one to use the same encoder for values with
+different RMS values. The storage manager uses an individual scale 
+(RMS estimate) for each baseline.
+
+An important assumption for this encoder to work is that the data
+is actually noisy, so its signal-to-noise ratio is low. The reason
+for this is that the noise dithers the signal, and causes the
+signal to behave like normal noise with no systematic bias
+(dithering is a standard method for reducing quantization bias).
+Therefore, the higher the resolution, the higher the compression
+rate can be. If the SNR is very high, such as for a calibrator
+observation with a low time and frequency resolution, it might
+be necessary to manually add dither. This is not yet implemented.
+Also, other compression techniques might be more relevant (e.g.
+simple Hoffman encoding).
+
+Weights are stored with a simple linear quantization scheme, but each
+timestep is individually scaled. This encoding is performed by the
+WeightEncoder class.
+
+Currently, I believe that data can be encoded into 8 bits per
+visibility-float (16 bits per complex visilibity) and into 6 bits
+per weight, without a significant addition of noise.
+For MWA, I see a typical 1% error RMS level both in the visilibities
+and the image. This error is however uncorrelated with the system
+noise, and the full SNR seems not to change significant at all
+on encoded data.
+
+The main class OffringaStMan is the actual storage manager. It uses
+its own file format, which consists of a header followed by its rows.
+Each row consists of the compressed data for each column in the set,
+where the data of each column is rounded up to whole bytes. The number
+of rows in the set is calculated from the size of the file. Once the
+storage manager contains data, its format can not be changed, which
+includes adding columns to the set or changing the shape of one of the
+columns. Trying to do so will generate an OffringaStManError.
+
+This package provides the following tools:
+- liboffringastman.so : the library that contains the storage manager.
+This should be in your path in order for Casa to load it automatically.
+- compress : executable that will change the storage manager for the
+DATA and WEIGHT_SPECTRUM columns into the OffringaStMan. It automatically
+collects the required RMS per baseline statistic and provides it to
+the storage manager.
+- rmsdiff : executable that compares two measurement sets. It will
+calculate the RMS of one of the measurement sets and the RMS and the
+mean of the difference between the two.
+The mean should be very small relative to the difference RMS, which implies that
+that there is no systematic bias. Also, the difference RMS should be
+significantly lower than the system noise / single RMS.
+
+@author André Offringa (offringa@gmail.com)
+*/
+
+}

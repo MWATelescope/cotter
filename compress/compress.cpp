@@ -107,10 +107,10 @@ void moveColumnData(casa::MeasurementSet &ms, const std::string columnName)
 {
 	std::cout << "Copying values for " << columnName << " ...\n";
 	std::string tempName = std::string("TEMP_") + columnName;
-	casa::ArrayColumn<T> *oldColumn = new casa::ArrayColumn<T>(ms, tempName);
+	std::auto_ptr<casa::ArrayColumn<T> > oldColumn(new casa::ArrayColumn<T>(ms, tempName));
 	casa::ArrayColumn<T> newColumn(ms, columnName);
 	copyValues(newColumn, *oldColumn, ms.nrow());
-	delete oldColumn;
+	oldColumn.reset();
 	
 	std::cout << "Removing old column...\n";
 	ms.removeColumn(tempName);
@@ -299,7 +299,7 @@ int main(int argc, char *argv[])
 	
 	if(argc < 4)
 	{
-		std::cerr << "Usage: compress [-meas <column>] <ms> <stddev> <quantcount>\n";
+		std::cerr << "Usage: compress [-meas <column>] <ms> <quantcount>\n";
 		return 0;
 	}
 	
@@ -316,15 +316,14 @@ int main(int argc, char *argv[])
 	
 	std::cout << "Opening ms...\n";
 	std::auto_ptr<casa::MeasurementSet> ms(new casa::MeasurementSet(argv[argi], casa::Table::Update));
-	double stddev = atof(argv[argi+1]);
-	int quantCount = atoi(argv[argi+2]);
+	int quantCount = atoi(argv[argi+1]);
 	
 	if(measure)
 	{
 		if(columnName == "WEIGHT_SPECTRUM")
-			MeasureError<float>(*ms, columnName, stddev, quantCount);
+			MeasureError<float>(*ms, columnName, 1.0, quantCount);
 		else
-			MeasureError<casa::Complex>(*ms, columnName, stddev, quantCount);
+			MeasureError<casa::Complex>(*ms, columnName, 1.0, quantCount);
 	} else {
 		bool isDataReplaced = makeComplexColumn(*ms, "DATA");
 		bool isWeightReplaced = makeWeightColumn(*ms, "WEIGHT_SPECTRUM");

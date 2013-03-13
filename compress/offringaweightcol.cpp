@@ -9,6 +9,7 @@ namespace offringastman
 OffringaWeightColumn::~OffringaWeightColumn()
 {
 	delete _encoder;
+	delete[] _packBuffer;
 }
 
 void OffringaWeightColumn::setShapeColumn(const casa::IPosition& shape)
@@ -19,12 +20,11 @@ void OffringaWeightColumn::setShapeColumn(const casa::IPosition& shape)
 		_symbolsPerCell *= *i;
 	
 	delete[] _packBuffer;
-	_symbolBuffer.resize(_symbolsPerCell);
 	_packBuffer = new unsigned char[Stride()];
+	_symbolBuffer.resize(_symbolsPerCell);
 	_dataCopyBuffer.resize(_symbolsPerCell);
 	
 	recalculateStride();
-	std::cout << "OffringaWeightColumn::setShapeColumn() : symbols per cell=" << _symbolsPerCell << ", Stride()=" << Stride() << '\n';
 }
 
 void OffringaWeightColumn::getArrayfloatV(casa::uInt rowNr, casa::Array<float>* dataPtr)
@@ -60,7 +60,6 @@ void OffringaWeightColumn::putArrayfloatV(casa::uInt rowNr, const casa::Array<fl
 
 void OffringaWeightColumn::Prepare()
 {
-	std::cout << "OffringaWeightColumn::Prepare()\n";
 	delete _encoder;
 	_encoder = new WeightEncoder<float>(1<<_bitsPerSymbol);
 }

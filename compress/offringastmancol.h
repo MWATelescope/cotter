@@ -73,7 +73,6 @@ public:
 	 */
 	void SetRowOffset(unsigned offset) {
 		_rowOffset = offset; 
-		std::cout << columnName() << " offset is now " << offset << '\n';
 	}
 
 protected:
