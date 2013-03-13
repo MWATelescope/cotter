@@ -103,6 +103,8 @@ protected:
 	 */
 	void recalculateStride();
 	
+	const class RMSTable &rmsTable() const;
+	
 private:
 	OffringaStManColumn(const OffringaStManColumn &source) : casa::StManColumn(0) { }
 	void operator=(const OffringaStManColumn &source) { }
@@ -132,5 +134,11 @@ inline void OffringaStManColumn::recalculateStride()
 {
 	_parent->recalculateStride();
 }
+
+inline const RMSTable& OffringaStManColumn::rmsTable() const
+{
+	return _parent->GetRMSTable();
+}
+
 
 #endif

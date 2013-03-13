@@ -2,7 +2,6 @@
 #define OFFRINGA_STORAGE_MANAGER_H
 
 #include <tables/Tables/DataManager.h>
-#include <tables/Tables/DataManError.h>
 
 #include <casa/Containers/Record.h>
 
@@ -12,6 +11,7 @@
 #include <auto_ptr.h>
 #include <stdint.h>
 
+#include "rmstable.h"
 #include "thread.h"
 
 class OffringaStManColumn;
@@ -78,117 +78,17 @@ extern "C" {
  * Note that no prepare() is called, so addColumn should prepare everything
  * is necessary for reading/writing.
  * 
+ * Two different types can be stored with this manager:
+ * - Complex gaussian arrays, stored with the OffringaComplexCol class
+ * - Weight arrays, stored with the OffringaWeightCol class
+ * 
  * The method prototypes and some documentation were copied from the
  * LOFAR storage manager written by Ger van Diepen.
  */
 class OffringaStMan : public casa::DataManager
 {
 public:
-	class RMSTable
-	{
-		public:
-			typedef float rms_t;
-			RMSTable()
-			: _rmsTable(0), _antennaCount(0), _fieldCount(0)
-			{
-			}
-			RMSTable(size_t antennaCount, size_t fieldCount, rms_t initialValue = 0.0)
-			: _antennaCount(antennaCount), _fieldCount(fieldCount)
-			{
-				initialize();
-				SetAll(initialValue);
-			}
-			~RMSTable()
-			{
-				destruct();
-			}
-			const rms_t &Value(size_t antenna1, size_t antenna2, size_t fieldId) const
-			{ return _rmsTable[fieldId][antenna2][antenna1]; }
-			rms_t &Value(size_t antenna1, size_t antenna2, size_t fieldId)
-			{ return _rmsTable[fieldId][antenna2][antenna1]; }
-			bool IsInTable(size_t antenna1, size_t antenna2, size_t fieldId) const
-			{
-				return fieldId < _fieldCount && antenna1 < _antennaCount && antenna2 < _antennaCount;
-			}
-			
-			void SetAll(rms_t rms)
-			{
-				for(size_t f=0; f!=_fieldCount; ++f)
-				{
-					for(size_t a1=0; a1!=_antennaCount; ++a1)
-					{
-						for(size_t a2=0; a2!=_antennaCount; ++a2)
-							_rmsTable[f][a1][a2] = rms;
-					}
-				}
-			}
-			
-			RMSTable(const RMSTable& source)
-			: _antennaCount(source._antennaCount), _fieldCount(source._fieldCount)
-			{ 
-				initialize();
-				copyValuesFrom(source);
-			}
-			
-			bool Empty() const {
-				return _antennaCount==0 || _fieldCount==0;
-			}
-			
-			void operator=(const RMSTable& source)
-			{ 
-				destruct();
-				_antennaCount = source._antennaCount;
-				_fieldCount = source._fieldCount;
-				initialize();
-				copyValuesFrom(source);
-			}
-			
-			size_t AntennaCount() const { return _antennaCount; }
-			
-			size_t FieldCount() const { return _fieldCount; }
-			
-			void Write(std::fstream &str);
-			
-			void Read(std::fstream &str);
-		private:
-			void initialize()
-			{
-				_rmsTable = new rms_t**[_fieldCount];
-				for(size_t f=0; f!=_fieldCount; ++f)
-				{
-					_rmsTable[f] = new rms_t*[_antennaCount];
-					for(size_t a1=0; a1!=_antennaCount; ++a1)
-					{
-						_rmsTable[f][a1] = new rms_t[_antennaCount];
-					}
-				}
-			}
-			void destruct()
-			{
-				for(size_t f=0; f!=_fieldCount; ++f)
-				{
-					for(size_t a1=0; a1!=_antennaCount; ++a1)
-						delete[] _rmsTable[f][a1];
-					delete[] _rmsTable[f];
-				}
-				delete[] _rmsTable;
-			}
-			void copyValuesFrom(const RMSTable& source)
-			{
-				for(size_t f=0; f!=_fieldCount; ++f)
-				{
-					for(size_t a1=0; a1!=_antennaCount; ++a1)
-					{
-						for(size_t a2=0; a2!=_antennaCount; ++a2)
-							_rmsTable[f][a1][a2] = source._rmsTable[f][a1][a2];
-					}
-				}
-			}
-			rms_t ***_rmsTable;
-			size_t _antennaCount, _fieldCount;
-	};
 	/**
-	 * TODO global stddev should be replaced by a dynamic stddev
 	 * TODO add quantization count?
 	 * TODO add dithering method
 	 * TODO stddev should actually be RMS
@@ -198,9 +98,9 @@ public:
 	/**
 	 * This constructor is called by Casa when it needs to create a LofarStMan.
 	 * Casa will call makeObject() that will call this constructor.
-	 * When it loads a OffringaStMan for an existing MS, the "spec" parameter
-	 * will be empty, thus the class should initialize its properties self using
-	 * by reading from the file.
+	 * When it loads an OffringaStMan for an existing MS, the "spec" parameter
+	 * will be empty, thus the class should initialize its properties
+	 * by reading them from the file.
 	 * The @p spec is used to make a new storage manager with specs similar to
 	 * another one.
 	 * @param name Name of this storage manager.
@@ -294,7 +194,7 @@ public:
 	 */
 	static void registerClass();
 	
-	const class RMSTable &GetRMSTable() const { return _rmsTable; }
+	const RMSTable &GetRMSTable() const { return _rmsTable; }
 	
 protected:
 	/**
@@ -339,6 +239,8 @@ private:
 	void readCompressedData(size_t rowIndex, const OffringaStManColumn *column, unsigned char *dest);
 	
 	void writeCompressedData(size_t rowIndex, const OffringaStManColumn *column, const unsigned char *data);
+	
+	void writeHeader();
 
 	OffringaStMan &operator=(const OffringaStMan& source);
 	
@@ -402,7 +304,7 @@ private:
 	
 	uint64_t _nRow, _nRowInFile;
 	unsigned _rowStride, _headerSize;
-	class RMSTable _rmsTable;
+	RMSTable _rmsTable;
 	ZMutex _mutex;
 	
 	std::string _name;

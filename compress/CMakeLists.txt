@@ -22,7 +22,7 @@ set(CMAKE_CXX_FLAGS "-O3 -ggdb -Wall -DNDEBUG -march=native")
 
 # Note: casapy fails if Casa is linked in the storage manager, so we have to trust that
 # casapy's version of casacore is binary compatible with this storage manager's casacore.
-add_library(offringastman SHARED gausencoder.cpp offringastman.cpp offringacomplexcol.cpp offringaweightcol.cpp weightencoder.cpp)
+add_library(offringastman SHARED gausencoder.cpp offringastman.cpp offringacomplexcol.cpp offringaweightcol.cpp rmstable.cpp weightencoder.cpp)
 target_link_libraries(offringastman gsl cblas)
 
 add_executable(test test.cpp stopwatch.cpp)

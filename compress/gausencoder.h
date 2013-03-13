@@ -99,6 +99,8 @@ class GausEncoder
 		
 		/**
 		 * Get the centroid value that belongs to the given symbol.
+		 * @param symbol Symbol to be decoded
+		 * @returns The best estimate of the original value.
 		 */
 		ValueType Decode(symbol_t symbol) const
 		{
@@ -176,6 +178,8 @@ class GausEncoder
 				/**
 				 * By using this function instead of lower_bound, the performance of the
 				 * Encode() function is boosted to 17.4 MB/s :).
+				 * (unfortunately, we no longer round to nearest -- initially I did, but
+				 * we now round using the centroid. So this function is no longer used.)
 				 */
 				const_iterator nearest(value_t val) const
 				{

@@ -5,6 +5,7 @@
 #include "dynamicgausencoder.h"
 
 #include "thread.h"
+#include "bytepacker.h"
 
 #include <tables/Tables/ScalarColumn.h>
 
@@ -37,15 +38,18 @@ void OffringaComplexColumn::setShapeColumn(const casa::IPosition& shape)
 	_symbolsPerCell = 2;
 	for(casa::IPosition::const_iterator i = _shape.begin(); i!=_shape.end(); ++i)
 		_symbolsPerCell *= *i;
-	delete[] _symbolReadBuffer;
-	_symbolReadBuffer = new unsigned char[Stride()];
+	delete[] _packedSymbolReadBuffer;
+	_packedSymbolReadBuffer = new unsigned char[Stride()];
+	delete[] _unpackedSymbolReadBuffer;
+	_unpackedSymbolReadBuffer = new unsigned int[Stride()];
 	recalculateStride();
 	std::cout << "setShapeColumn() : symbols per cell=" << _symbolsPerCell << '\n';
 }
 
 void OffringaComplexColumn::getArrayComplexV(casa::uInt rowNr, casa::Array<casa::Complex>* dataPtr)
 {
-	int ant1 = (*_ant1Col)(rowNr), ant2 = (*_ant2Col)(rowNr), field = (*_fieldCol)(rowNr);
+	const int ant1 = (*_ant1Col)(rowNr), ant2 = (*_ant2Col)(rowNr), fieldId = (*_fieldCol)(rowNr);
+	const RMSTable::rms_t rms = rmsTable().Value(ant1, ant2, fieldId);
 	
 	ZMutex::scoped_lock lock(_mutex);
 	cache_t::const_iterator cacheItemPtr = _cache.find(rowNr);
@@ -57,15 +61,9 @@ void OffringaComplexColumn::getArrayComplexV(casa::uInt rowNr, casa::Array<casa:
 			for(casa::Array<casa::Complex>::contiter i=dataPtr->cbegin(); i!=dataPtr->cend(); ++i)
 				*i = casa::Complex(0.0, 0.0);
 		} else {
-			unsigned char *bufferPtr = _symbolReadBuffer;
-			readCompressedData(rowNr, bufferPtr);
-			for(casa::Array<casa::Complex>::contiter i=dataPtr->cbegin(); i!=dataPtr->cend(); ++i)
-			{
-				i->real() = _encoder->Decode(*bufferPtr);
-				++bufferPtr;
-				i->imag() = _encoder->Decode(*bufferPtr);
-				++bufferPtr;
-			}
+			readCompressedData(rowNr, _packedSymbolReadBuffer);
+			BytePacker::unpack(_bitsPerSymbol, _unpackedSymbolReadBuffer, _packedSymbolReadBuffer, _symbolsPerCell);
+			_encoder->Decode(rms, reinterpret_cast<casa::Complex::value_type*>(dataPtr->data()), _unpackedSymbolReadBuffer, _symbolsPerCell);
 		}
 	} else {
 		// In cache. Do not release lock, otherwise might be removed from cache during reading.
@@ -109,16 +107,17 @@ void OffringaComplexColumn::putArrayComplexV(casa::uInt rowNr, const casa::Array
 	_cacheChangedCondition.notify_all();
 }
 
-void OffringaComplexColumn::encodeAndWrite(uint64_t rowIndex, const float* buffer, unsigned char* symbolBuffer)
+void OffringaComplexColumn::encodeAndWrite(uint64_t rowIndex, const CacheItem &item, unsigned char* packedSymbolBuffer, unsigned int* unpackedSymbolBuffer)
 {
+	const RMSTable::rms_t rms = rmsTable().Value(item.antenna1, item.antenna2, item.fieldId);
 	for(size_t i=0; i!=_symbolsPerCell; ++i)
 	{
-		if(std::isfinite(buffer[i]))
-			symbolBuffer[i] = _encoder->Encode(buffer[i]);
-		else
-			symbolBuffer[i] = _encoder->Encode(0.0);
+		if(!std::isfinite(item.buffer[i]))
+			item.buffer[i] = 0.0;
 	}
-	writeCompressedData(rowIndex, symbolBuffer);
+	_encoder->Encode(rms, unpackedSymbolBuffer, item.buffer, _symbolsPerCell);
+	BytePacker::pack(_bitsPerSymbol, packedSymbolBuffer, unpackedSymbolBuffer, _symbolsPerCell);
+	writeCompressedData(rowIndex, packedSymbolBuffer);
 }
 
 void OffringaComplexColumn::Prepare()
@@ -128,7 +127,7 @@ void OffringaComplexColumn::Prepare()
 	delete _ant2Col;
 	delete _fieldCol;
 	
-	_encoder = new GausEncoder<float>(256, 1.0);
+	_encoder = new DynamicGausEncoder<float>(1 << _bitsPerSymbol);
 	
 	casa::Table &table = parent().table();
 	_ant1Col = new casa::ROScalarColumn<int>(table, "ANTENNA1");
@@ -148,7 +147,8 @@ void OffringaComplexColumn::EncodingThreadFunctor::operator()()
 {
 	// (note that the parent of the functor is the column, not the stman)
 	ZMutex::scoped_lock lock(parent->_mutex);
-	std::vector<unsigned char> symbolBuffer(parent->Stride());
+	std::vector<unsigned char> packedSymbolBuffer(parent->Stride());
+	std::vector<unsigned> unpackedSymbolBuffer(parent->_symbolsPerCell);
 	cache_t &cache = parent->_cache;
 	
 	while(!parent->_destruct)
@@ -168,7 +168,7 @@ void OffringaComplexColumn::EncodingThreadFunctor::operator()()
 			item.isBeingWritten = true;
 			
 			lock.unlock();
-			parent->encodeAndWrite(rowNr, item.buffer, &symbolBuffer[0]);
+			parent->encodeAndWrite(rowNr, item, &packedSymbolBuffer[0], &unpackedSymbolBuffer[0]);
 			
 			lock.lock();
 			delete &item;

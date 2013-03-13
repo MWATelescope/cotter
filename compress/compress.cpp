@@ -43,7 +43,7 @@ void createColumn(casa::MeasurementSet &ms, const std::string &name, const casa:
 	} catch(std::exception &e)
 	{
 		std::cout << "Constructing storage manager...\n";
-		OffringaStMan::RMSTable rmsTable;
+		RMSTable rmsTable;
 		OffringaStMan dataManager(rmsTable);
 		std::cout << "Adding column...\n";
 		ms.addColumn(columnDesc, dataManager);

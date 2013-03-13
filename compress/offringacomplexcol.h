@@ -30,7 +30,8 @@ public:
 		_ant1Col(0),
 		_ant2Col(0),
 		_fieldCol(0),
-		_symbolReadBuffer(0),
+		_packedSymbolReadBuffer(0),
+		_unpackedSymbolReadBuffer(0),
 		_destruct(false)
 	{
 	}
@@ -77,14 +78,15 @@ private:
 	
 	typedef std::map<size_t, CacheItem*> cache_t;
 	
-	void encodeAndWrite(uint64_t rowIndex, const float* buffer, unsigned char* symbolBuffer);
+	void encodeAndWrite(uint64_t rowIndex, const CacheItem &item, unsigned char* packedSymbolBuffer, unsigned int* unpackedSymbolBuffer);
 	bool isWriteItemAvailable(cache_t::iterator &i);
 	
 	unsigned _bitsPerSymbol, _symbolsPerCell;
 	casa::IPosition _shape;
 	DynamicGausEncoder<float> *_encoder;
 	casa::ROScalarColumn<int> *_ant1Col, *_ant2Col, *_fieldCol;
-	unsigned char *_symbolReadBuffer;
+	unsigned char *_packedSymbolReadBuffer;
+	unsigned int *_unpackedSymbolReadBuffer;
 	cache_t _cache;
 	bool _destruct;
 	ZMutex _mutex;
