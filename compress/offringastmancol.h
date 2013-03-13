@@ -13,6 +13,8 @@
 
 #include <stdint.h>
 
+namespace offringastman {
+	
 class OffringaStMan;
 
 /**
@@ -113,8 +115,12 @@ private:
   OffringaStMan *_parent;
 };
 
+} // end of namespace
+
 #include "offringastman.h"
 
+namespace offringastman {
+	
 inline void OffringaStManColumn::readCompressedData(size_t rowIndex, unsigned char* dest)
 {
 	_parent->readCompressedData(rowIndex, this, dest);
@@ -140,5 +146,6 @@ inline const RMSTable& OffringaStManColumn::rmsTable() const
 	return _parent->GetRMSTable();
 }
 
+} // end of namespace
 
 #endif

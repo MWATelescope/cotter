@@ -4,6 +4,16 @@
 #include "offringacomplexcol.h"
 #include "offringaweightcol.h"
 
+using namespace altthread;
+
+void register_offringastman()
+{
+	offringastman::OffringaStMan::registerClass();
+}
+
+namespace offringastman
+{
+
 const unsigned short
 	OffringaStMan::VERSION_MAJOR = 1,
 	OffringaStMan::VERSION_MINOR = 0;
@@ -107,11 +117,6 @@ casa::Record OffringaStMan::dataManagerSpec() const
 {
 	std::cout << "dataManagerSpec()\n";
 	return _spec;
-}
-
-void register_offringastman()
-{
-	OffringaStMan::registerClass();
 }
 
 void OffringaStMan::registerClass()
@@ -240,7 +245,7 @@ void OffringaStMan::deleteManager()
 
 void OffringaStMan::prepare()
 {
-	ZMutex::scoped_lock lock(_mutex);
+	mutex::scoped_lock lock(_mutex);
 	std::cout << "prepare()\n";
 	
 	// At this point, the rms-es *have* to be set, otherwise
@@ -285,7 +290,7 @@ void OffringaStMan::removeColumn(casa::DataManagerColumn* column)
 
 void OffringaStMan::readCompressedData(size_t rowIndex, const OffringaStManColumn *column, unsigned char *dest)
 {
-	ZMutex::scoped_lock lock(_mutex);
+	mutex::scoped_lock lock(_mutex);
 	if(_nRowInFile <= rowIndex)
 		throw OffringaStManError("Reading past end of file");
 	_fStream->seekg(rowIndex * _rowStride + column->RowOffset() + _headerSize, std::ios_base::beg);
@@ -298,7 +303,7 @@ void OffringaStMan::readCompressedData(size_t rowIndex, const OffringaStManColum
 
 void OffringaStMan::writeCompressedData(size_t rowIndex, const OffringaStManColumn *column, const unsigned char *data)
 {
-	ZMutex::scoped_lock lock(_mutex);
+	mutex::scoped_lock lock(_mutex);
 	if(_nRowInFile <= rowIndex)
 		_nRowInFile = rowIndex + 1;
 	_fStream->seekp(rowIndex * _rowStride + column->RowOffset() + _headerSize, std::ios_base::beg);
@@ -318,3 +323,5 @@ void OffringaStMan::recalculateStride()
 		_rowStride += (*col)->Stride();
 	}
 }
+
+} // end of namespace

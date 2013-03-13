@@ -3,6 +3,9 @@
 
 #include <stdexcept>
 
+namespace offringastman
+{
+	
 /**
  * Class for bit packing of values.
  * 
@@ -297,5 +300,7 @@ inline void BytePacker::unpack12(unsigned int* symbolBuffer, unsigned char* pack
 		*symbolBuffer |= ((*packedBuffer) & 0x0F) << 8; // bits 1-4 into 9-12
 	}
 }
+
+} // end of namespace
 
 #endif

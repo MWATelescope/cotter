@@ -6,6 +6,8 @@
 #include <iostream>
 #include <cmath>
 
+using namespace offringastman;
+
 double uniformToGaus(double u1, double u2)
 {
 	double

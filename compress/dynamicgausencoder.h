@@ -3,6 +3,9 @@
 
 #include "gausencoder.h"
 
+namespace offringastman
+{
+	
 template<typename ValueType=float>
 class DynamicGausEncoder
 {
@@ -39,5 +42,7 @@ class DynamicGausEncoder
 	private:
 		GausEncoder<ValueType> _encoder;
 };
+
+} // end of namespace
 
 #endif

@@ -23,10 +23,12 @@
  *  @{
  */
 
+namespace altthread {
+
 /**
  * A thread of execution. Can call a functor from a newly created thread.
  */
-class ZThread
+class thread
 {
 	public:
 		/**
@@ -35,9 +37,9 @@ class ZThread
 		 * @param threadFunc the functor to be called from the new thread.
 		 */
 		template<typename T>
-		ZThread(T threadFunc) : _threadFunc(new T(threadFunc))
+		thread(T threadFunc) : _threadFunc(new T(threadFunc))
 		{
-			int status = pthread_create(&_thread, NULL, &ZThread::start<T>, this);
+			int status = pthread_create(&_thread, NULL, &thread::start<T>, this);
 			if(status != 0)
 				throw std::runtime_error("Could not create thread");
 		}
@@ -45,7 +47,7 @@ class ZThread
 		/**
 		 * Destructor. Will not call join() !
 		 */
-		~ZThread()
+		~thread()
 		{
 		}
 		
@@ -63,7 +65,7 @@ class ZThread
 		template<typename T>
 		static void *start(void *arg)
 		{
-			ZThread *obj = reinterpret_cast<ZThread*>(arg);
+			thread *obj = reinterpret_cast<thread*>(arg);
 			T &threadFunc = (*reinterpret_cast<T*>(obj->_threadFunc));
 			threadFunc();
 			delete &threadFunc;
@@ -77,13 +79,13 @@ class ZThread
 /**
  * Group of threads.
  */
-class ZThreadGroup
+class threadgroup
 {
 	public:
 		/** Constructor */
-		ZThreadGroup() { }
+		threadgroup() { }
 		/** Destructor. Will join all threads that have not been joined yet. */
-		~ZThreadGroup() { join_all(); }
+		~threadgroup() { join_all(); }
 		
 		/**
 		 * Create a new thread that will exeute the given functor. The new thread
@@ -93,7 +95,7 @@ class ZThreadGroup
 		template<typename T>
 		void create_thread(T threadFunc)
 		{
-			_threads.push_back(new ZThread(threadFunc));
+			_threads.push_back(new thread(threadFunc));
 		}
 		
 		/**
@@ -101,7 +103,7 @@ class ZThreadGroup
 		 */
 		void join_all()
 		{
-			for(std::vector<ZThread*>::iterator i=_threads.begin(); i!=_threads.end(); ++i)
+			for(std::vector<thread*>::iterator i=_threads.begin(); i!=_threads.end(); ++i)
 			{
 				(*i)->join();
 				delete *i;
@@ -110,19 +112,19 @@ class ZThreadGroup
 		}
 		
 	private:
-		std::vector<ZThread*> _threads;
+		std::vector<thread*> _threads;
 };
 
 /**
  * A mutex. Use ZMutex::scoped_lock to safely lock it.
  */
-class ZMutex
+class mutex
 {
 	public:
-		friend class ZCondition;
+		friend class condition;
 		
 		/** Create an unlocked mutex. */
-		ZMutex()
+		mutex()
 		{
 			int status = pthread_mutex_init(&_mutex, NULL);
 			if(status != 0)
@@ -130,7 +132,7 @@ class ZMutex
 		}
 		
 		/** Destruct the mutex. */
-		~ZMutex()
+		~mutex()
 		{
 			int status = pthread_mutex_destroy(&_mutex);
 			if(status != 0)
@@ -161,7 +163,7 @@ class ZMutex
 				 * Create a locked scoped_lock for the given mutex.
 				 * @param mutex Mutex that will be locked.
 				 */
-				scoped_lock(ZMutex &mutex) : _hasLock(false), _mutex(mutex)
+				scoped_lock(mutex &mutex) : _hasLock(false), _mutex(mutex)
 				{
 					_mutex.lock();
 					_hasLock = true;
@@ -182,9 +184,9 @@ class ZMutex
 				 */
 				void unlock() { _mutex.unlock(); _hasLock = false; }
 			private:
-				friend class ZCondition;
+				friend class condition;
 				bool _hasLock;
-				ZMutex &_mutex;
+				mutex &_mutex;
 		};
 		
 	private:
@@ -194,18 +196,18 @@ class ZMutex
 /**
  * Synchronization class for waiting for conditions.
  */
-class ZCondition
+class condition
 {
 	public:
 		/** Create a condition */
-		ZCondition()
+		condition()
 		{
 			int status = pthread_cond_init(&_condition, NULL);
 			if(status != 0)
 				throw std::runtime_error("Could not init condition");
 		}
 		/** Destruct the condition. */
-		~ZCondition()
+		~condition()
 		{
 			int status = pthread_cond_destroy(&_condition);
 			if(status != 0)
@@ -224,7 +226,7 @@ class ZCondition
 		 * Wait for a possible change of the condition.
 		 * @param lock The lock that is associated with the condition.
 		 */
-		void wait(ZMutex::scoped_lock &lock)
+		void wait(mutex::scoped_lock &lock)
 		{
 			int status = pthread_cond_wait(&_condition, &lock._mutex._mutex);
 			if(status != 0)
@@ -233,6 +235,8 @@ class ZCondition
 	private:
 		pthread_cond_t _condition;
 };
+
+} // end of namespace
 
 // end of Doxygen group
 /** @}*/

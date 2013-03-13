@@ -12,12 +12,15 @@
 #include "offringastmancol.h"
 #include "thread.h"
 
-class OffringaStMan;
-
-template <typename T> class DynamicGausEncoder;
 namespace casa {
 	template <typename T> class ROScalarColumn;
 }
+
+namespace offringastman {
+
+class OffringaStMan;
+
+template <typename T> class DynamicGausEncoder;
 
 class OffringaComplexColumn : public OffringaStManColumn
 {
@@ -89,11 +92,13 @@ private:
 	unsigned int *_unpackedSymbolReadBuffer;
 	cache_t _cache;
 	bool _destruct;
-	ZMutex _mutex;
-	ZThreadGroup _threadGroup;
-	ZCondition _cacheChangedCondition;
+	altthread::mutex _mutex;
+	altthread::threadgroup _threadGroup;
+	altthread::condition _cacheChangedCondition;
 	
 	static const unsigned MAX_CACHE_SIZE;
 };
+
+} // end of namespace
 
 #endif

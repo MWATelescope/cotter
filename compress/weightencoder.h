@@ -4,6 +4,9 @@
 #include <vector>
 #include <cmath>
 
+namespace offringastman
+{
+	
 /**
  * Encoder for visibility weights. It's a linear quantizer for
  * non-negative values, with a single scaling factor. The scaling
@@ -83,5 +86,7 @@ class WeightEncoder
 	private:
 		unsigned _quantCount;
 };
+
+} // end of namespace
 
 #endif

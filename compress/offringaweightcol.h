@@ -15,6 +15,9 @@
 
 #include <stdint.h>
 
+namespace offringastman
+{
+
 class OffringaStMan;
 
 template <typename T> class WeightEncoder;
@@ -58,5 +61,7 @@ private:
 	unsigned char *_packBuffer;
 	std::vector<float> _dataCopyBuffer;
 };
+
+} // end of namespace
 
 #endif

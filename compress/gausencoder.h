@@ -5,6 +5,9 @@
 #include <cstring>
 #include <algorithm>
 
+namespace offringastman
+{
+	
 /**
  * Lossy encoder for Gaussian values.
  * 
@@ -214,5 +217,7 @@ class GausEncoder
 		Dictionary _encDictionary;
 		Dictionary _decDictionary;
 };
+
+} // end of namespace
 
 #endif

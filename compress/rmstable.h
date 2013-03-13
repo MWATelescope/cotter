@@ -4,6 +4,8 @@
 #include <cstring>
 #include <fstream>
 
+namespace offringastman {
+	
 class RMSTable
 {
 	public:
@@ -111,5 +113,7 @@ class RMSTable
 		rms_t ***_rmsTable;
 		size_t _antennaCount, _fieldCount;
 };
+
+} // end of namespace
 
 #endif

@@ -31,9 +31,6 @@ target_link_libraries(test ${GSL_LIB} ${CBLAS_LIB} ${CASA_LIBS} offringastman)
 add_executable(compress compress.cpp)
 target_link_libraries(compress ${GSL_LIB} ${CBLAS_LIB} ${CASA_LIBS} offringastman)
 
-add_executable(simcompress simcompress.cpp)
-target_link_libraries(simcompress ${GSL_LIB} ${CBLAS_LIB} ${CASA_LIBS} offringastman)
-
 # add target to generate API documentation with Doxygen
 find_package(Doxygen)
 if(DOXYGEN_FOUND)

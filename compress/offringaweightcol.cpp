@@ -3,6 +3,9 @@
 #include "weightencoder.h"
 #include "bytepacker.h"
 
+namespace offringastman
+{
+
 OffringaWeightColumn::~OffringaWeightColumn()
 {
 	delete _encoder;
@@ -61,3 +64,5 @@ void OffringaWeightColumn::Prepare()
 	delete _encoder;
 	_encoder = new WeightEncoder<float>(1<<_bitsPerSymbol);
 }
+
+} // end of namespace

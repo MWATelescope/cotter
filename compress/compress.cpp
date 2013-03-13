@@ -10,6 +10,8 @@
 
 #include <auto_ptr.h>
 
+using namespace offringastman;
+
 template<typename T>
 std::string getStorageManager(casa::MeasurementSet &ms, const std::string &columnName)
 {

@@ -9,11 +9,15 @@
 
 #include <tables/Tables/ScalarColumn.h>
 
+using namespace altthread;
+
+namespace offringastman {
+
 const unsigned OffringaComplexColumn::MAX_CACHE_SIZE = 64;
 
 OffringaComplexColumn::~OffringaComplexColumn()
 {
-	ZMutex::scoped_lock lock(_mutex);
+	mutex::scoped_lock lock(_mutex);
 	
 	// Don't stop threads before cache is empty
 	while(!_cache.empty())
@@ -51,7 +55,7 @@ void OffringaComplexColumn::getArrayComplexV(casa::uInt rowNr, casa::Array<casa:
 	const int ant1 = (*_ant1Col)(rowNr), ant2 = (*_ant2Col)(rowNr), fieldId = (*_fieldCol)(rowNr);
 	const RMSTable::rms_t rms = rmsTable().Value(ant1, ant2, fieldId);
 	
-	ZMutex::scoped_lock lock(_mutex);
+	mutex::scoped_lock lock(_mutex);
 	cache_t::const_iterator cacheItemPtr = _cache.find(rowNr);
 	if(cacheItemPtr == _cache.end()) // Not in cache?
 	{
@@ -93,7 +97,7 @@ void OffringaComplexColumn::putArrayComplexV(casa::uInt rowNr, const casa::Array
 		++cacheBuffer;
 	}
 	
-	ZMutex::scoped_lock lock(_mutex);
+	mutex::scoped_lock lock(_mutex);
 	
 	// Wait until there is space available AND the row to be written is not in the cache
 	cache_t::iterator cacheItemPtr = _cache.find(rowNr);
@@ -146,7 +150,7 @@ void OffringaComplexColumn::Prepare()
 void OffringaComplexColumn::EncodingThreadFunctor::operator()()
 {
 	// (note that the parent of the functor is the column, not the stman)
-	ZMutex::scoped_lock lock(parent->_mutex);
+	mutex::scoped_lock lock(parent->_mutex);
 	std::vector<unsigned char> packedSymbolBuffer(parent->Stride());
 	std::vector<unsigned> unpackedSymbolBuffer(parent->_symbolsPerCell);
 	cache_t &cache = parent->_cache;
@@ -186,3 +190,5 @@ bool OffringaComplexColumn::isWriteItemAvailable(cache_t::iterator& i)
 		++i;
 	return (i != _cache.end());
 }
+
+} // end of namespace

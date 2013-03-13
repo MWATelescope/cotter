@@ -3,6 +3,9 @@
 
 #include <tables/Tables/DataManError.h>
 
+namespace offringastman
+{
+	
 class OffringaStManError : public casa::DataManError
 {
 public:
@@ -11,5 +14,7 @@ public:
 	OffringaStManError(const std::string& message) : casa::DataManError(message + " -- Error occured inside the OffringaStMan")
 	{ }
 };
+
+} // end of namespace
 
 #endif

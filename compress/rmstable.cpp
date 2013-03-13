@@ -2,6 +2,9 @@
 
 #include "offringastmanerror.h"
 
+namespace offringastman
+{
+
 void RMSTable::Write(std::fstream& stream)
 {
 	for(size_t f=0; f!=_fieldCount; ++f)
@@ -28,3 +31,4 @@ void RMSTable::Read(std::fstream& stream)
 	}
 }
 
+} // end of namespace

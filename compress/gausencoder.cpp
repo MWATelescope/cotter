@@ -5,6 +5,9 @@
 #include <limits>
 #include <cmath>
 
+namespace offringastman
+{
+
 template<typename ValueType>
 inline typename GausEncoder<ValueType>::num_t GausEncoder<ValueType>::cumulative(num_t x)
 {
@@ -132,3 +135,4 @@ GausEncoder<ValueType>::GausEncoder(size_t quantCount, ValueType stddev, bool ga
 
 template class GausEncoder<float>;
 
+} // end of namespace
