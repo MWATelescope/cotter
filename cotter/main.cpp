@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "cotter.h"
+#include "radeccoord.h"
 
 bool isDigit(char c)
 {
@@ -45,7 +46,9 @@ void usage()
 	"                     at highest resolution. UVW positions will be recalculated for new timesteps.\n"
 	"  -norfi             Disable RFI detection\n"
 	"  -nostats           Disable collecting statistics\n"
-	"  -nogeom            Disable geometric corrections\n\n"
+	"  -nogeom            Disable geometric corrections\n"
+	"  -centre <ra> <dec> Set alternative phase centre, e.g. -centre 00h00m00.0s 00d00m00.0s\n"
+	"\n"
 	"The filenames of the input gpu files should end in '...nn_mm.fits', where nn >= 1 is the\n"
 	"gpu box number and mm >= 0 is the time step number.\n";
 }
@@ -92,6 +95,14 @@ int main(int argc, char **argv)
 		{
 			++argi;
 			freqAvg = atoi(argv[argi]);
+		}
+		else if(strcmp(argv[argi], "-centre") == 0)
+		{
+			++argi;
+			long double centreRA = RaDecCoord::ParseRA(argv[argi]);
+			++argi;
+			long double centreDec = RaDecCoord::ParseDec(argv[argi]);
+			cotter.SetOverridePhaseCentre(centreRA, centreDec);
 		}
 		else if(argv[argi][0] == '-')
 		{

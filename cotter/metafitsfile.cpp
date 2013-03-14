@@ -50,7 +50,8 @@ void MetaFitsFile::ReadHeader(MWAHeader& header, MWAHeaderExt &headerExt)
 		throw std::runtime_error("The metafits file does not specify a pointing direction (keywords RA and DEC)");
 	if(header.raHrs == -99.0 || header.decDegs == -99.0)
 	{
-		std::cout << "The metafits file does not specify a phase centre; will use pointing centre as phase centre.\n";
+		std::cout << "The metafits file does not specify a phase centre; will use pointing centre as phase\n"
+		"centre, unless overridden on command line.\n";
 		header.raHrs = headerExt.tilePointingRARad * (12.0/M_PI);
 		header.decDegs = headerExt.tilePointingDecRad * (180.0/M_PI);
 	}

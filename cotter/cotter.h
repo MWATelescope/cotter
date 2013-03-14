@@ -39,6 +39,12 @@ class Cotter : private UVWCalculater
 		void SetMetaFilename(const char *metaFilename) { _metaFilename = metaFilename; }
 		void SetMaxBufferSize(const size_t bufferSizeInSamples) { _maxBufferSize = bufferSizeInSamples; }
 		void SetDisableGeometricCorrections(bool disableCorrections) { _disableGeometricCorrections = disableCorrections; }
+		void SetOverridePhaseCentre(long double newRARad, long double newDecRad)
+		{
+			_overridePhaseCentre = true;
+			_customRARad = newRARad;
+			_customDecRad = newDecRad;
+		}
 		
 	private:
 		MWAConfig _mwaConfig;
@@ -79,6 +85,8 @@ class Cotter : private UVWCalculater
 		std::complex<float> *_outputData;
 		float *_outputWeights;
 		bool _disableGeometricCorrections;
+		bool _overridePhaseCentre;
+		long double _customRARad, _customDecRad;
 		
 		void createReader(const std::vector<std::string> &curFileset);
 		void initializeReader();

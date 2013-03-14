@@ -41,7 +41,10 @@ Cotter::Cotter() :
 	_statistics(0),
 	_correlatorMask(0),
 	_fullysetMask(0),
-	_disableGeometricCorrections(false)
+	_disableGeometricCorrections(false),
+	_overridePhaseCentre(false),
+	_customRARad(0.0),
+	_customDecRad(0.0)
 {
 }
 
@@ -71,6 +74,11 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	}
 	if(_disableGeometricCorrections)
 		_mwaConfig.HeaderRW().geomCorrection = false;
+	if(_overridePhaseCentre)
+	{
+		_mwaConfig.HeaderRW().raHrs = _customRARad * (12.0/M_PI);
+		_mwaConfig.HeaderRW().decDegs = _customDecRad * (180.0/M_PI);
+	}
 	_mwaConfig.CheckSetup();
 	
 	_channelFrequenciesHz.resize(_mwaConfig.Header().nChannels);
