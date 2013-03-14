@@ -69,6 +69,7 @@ that there is no systematic bias. Also, the difference RMS should be
 significantly lower than the system noise / single RMS.
 
 @author André Offringa (offringa@gmail.com)
+@copyright 2013 by the author -- please don't distribute yet.
 */
 
 }
