@@ -6,7 +6,8 @@
 #include <stdexcept>
 
 /**
- * @file Header for the @ref Thread group.
+ * @file 
+ * Header for the threading implementation.
  */
 
 /**
