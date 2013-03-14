@@ -14,11 +14,13 @@ class RaDecCoord
 		{
 			char *cstr;
 			long double secs=0.0, mins=0.0,
-				hrs = strtold(str.c_str(), &cstr);
+				hrs = strtol(str.c_str(), &cstr, 10);
+			bool sign = hrs < 0.0;
+			// Parse format '00h00m00.0s'
 			if(*cstr == 'h')
 			{
 				++cstr;
-				mins = strtold(cstr, &cstr);
+				mins = strtol(cstr, &cstr, 10);
 				if(*cstr == 'm')
 				{
 					++cstr;
@@ -27,9 +29,23 @@ class RaDecCoord
 						++cstr;
 					else throw std::runtime_error("Missing 's'");
 				} else throw std::runtime_error("Missing 'm'");
-			} else throw std::runtime_error("Missing 'h'");
+			}
+			// Parse format '00:00:00.0'
+			else if(*cstr == ':')
+			{
+				++cstr;
+				mins = strtol(cstr, &cstr, 10);
+				if(*cstr == ':')
+				{
+					++cstr;
+					secs = strtold(cstr, &cstr);
+				} else throw std::runtime_error("Missing ':' after minutes");
+			}
+			else throw std::runtime_error("Missing 'h' or ':'");
 			if(*cstr != 0)
-				throw std::runtime_error("Could not parse RA");
+				throw std::runtime_error("Could not parse RA (string contains more tokens than expected)");
+			if(sign)
+				return (hrs/24.0 - mins/(24.0*60.0) - secs/(24.0*60.0*60.0))*2.0*M_PI;
 			else
 				return (hrs/24.0 + mins/(24.0*60.0) + secs/(24.0*60.0*60.0))*2.0*M_PI;
 		}
@@ -38,12 +54,13 @@ class RaDecCoord
 		{
 			char *cstr;
 			long double secs=0.0, mins=0.0,
-				degs = strtold(str.c_str(), &cstr);
+				degs = strtol(str.c_str(), &cstr, 10);
 			bool sign = degs < 0.0;
+			// Parse format '00d00m00.0s'
 			if(*cstr == 'd')
 			{
 				++cstr;
-				mins = strtold(cstr, &cstr);
+				mins = strtol(cstr, &cstr, 10);
 				if(*cstr == 'm')
 				{
 					++cstr;
@@ -52,9 +69,21 @@ class RaDecCoord
 						++cstr;
 					else throw std::runtime_error("Missing 's'");
 				} else throw std::runtime_error("Missing 'm'");
-			} else throw std::runtime_error("Missing 'd'");
+			}
+			// Parse format '00.00.00.0'
+			else if(*cstr == '.')
+			{
+				++cstr;
+				mins = strtol(cstr, &cstr, 10);
+				if(*cstr == '.')
+				{
+					++cstr;
+					secs = strtold(cstr, &cstr);
+				} else throw std::runtime_error("Missing '.' after minutes");
+			}
+			else throw std::runtime_error("Missing 'd' or '.' after degrees");
 			if(*cstr != 0)
-				throw std::runtime_error("Could not parse Dec");
+				throw std::runtime_error("Could not parse Dec (string contains more tokens than expected)");
 			else if(sign)
 				return (degs/360.0 - mins/(360.0*60.0) - secs/(360.0*60.0*60.0))*2.0*M_PI;
 			else
