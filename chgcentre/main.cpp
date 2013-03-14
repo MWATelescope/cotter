@@ -194,10 +194,17 @@ void readAntennas(MeasurementSet &set, std::vector<MPosition> &antennas)
 
 int main(int argc, char **argv)
 {
-	std::cout << "Program to change phase centre of a measurement set.\nWritten by André Offringa (offringa@gmail.com).\n";
+	std::cout <<
+		"A program to change the phase centre of a measurement set.\n"
+		"Written by André Offringa (offringa@gmail.com).\n\n";
 	if(argc != 4)
 	{
-		std::cerr << "Syntax: chgcentre <ms> <new ra> <new dec>\n";
+		std::cout <<
+			"Syntax: chgcentre <ms> <new ra> <new dec>\n\n"
+			"The format of RA can either be 00h00m00.0s or 00:00:00.0\n"
+			"The format of Dec can either be 00d00m00.0s or 00.00.00.0\n\n"
+			"Example to rotate to HydA:\n"
+			"\tchgcentre myset.ms 09h18m05.8s -12d05m44s\n\n";
 	} else {
 		MeasurementSet set(argv[1], Table::Update);
 		double newRA = RaDecCoord::ParseRA(argv[2]);
