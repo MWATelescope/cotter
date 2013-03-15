@@ -9,8 +9,11 @@ find_library(CASA_MEASURES_LIB casa_measures REQUIRED)
 find_library(GSL_LIB gsl REQUIRED)
 find_library(CBLAS_LIB cblas REQUIRED)
 
-#set(Boost_USE_STATIC_LIBS ON)
-#find_package(Boost COMPONENTS thread REQUIRED)
+include(CheckCXXCompilerFlag)
+CHECK_CXX_COMPILER_FLAG("-pedantic -Wall -Wno-long-long -Werror=vla" COMPILER_SUPPORTS_PEDANTIC)
+if(COMPILER_SUPPORTS_PEDANTIC)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wno-long-long -Werror=vla")
+endif(COMPILER_SUPPORTS_PEDANTIC)
 
 set(CASA_LIBS ${CASA_MS_LIB} ${CASA_TABLES_LIB} ${CASA_CASA_LIB})
 
