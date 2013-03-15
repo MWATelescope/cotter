@@ -86,6 +86,9 @@ class OffringaStManColumn;
 * Note that no prepare() is called, so addColumn should prepare everything
 * is necessary for reading/writing.
 * 
+* Columns can be removed, but their space will not be freed.
+* Columns can not be added once the data manager contains data.
+* 
 * Two different types can be stored with this manager:
 * - Complex gaussian arrays, stored with the OffringaComplexCol class
 * - Weight arrays, stored with the OffringaWeightCol class
@@ -97,11 +100,26 @@ class OffringaStMan : public casa::DataManager
 {
 public:
 	/**
-	* TODO add quantization count?
-	* TODO add dithering method
-	* TODO stddev should actually be RMS
-	*/
-	explicit OffringaStMan(const RMSTable &rmsTable, const casa::String& name = "OffringaStMan");
+	 * Method to use for dithering. None have been implemented yet.
+	 */
+	enum DitherMethod {
+		/** Don't apply any dithering (fine for most cases). */
+		NoDithering=0
+	};
+	
+	/**
+	 * Constructor to initialize a new OffringaStMan from scratch.
+	 * Client programs that want to use the OffringaStMan in a measurement set
+	 * should use this constructor.
+	 * @param rmsTable The table of RMS values describing the RMS per baseline.
+	 * @param complexBitCount Number of bits to use per complex component. This is the
+	 * number of quantization levels per float, so 8 bits means use 16 bits in total
+	 * for each complex value.
+	 * @param weightBitCount Number of bits to use for weight columns.
+	 * @param ditherMethod Not yet implemented, might be implemented later to allow dithering.
+	 * @param name Name of this storage manager.
+	 */
+	explicit OffringaStMan(const RMSTable &rmsTable, unsigned complexBitCount=8, unsigned weightBitCount=6, enum DitherMethod ditherMethod=NoDithering, const casa::String& name = "OffringaStMan");
 
 	/**
 	* This constructor is called by Casa when it needs to create a LofarStMan.
@@ -220,6 +238,8 @@ protected:
 	* The stride of a row is the total number of bytes/per row.
 	* This method should be called after each change to the structure,
 	* i.e., by adding/changing columns.
+	* This method should never be called when data exists in the
+	* storage manager (i.e. nRowInFile() != 0)
 	*/
 	void recalculateStride();
 	
@@ -232,28 +252,52 @@ private:
 	struct Header
 	{
 		/** Size of the total header, including column subheaders */
-		unsigned headerSize;
+		uint32_t headerSize;
 		/** Start offset of the column headers */
-		unsigned columnHeaderOffset;
+		uint32_t columnHeaderOffset;
 		/** Number of columns and column headers */
-		unsigned columnCount;
+		uint32_t columnCount;
+		/** Number of bytes per row */
+		uint32_t rowStride;
 		/** File version number */
-		unsigned short versionMajor, versionMinor;
+		uint16_t versionMajor, versionMinor;
 		
-		unsigned rmsTableAntennaCount, rmsTableFieldCount;
+		uint32_t rmsTableAntennaCount;
+		uint32_t rmsTableFieldCount;
+		
+		uint8_t complexBitCount;
+		uint8_t weightBitCount;
+		uint8_t ditherMethod;
 		
 		// the RMS table is here
 		
-		// the column headers start here
+		// the column headers start here (first generic header, then column specific header)
 	};
+	
+	struct GenericColumnHeader
+	{
+		/** size of generic header + column specific header */
+		uint32_t columnHeaderSize;
+		/** offset for this column */
+		uint32_t rowOffset;
+	};
+	
 #endif
 	
 	void readCompressedData(size_t rowIndex, const OffringaStManColumn *column, unsigned char *dest);
 	
 	void writeCompressedData(size_t rowIndex, const OffringaStManColumn *column, const unsigned char *data);
 	
+	void readHeader();
+	
 	void writeHeader();
 
+	void makeEmpty();
+	
+	void setFromSpec();
+	
+	void initializeSpec();
+	
 	OffringaStMan &operator=(const OffringaStMan& source);
 	
 	// Flush and optionally fsync the data.
@@ -308,19 +352,17 @@ private:
 	// Remove a column from the data file.
 	virtual void removeColumn(casa::DataManagerColumn*);
 	
-	void makeEmpty();
-	
-	void setRMSTableFromSpec();
-	
-	void initializeSpec();
-	
 	uint64_t _nRow, _nRowInFile;
 	unsigned _rowStride, _headerSize;
-	RMSTable _rmsTable;
 	altthread::mutex _mutex;
+	std::auto_ptr<std::fstream> _fStream;
 	
 	std::string _name;
-	std::auto_ptr<std::fstream> _fStream;
+	RMSTable _rmsTable;
+	unsigned _complexBitCount;
+	unsigned _weightBitCount;
+	enum DitherMethod _ditherMethod;
+	
 	std::vector<OffringaStManColumn*> _columns;
 	casa::Record _spec;
 };

@@ -1,7 +1,7 @@
-#include "offringastman.h"
 #include "gausencoder.h"
 #include "weightencoder.h"
-#include "rmscollector.h"
+#include "stmanmodifier.h"
+#include "offringastman.h"
 
 #include <ms/MeasurementSets/MeasurementSet.h>
 
@@ -12,109 +12,6 @@
 #include <auto_ptr.h>
 
 using namespace offringastman;
-
-template<typename T>
-std::string getStorageManager(casa::MeasurementSet &ms, const std::string &columnName)
-{
-	casa::ArrayColumn<T> dataCol(ms, columnName);
-	return dataCol.columnDesc().dataManagerType();
-}
-
-template<typename T>
-void copyValues(casa::ArrayColumn<T> &newColumn, casa::ArrayColumn<T> &oldColumn, size_t nrow)
-{
-	casa::Array<T> values;
-	for(size_t row=0; row!=nrow; ++row)
-	{
-		oldColumn.get(row, values);
-		newColumn.put(row, values);
-	}
-}
-
-template<typename T>
-void createColumn(casa::MeasurementSet &ms, const std::string &name, const casa::IPosition &shape, const RMSTable& rmsTable)
-{
-	std::cout << "Constructing new column...\n";
-	casa::ArrayColumnDesc<T> columnDesc(name, "", "OffringaStMan", "OffringaStMan", shape);
-	columnDesc.setOptions(casa::ColumnDesc::Direct | casa::ColumnDesc::FixedShape);
-	
-	std::cout << "Querying storage manager...\n";
-	bool isAlreadyUsed;
-	try {
-		ms.findDataManager("OffringaStMan");
-		isAlreadyUsed = true;
-	} catch(std::exception &e)
-	{
-		std::cout << "Constructing storage manager...\n";
-		OffringaStMan dataManager(rmsTable);
-		std::cout << "Adding column...\n";
-		ms.addColumn(columnDesc, dataManager);
-		isAlreadyUsed = false;
-	}
-	if(isAlreadyUsed)
-	{
-		std::cout << "Adding column with existing datamanager...\n";
-		ms.addColumn(columnDesc, "OffringaStMan", false);
-	}
-}
-
-bool makeComplexColumn(casa::MeasurementSet &ms, const std::string columnName)
-{
-	const std::string dataManager = getStorageManager<casa::Complex>(ms, columnName);
-	std::cout << "Current data manager of " + columnName + " column: " << dataManager << '\n';
-	
-	if(dataManager != "OffringaStMan")
-	{
-		RMSCollector rmsCollector(ms.antenna().nrow(), ms.field().nrow());
-		rmsCollector.CollectRMS(ms, columnName);
-		rmsCollector.Summarize();
-		
-		std::string tempName = std::string("TEMP_") + columnName;
-		std::cout << "Renaming old " + columnName + " column...\n";
-		ms.renameColumn(tempName, columnName);
-		
-		casa::ArrayColumn<casa::Complex> oldColumn(ms, tempName);
-			
-		createColumn<casa::Complex>(ms, columnName, oldColumn.shape(0), rmsCollector.GetRMSTable());
-		return true;
-	} else {
-		return false;
-	}
-}
-
-bool makeWeightColumn(casa::MeasurementSet &ms, const std::string columnName)
-{
-	const std::string dataManager = getStorageManager<float>(ms, columnName);
-	std::cout << "Current data manager of " + columnName + " column: " << dataManager << '\n';
-	
-	if(dataManager != "OffringaStMan")
-	{
-		std::string tempName = std::string("TEMP_") + columnName;
-		std::cout << "Renaming old " + columnName + " column...\n";
-		ms.renameColumn(tempName, columnName);
-		
-		casa::ArrayColumn<float> oldColumn(ms, tempName);
-			
-		createColumn<float>(ms, columnName, oldColumn.shape(0), RMSTable());
-		return true;
-	} else {
-		return false;
-	}
-}
-
-template<typename T>
-void moveColumnData(casa::MeasurementSet &ms, const std::string columnName)
-{
-	std::cout << "Copying values for " << columnName << " ...\n";
-	std::string tempName = std::string("TEMP_") + columnName;
-	std::auto_ptr<casa::ArrayColumn<T> > oldColumn(new casa::ArrayColumn<T>(ms, tempName));
-	casa::ArrayColumn<T> newColumn(ms, columnName);
-	copyValues(newColumn, *oldColumn, ms.nrow());
-	oldColumn.reset();
-	
-	std::cout << "Removing old column...\n";
-	ms.removeColumn(tempName);
-}	
 
 casa::Complex encode(const GausEncoder<float> &encoder, casa::Complex val)
 {
@@ -297,9 +194,13 @@ int main(int argc, char *argv[])
 {
 	register_offringastman();
 	
-	if(argc < 4)
+	if(argc < 2)
 	{
-		std::cerr << "Usage: compress [-meas <column>] <ms> <quantcount>\n";
+		std::cout <<
+			"Usage: compress [-meas <column>] <ms> [<bits per data val> [<bits per weight>]]\n"
+			"Defaults: \n"
+			"\tbits per data val = 8\n"
+			"\tbits per weight = 6\n";
 		return 0;
 	}
 	
@@ -313,38 +214,38 @@ int main(int argc, char *argv[])
 		columnName = argv[argi+1];
 		argi+=2;
 	}
+	std::string msPath = argv[argi];
+	unsigned bitsPerComplex=8, bitsPerWeight=6;
+	if(argi+1 < argc) {
+		bitsPerComplex = atoi(argv[argi+1]);
+		if(argi+2 < argc)
+			bitsPerWeight = atoi(argv[argi+2]);
+	}
 	
 	std::cout << "Opening ms...\n";
-	std::auto_ptr<casa::MeasurementSet> ms(new casa::MeasurementSet(argv[argi], casa::Table::Update));
-	int quantCount = atoi(argv[argi+1]);
+	std::auto_ptr<casa::MeasurementSet> ms(new casa::MeasurementSet(msPath, casa::Table::Update));
 	
 	if(measure)
 	{
+		size_t quantCount = 1<<bitsPerComplex;
 		if(columnName == "WEIGHT_SPECTRUM")
 			MeasureError<float>(*ms, columnName, 1.0, quantCount);
 		else
 			MeasureError<casa::Complex>(*ms, columnName, 1.0, quantCount);
 	} else {
-		bool isDataReplaced = makeComplexColumn(*ms, "DATA");
-		bool isWeightReplaced = makeWeightColumn(*ms, "WEIGHT_SPECTRUM");
+		StManModifier modifier(*ms);
+		
+		bool isDataReplaced = modifier.InitComplexColumnWithOffringaStMan("DATA", bitsPerComplex, bitsPerWeight);
+		bool isWeightReplaced = modifier.InitWeightColumnWithOffringaStMan("WEIGHT_SPECTRUM", bitsPerComplex, bitsPerWeight);
 		
 		if(isDataReplaced)
-			moveColumnData<casa::Complex>(*ms, "DATA");
+			modifier.MoveColumnData<casa::Complex>("DATA");
 		if(isWeightReplaced)
-			moveColumnData<float>(*ms, "WEIGHT_SPECTRUM");
+			modifier.MoveColumnData<float>("WEIGHT_SPECTRUM");
 
 		if(isDataReplaced || isWeightReplaced)
 		{
-			std::cout << "Reordering ms...\n";
-			std::string tempName = argv[1];
-			while(*tempName.rbegin() == '/') tempName.resize(tempName.size()-1);
-			tempName += "temp";
-			ms->deepCopy(tempName, casa::Table::New, true);
-			ms->markForDelete();
-
-			// Destruct the old measurement set, and load new one
-			ms.reset(new casa::MeasurementSet(tempName, casa::Table::Update));
-			ms->rename(std::string(argv[1]), casa::Table::New);
+			StManModifier::Reorder(ms, msPath);
 		}
 		
 		std::cout << "Finished.\n";

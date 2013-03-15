@@ -35,7 +35,7 @@ public:
 	 */
   OffringaComplexColumn(OffringaStMan* parent, int dtype) :
 		OffringaStManColumn(parent, dtype),
-		_bitsPerSymbol(8),
+		_bitsPerSymbol(0),
 		_symbolsPerCell(0),
 		_encoder(0),
 		_ant1Col(0),
@@ -84,6 +84,12 @@ public:
 	 * Prepare this column for reading/writing. Used internally by the stman.
 	 */
 	virtual void Prepare();
+	
+	/**
+	 * Set the bits per symbol. Should only be called by OffringaStMan.
+	 * @param bitsPerSymbol New number of bits per symbol.
+	 */
+	void SetBitsPerSymbol(unsigned bitsPerSymbol) { _bitsPerSymbol = bitsPerSymbol; }
 
 private:
 	OffringaComplexColumn(const OffringaComplexColumn &source) : OffringaStManColumn(0,0) { }
@@ -91,9 +97,9 @@ private:
 	
 	struct CacheItem
 	{
-		CacheItem(unsigned stride) : isBeingWritten(false)
+		CacheItem(unsigned symbolsPerCell) : isBeingWritten(false)
 		{
-			buffer = new float[stride];
+			buffer = new float[symbolsPerCell];
 		}
 		~CacheItem()
 		{

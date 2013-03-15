@@ -74,6 +74,13 @@ public:
 	void SetRowOffset(unsigned offset) {
 		_rowOffset = offset; 
 	}
+	
+	/**
+	 * Get number of bytes needed for column header of this column. This is
+	 * excluding the generic column header.
+	 * @returns Size of column header
+	 */
+	virtual size_t ExtraHeaderSize() const { return 0; }
 
 protected:
 	/** Get the storage manager for this column */
@@ -97,22 +104,16 @@ protected:
 	 */
 	uint64_t nRowInFile() const;
 	/**
-	 * Notify the parent that the Stride() for this column has changed or is 
-	 * now known. Will recalculate the total row Stride of the parent and set
-	 * the offsets.
-	 * @see Stride(), RowOffset()
-	 */
-	void recalculateStride();
-	/**
 	 * Get the RMS table from the parent.
 	 * @returns The RMS table that maps baseline to RMS value.
 	 */
 	const class RMSTable &rmsTable() const;
 	
 private:
-	OffringaStManColumn(const OffringaStManColumn &source) : casa::StManColumn(0) { }
+	OffringaStManColumn(const OffringaStManColumn &source) : casa::StManColumn(0), _isRemoved(false) { }
 	void operator=(const OffringaStManColumn &source) { }
 	
+	bool _isRemoved;
 	unsigned _rowOffset;
   OffringaStMan *_parent;
 };
@@ -136,11 +137,6 @@ inline void OffringaStManColumn::writeCompressedData(size_t rowIndex, const unsi
 inline uint64_t OffringaStManColumn::nRowInFile() const
 {
 	return _parent->nRowInFile();
-}
-
-inline void OffringaStManColumn::recalculateStride()
-{
-	_parent->recalculateStride();
 }
 
 inline const RMSTable& OffringaStManColumn::rmsTable() const

@@ -31,6 +31,9 @@ target_link_libraries(test ${GSL_LIB} ${CBLAS_LIB} ${CASA_LIBS} offringastman)
 add_executable(compress compress.cpp)
 target_link_libraries(compress ${GSL_LIB} ${CBLAS_LIB} ${CASA_LIBS} offringastman)
 
+add_executable(decompress decompress.cpp)
+target_link_libraries(decompress ${GSL_LIB} ${CBLAS_LIB} ${CASA_LIBS} offringastman)
+
 add_executable(rmsdiff rmsdiff.cpp)
 target_link_libraries(rmsdiff ${GSL_LIB} ${CBLAS_LIB} ${CASA_LIBS} offringastman)
 

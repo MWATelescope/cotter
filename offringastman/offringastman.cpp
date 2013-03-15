@@ -18,30 +18,39 @@ const unsigned short
 	OffringaStMan::VERSION_MAJOR = 1,
 	OffringaStMan::VERSION_MINOR = 0;
 
-OffringaStMan::OffringaStMan(const class RMSTable &rmsTable, const casa::String& name) :
+OffringaStMan::OffringaStMan(const RMSTable &rmsTable, unsigned complexBitCount, unsigned weightBitCount, enum DitherMethod ditherMethod, const casa::String& name) :
 	DataManager(),
 	_nRow(0),
+	_name(name),
 	_rmsTable(rmsTable),
-	_name(name)
+	_complexBitCount(complexBitCount),
+	_weightBitCount(weightBitCount),
+	_ditherMethod(ditherMethod)
 {
-	// TODO _spec.define("global_stddev", _globalStddev);
+	initializeSpec();
 }
 
 OffringaStMan::OffringaStMan(const casa::String& name, const casa::Record& spec) :
 	DataManager(),
 	_nRow(0),
-	_rmsTable(),
 	_name(name),
+	_rmsTable(),
+	_complexBitCount(0),
+	_weightBitCount(0),
+	_ditherMethod(NoDithering),
 	_spec(spec)
 {
-	setRMSTableFromSpec();
+	setFromSpec();
 }
 
 OffringaStMan::OffringaStMan(const OffringaStMan& source) :
 	DataManager(),
 	_nRow(0),
-	_rmsTable(source._rmsTable),
 	_name(source._name),
+	_rmsTable(source._rmsTable),
+	_complexBitCount(source._complexBitCount),
+	_weightBitCount(source._weightBitCount),
+	_ditherMethod(source._ditherMethod),
 	_spec(source._spec)
 {
 	initializeSpec();
@@ -52,7 +61,7 @@ OffringaStMan& OffringaStMan::operator=(const OffringaStMan& source)
 	throw OffringaStManError("operator=() was called on OffringaStMan. OffringaStMan should never be assigned to.");
 }
 
-void OffringaStMan::setRMSTableFromSpec()
+void OffringaStMan::setFromSpec()
 {
 	int i = _spec.description().fieldNumber("RMSTable");
 	if(i >= 0)
@@ -74,6 +83,9 @@ void OffringaStMan::setRMSTableFromSpec()
 				}
 			}
 		}
+		_complexBitCount = _spec.asInt("complexBitCount");
+		_weightBitCount = _spec.asInt("weightBitCount");
+		_ditherMethod = (enum DitherMethod) _spec.asInt("ditherMethod");
 	}
 }
 
@@ -97,6 +109,9 @@ void OffringaStMan::initializeSpec()
 		}
 	}
 	_spec.define("RMSTable", rmsTableVector);
+	_spec.define("complexBitCount", _complexBitCount);
+	_spec.define("weightBitCount", _weightBitCount);
+	_spec.define("ditherMethod", (int) _ditherMethod);
 }
 
 void OffringaStMan::makeEmpty()
@@ -142,18 +157,62 @@ void OffringaStMan::writeHeader()
 		throw OffringaStManError("I/O error: could not seek to beginning of file before write task");
 	
 	Header header;
-	_headerSize = sizeof(header) + _rmsTable.SizeInBytes();
 	header.headerSize = _headerSize;
-	header.columnHeaderOffset = _headerSize;
-	header.columnCount = 0;
+	header.columnHeaderOffset = sizeof(Header) + _rmsTable.SizeInBytes();
+	header.columnCount = _columns.size();
+	header.rowStride = _rowStride;
 	header.versionMajor = VERSION_MAJOR;
 	header.versionMinor = VERSION_MINOR;
+	header.complexBitCount = _complexBitCount;
+	header.weightBitCount = _weightBitCount;
+	header.ditherMethod = (uint8_t) _ditherMethod;
 	header.rmsTableAntennaCount = _rmsTable.AntennaCount();
 	header.rmsTableFieldCount = _rmsTable.FieldCount();
 	_fStream->write(reinterpret_cast<char*>(&header), sizeof(header));
 	if(_fStream->fail())
 		throw OffringaStManError("I/O error: could not write to file");
 	_rmsTable.Write(*_fStream);
+	for(std::vector<OffringaStManColumn*>::iterator i = _columns.begin(); i!=_columns.end(); ++i)
+	{
+		GenericColumnHeader cHeader;
+		cHeader.columnHeaderSize = sizeof(GenericColumnHeader) + (*i)->ExtraHeaderSize();
+		cHeader.rowOffset = (*i)->RowOffset();
+		_fStream->write(reinterpret_cast<char*>(&cHeader), sizeof(cHeader));
+	}
+}
+
+void OffringaStMan::readHeader()
+{
+	Header header;
+	_fStream->seekg(0, std::ios_base::beg);
+	_fStream->read(reinterpret_cast<char*>(&header), sizeof(header));
+	_headerSize = header.headerSize;
+	size_t curColumnHeaderOffset = header.columnHeaderOffset;
+	size_t columnCount = header.columnCount;
+	_rowStride = header.rowStride;
+	
+	_complexBitCount = header.complexBitCount;
+	_weightBitCount = header.weightBitCount;
+	_ditherMethod = (DitherMethod) header.ditherMethod;
+	_rmsTable = RMSTable(header.rmsTableAntennaCount, header.rmsTableFieldCount);
+	_rmsTable.Read(*_fStream);
+	
+	if(columnCount != _columns.size())
+	{
+		std::stringstream s;
+		s << "The column count in the OffringaStMan file (" << columnCount << ") does not match with the measurement set (" << _columns.size() << ")";
+		throw OffringaStManError(s.str());
+	}
+	
+	for(std::vector<OffringaStManColumn*>::iterator i = _columns.begin(); i!=_columns.end(); ++i)
+	{
+		OffringaStManColumn &col = **i;
+		GenericColumnHeader cHeader;
+		_fStream->seekg(curColumnHeaderOffset, std::ios_base::beg);
+		_fStream->read(reinterpret_cast<char*>(&cHeader), sizeof(cHeader));
+		col.SetRowOffset(cHeader.rowOffset);
+		curColumnHeaderOffset += cHeader.columnHeaderSize;
+	}
 }
 
 void OffringaStMan::open(casa::uInt nRow, casa::AipsIO& )
@@ -162,15 +221,12 @@ void OffringaStMan::open(casa::uInt nRow, casa::AipsIO& )
 	_fStream.reset(new std::fstream(fileName().c_str()));
 	if(_fStream->fail())
 		throw OffringaStManError("I/O error: could not open file '" + fileName() + "', which should be an existing file");
-	Header header;
-	_fStream->read(reinterpret_cast<char*>(&header), sizeof(header));
-	_headerSize = header.headerSize;
-	_rmsTable = RMSTable(header.rmsTableAntennaCount, header.rmsTableFieldCount);
-	_rmsTable.Read(*_fStream);
+	
+	readHeader();
+	
 	_fStream->seekg(0, std::ios_base::end);
 	std::streampos size = _fStream->tellg();
 	
-	recalculateStride();
 	
 	if(_rowStride==0)
 	{
@@ -239,9 +295,25 @@ void OffringaStMan::prepare()
 	// encoding will fail.
 	if(_rmsTable.Empty())
 		throw OffringaStManError("The RMS table of the OffringaStMan was not set!\nOffringaStMan was not correctly initialized by your tool.");
+	if(_complexBitCount == 0 || _weightBitCount == 0)
+		throw OffringaStManError("One of the required parameters of the OffringaStMan was not set!\nOffringaStMan was not correctly initialized by your tool.");
 	
 	for(std::vector<OffringaStManColumn*>::iterator col=_columns.begin(); col!=_columns.end(); ++col)
+	{
+		OffringaComplexColumn *complCol = dynamic_cast<OffringaComplexColumn*>(*col);
+		if(complCol != 0)
+			complCol->SetBitsPerSymbol(_complexBitCount);
+		
+		OffringaWeightColumn *wghtCol = dynamic_cast<OffringaWeightColumn*>(*col);
+		if(wghtCol != 0)
+			wghtCol->SetBitsPerSymbol(_weightBitCount);
+		
 		(*col)->Prepare();
+	}
+	
+	if(_nRowInFile == 0)
+		recalculateStride();
+	writeHeader();
 }
 
 void OffringaStMan::reopenRW()
@@ -262,17 +334,38 @@ void OffringaStMan::removeRow(casa::uInt rowNr)
 
 void OffringaStMan::addColumn(casa::DataManagerColumn* column)
 {
-	OffringaComplexColumn *offCol = static_cast<OffringaComplexColumn*>(column);
 	if(_nRowInFile != 0)
 		throw OffringaStManError("Can't add columns while data has been committed to table");
-	recalculateStride();
+	
+	OffringaComplexColumn *complCol = dynamic_cast<OffringaComplexColumn*>(column);
+	if(complCol != 0)
+		complCol->SetBitsPerSymbol(_complexBitCount);
+	OffringaWeightColumn *wghtCol = dynamic_cast<OffringaWeightColumn*>(column);
+	if(wghtCol != 0)
+		wghtCol->SetBitsPerSymbol(_weightBitCount);
+	
+	OffringaStManColumn *offCol = static_cast<OffringaStManColumn*>(column);
 	offCol->Prepare();
+	
+	recalculateStride();
+	writeHeader();
 }
 
 void OffringaStMan::removeColumn(casa::DataManagerColumn* column)
 {
-	if(_nRowInFile != 0)
-		throw OffringaStManError("Can't remove columns while data has been committed to table");
+	for(std::vector<OffringaStManColumn*>::iterator i=_columns.begin(); i!=_columns.end(); ++i)
+	{
+		if(*i == column)
+		{
+			delete *i;
+			_columns.erase(i);
+			if(_nRowInFile == 0)
+				recalculateStride();
+			writeHeader();
+			return;
+		}
+	}
+	throw OffringaStManError("Trying to remove column that was not part of the storage manager");
 }
 
 void OffringaStMan::readCompressedData(size_t rowIndex, const OffringaStManColumn *column, unsigned char *dest)
@@ -303,12 +396,15 @@ void OffringaStMan::writeCompressedData(size_t rowIndex, const OffringaStManColu
 
 void OffringaStMan::recalculateStride()
 {
+	size_t sizeOfColumnHeaders = 0;
 	_rowStride = 0;
 	for(std::vector<OffringaStManColumn*>::iterator col=_columns.begin(); col!=_columns.end(); ++col)
 	{
 		(*col)->SetRowOffset(_rowStride);
 		_rowStride += (*col)->Stride();
+		sizeOfColumnHeaders += sizeof(GenericColumnHeader) + (*col)->ExtraHeaderSize();
 	}
+	_headerSize = sizeof(Header) + _rmsTable.SizeInBytes() + sizeOfColumnHeaders;
 }
 
 } // end of namespace

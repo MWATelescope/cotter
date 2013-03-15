@@ -7,7 +7,7 @@ namespace offringastman
 {
 	
 /**
- * Class for bit packing of values.
+ * Class for bit packing of values into bytes.
  * 
  * Contains several methods that can pack and unpack an array of unsigned
  * values into a bit-packed array, using as few bytes as possible.
@@ -92,7 +92,7 @@ inline void BytePacker::pack(unsigned int bitCount, unsigned char* dest, const u
 		case 6: pack6(dest, symbolBuffer, symbolCount); break;
 		case 8: pack8(dest, symbolBuffer, symbolCount); break;
 		case 12: pack12(dest, symbolBuffer, symbolCount); break;
-		//default: throw std::runtime_error("Unsupported packing size");
+		default: throw std::runtime_error("Unsupported packing size");
 	}
 }
 
@@ -104,7 +104,7 @@ inline void BytePacker::unpack(unsigned int bitCount, unsigned int* symbolBuffer
 		case 6: unpack6(symbolBuffer, packedBuffer, symbolCount); break;
 		case 8: unpack8(symbolBuffer, packedBuffer, symbolCount); break;
 		case 12: unpack12(symbolBuffer, packedBuffer, symbolCount); break;
-		//default: throw std::runtime_error("Unsupported packing size");
+		default: throw std::runtime_error("Unsupported unpacking size");
 	}
 }
 

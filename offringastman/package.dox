@@ -53,25 +53,87 @@ of rows in the set is calculated from the size of the file. Once the
 storage manager contains data, its format can not be changed, which
 includes adding columns to the set or changing the shape of one of the
 columns. Trying to do so will generate an OffringaStManError. The
-gaussian quantization (encoding) is somewhat more expensive compared
+Gaussian quantization (encoding) is somewhat more expensive compared
 to decoding/decompressing. Therefore, when asked to write a cell into
 a Gaussian column, the cell data is stored in a cache. Several threads
 will be awaiting cache changes and write the cache as soon as possible
 compress the cell and write it to file.
 
 This package provides the following tools:
-- liboffringastman.so : the library that contains the storage manager.
-This should be in your path in order for Casa to load it automatically.
-- compress : executable that will change the storage manager for the
+- @em liboffringastman.so : the library that contains the storage manager.
+This file should be in your library path in order for Casa to load it automatically.
+- @em compress : executable that will change the storage manager for the
 DATA and WEIGHT_SPECTRUM columns into the OffringaStMan. It automatically
 collects the required RMS per baseline statistic and provides it to
 the storage manager.
-- rmsdiff : executable that compares two measurement sets. It will
+- @em decompress : executable that changes the storage manager of columns
+with a OffringaStMan into the DefaultStMan.
+- @em rmsdiff : executable that compares two measurement sets. It will
 calculate the RMS of one of the measurement sets and the RMS and the
 mean of the difference between the two.
 The mean should be very small relative to the difference RMS, which implies that
 that there is no systematic bias. Also, the difference RMS should be
 significantly lower than the system noise / single RMS.
+
+<h2>Using compress</h2>
+The compress executable will rewrite the DATA and WEIGHT_SPECTRUM column, by
+first renaming them and creating new columns with this storage manager, then
+it will copy all the values in and then it will remove the two old columns.
+Finally, the whole set is copied, to make sure that the space that was taken
+by the old columns is freed. So, almost all DATA is copied twice, although it
+is copied into a compressed format which takes up less space.
+
+Usage:
+@code{bash}
+compress <measurement set> [<bits-per-data-value> [<bits-per-weight-value>]]
+@endcode
+The defaults are 8 bits per data value (implying 16 bits/complex value) and
+6 bits per weight value. Not all bit values are supported. Currently supported
+are at least 4, 6, 8 and 12 bits/value.
+@todo TODO: implement all bit values
+
+After compressing, the measurement set can be used like any other, but one should
+take care not to rewrite the values many times with different values,
+especially if this would significantly change the RMS of the data, as e.g.
+calibration would do. This might cause the lossiness of the encoding
+to become unacceptable. In such cases it might be better to decompress the
+set, calibrate the set and recompress the set. During recompressing, the ideal
+encoding parameters for the calibrated data will be recalculated.
+
+@todo TODO: think whether calibration problems can be solved by a scaling factor per cell
+
+@todo TODO: make sure 8 bits are acceptable as default value.
+
+<h2>Using decompress</h2>
+The decompress executable will just do the same as compress, but will use
+a default storage manager for the columns.
+
+Usage:
+@code{bash}
+decompress <measurement set>
+@endcode
+
+<h2>Using rmsdiff</h2>
+After compressing, you can use the @c rmsdiff program to get for a few baselines:
+- A. the RMS of the data
+- B. the RMS of the difference between the compressed and original sets
+- C. the mean of the difference between the compressed and original sets
+
+Using A and B, one can determine the fractional error (B/A). With default settings,
+these should be about 1%.
+
+Using A and C, one can determine the total fractional bias made (C/A). This should
+be very low (<<1%), as high values imply that sources might change flux density.
+Typical values with default settings are 0.01% -- 0.1%.
+
+Note that diagonal entries are the auto-correlations, which are generally slightly less well
+compressed. This is acceptable, as they are rarely used, and the encoder is not
+optimized for these.
+
+Usage:
+@code{bash}
+rmsdiff <compressed ms> <original ms> <data column name>
+@endcode
 
 @author André Offringa (offringa@gmail.com)
 @copyright 2013 by the author -- please don't distribute yet.

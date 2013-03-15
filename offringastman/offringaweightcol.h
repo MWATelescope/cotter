@@ -37,7 +37,7 @@ public:
 	 */
   OffringaWeightColumn(OffringaStMan* parent, int dtype) :
 		OffringaStManColumn(parent, dtype),
-		_bitsPerSymbol(6),
+		_bitsPerSymbol(0),
 		_symbolsPerCell(0),
 		_encoder(0),
 		_symbolBuffer(),
@@ -81,6 +81,12 @@ public:
 	 */
 	virtual void Prepare();
 
+	/**
+	 * Set the bits per symbol. Should only be called by OffringaStMan.
+	 * @param bitsPerSymbol New number of bits per symbol.
+	 */
+	void SetBitsPerSymbol(unsigned bitsPerSymbol) { _bitsPerSymbol = bitsPerSymbol; }
+	
 private:
 	OffringaWeightColumn(const OffringaWeightColumn &source) : OffringaStManColumn(0,0) { }
 	void operator=(const OffringaWeightColumn &source) { }

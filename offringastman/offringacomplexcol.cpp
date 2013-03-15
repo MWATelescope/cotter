@@ -6,6 +6,7 @@
 
 #include "thread.h"
 #include "bytepacker.h"
+#include "offringastmanerror.h"
 
 #include <tables/Tables/ScalarColumn.h>
 
@@ -41,14 +42,6 @@ OffringaComplexColumn::~OffringaComplexColumn()
 void OffringaComplexColumn::setShapeColumn(const casa::IPosition& shape)
 {
 	_shape = shape;
-	_symbolsPerCell = 2;
-	for(casa::IPosition::const_iterator i = _shape.begin(); i!=_shape.end(); ++i)
-		_symbolsPerCell *= *i;
-	delete[] _packedSymbolReadBuffer;
-	_packedSymbolReadBuffer = new unsigned char[Stride()];
-	delete[] _unpackedSymbolReadBuffer;
-	_unpackedSymbolReadBuffer = new unsigned int[Stride()];
-	recalculateStride();
 }
 
 void OffringaComplexColumn::getArrayComplexV(casa::uInt rowNr, casa::Array<casa::Complex>* dataPtr)
@@ -85,7 +78,7 @@ void OffringaComplexColumn::getArrayComplexV(casa::uInt rowNr, casa::Array<casa:
 	
 void OffringaComplexColumn::putArrayComplexV(casa::uInt rowNr, const casa::Array<casa::Complex>* dataPtr)
 {
-	CacheItem *item = new CacheItem(Stride());
+	CacheItem *item = new CacheItem(_symbolsPerCell);
 	item->antenna1 = (*_ant1Col)(rowNr);
 	item->antenna2 = (*_ant2Col)(rowNr);
 	item->fieldId = (*_fieldCol)(rowNr);
@@ -127,6 +120,9 @@ void OffringaComplexColumn::encodeAndWrite(uint64_t rowIndex, const CacheItem &i
 
 void OffringaComplexColumn::Prepare()
 {
+	if(_bitsPerSymbol == 0)
+		throw OffringaStManError("bitsPerSymbol not initialized in OffringaWeightCol");
+	
 	delete _encoder;
 	delete _ant1Col;
 	delete _ant2Col;
@@ -139,6 +135,14 @@ void OffringaComplexColumn::Prepare()
 	_ant2Col = new casa::ROScalarColumn<int>(table, "ANTENNA2");
 	_fieldCol = new casa::ROScalarColumn<int>(table, "FIELD_ID");
 	
+	_symbolsPerCell = 2;
+	for(casa::IPosition::const_iterator i = _shape.begin(); i!=_shape.end(); ++i)
+		_symbolsPerCell *= *i;
+	delete[] _packedSymbolReadBuffer;
+	_packedSymbolReadBuffer = new unsigned char[Stride()];
+	delete[] _unpackedSymbolReadBuffer;
+	_unpackedSymbolReadBuffer = new unsigned int[_symbolsPerCell];
+
 	long cpuCount = sysconf(_SC_NPROCESSORS_ONLN);
 	EncodingThreadFunctor functor;
 	functor.parent = this;
