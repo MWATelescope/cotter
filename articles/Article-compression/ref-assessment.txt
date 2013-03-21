@@ -42,7 +42,13 @@ A. Lacroix and E Hartwig
 1992 IEEE
 Brief, slightly related article showing Mantissa and Exponent often are "reciprocally" distributed
 
+Convenient formulas for quantization efficiency, A. R. Thompson, D. T. Emerson, F. R. Schwab
+Radio Science, Volume 42, Issue 3, June 2007
+Describes quantization for radio telescopes of initial bitstream (antenna to correlator).
+
+
 To look at:
 Huffman, "A method for the construction of minimum-redundancy codes", proc IRE, vol 40, pp 1098-1101, Sept 1952
 
+"Quantization is a nonlinear process which generates additional frequency components (Thompson et al. 1986)."
 

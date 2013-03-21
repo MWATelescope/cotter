@@ -2,4 +2,13 @@
 *~
 *.kilepr
 *.tar.gz
+compression-blx.bib
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.log
+*.out
+compression.pdf
+*.run.xml
 related/

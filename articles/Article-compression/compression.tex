@@ -1,0 +1,87 @@
+\documentclass{article} 
+\usepackage[style=nature,backend=biber]{biblatex}
+\usepackage{graphicx}
+\usepackage[font={it},labelfont={bf}]{caption}
+\usepackage{times}
+\usepackage{color}
+%\usepackage{fixltx2e} % fixes placing of image positions
+\usepackage{authblk}
+
+\definecolor{customhdrcolor}{rgb}{0.0,0.0,0.0}
+%\definecolor{customcitecolor}{rgb}{0.0,0.25,0.25}
+\definecolor{customcitecolor}{rgb}{0.0,0.5,0.75}
+%\definecolor{customlinkcolor}{rgb}{0.0,0.0,1.0}
+\definecolor{customlinkcolor}{rgb}{0.0,0.5,0.75}
+
+\usepackage[colorlinks=true,linkcolor=customlinkcolor,urlcolor=customlinkcolor,citecolor=customcitecolor,pdftex]{hyperref}
+
+\ifpdf\pdfinfo{/Title      (Compressing raw radio-astronomical data)
+               /Author     (A. R. Offringa et al.)
+               /Keywords   (compression)
+        }
+\else\usepackage{graphics}\fi
+
+\setlength{\pdfpageheight}{\paperheight}
+\setlength{\pdfpagewidth}{\paperwidth}
+
+\addbibresource{references.bib}
+\addbibresource{compressrefs.bib}
+
+\title{Compression of interferometric radio-astronomical data}
+
+\author[1,2]{A.~R.~Offringa}
+\affil[1]{RSAA, Australian National University, Mt Stromlo Observatory, via Cotter Road, Weston, ACT 2611, Australia}
+\affil[2]{ARC Centre of Excellence for All-Sky Astrophysics (CAASTRO)}
+\begin{document}
+
+\label{firstpage}
+\maketitle
+
+\begin{abstract}
+% Articles have a summary, separate from the main text, of up to 150 words, which does not have references, and does not contain numbers, abbreviations, acronyms or measurements unless essential. It is aimed at readers outside the discipline. This summary contains a paragraph (2-3 sentences) of basic-level introduction to the field; a brief account of the background and rationale of the work; a statement of the main conclusions (introduced by the phrase 'Here we show' or its equivalent); and finally, 2-3 sentences putting the main findings into general context so it is clear how the results described in the paper have moved the field forwards.
+... TODO ...
+\end{abstract}
+
+\section{Background}
+% up to 500 words of referenced text expanding on the background to the work (some overlap with the summary is acceptable), before proceeding to a concise, focused account of the findings, ending with one or two short paragraphs of discussion.
+Unprocessed data from interferometric radio observatories consists of the correlated signals from all pairs of antennas that are part of the interferometric array. These correlated signals are measured in many spectral channels, and integrated over short timesteps before they are recorded to disk (TODO cite Thompson).
+
+Modern interferometric radio observatories have very high spectral and temporal resolutions (TODO cite JVLA, LOFAR, ALMA, ATCA, MWA). It is often not desirable to decrease the resolution before archiving, because resolution in both dimensions provides scientific value. For example, high temporal resolutions are desirable for pulsar observations(TODO cite), variability studies(TODO cite) and advanced calibration methods that solve for the ionospheric disturbances and instrumental variabilities (TODO cite Sagecal). On the other hand, a high frequency resolution is necessary for widefield imaging of the sky (TODO cite), spectral-line studies (TODO cite) and the detection of man-made interference~\cite{lofar-radio-environment}. Therefore, the samples outputted by the correlator need to be archived at its original high resolution, which can lead to data volumes of several petabytes and complex network architectures to allow acceptable transfer rates (TODO cite). While current interferometers consist of up to a few hundred of antenna elements (TODO cite VLA, LOFAR), future instruments will have thousands of antenna elements that will produce data at even higher resolutions, thereby increasing the data volume and associated storage costs by several orders of magnitudes (TODO cite SKA).
+
+Various multi-media and scientific applications have used and enhanced a variety of different compression techniques to decrease the storage costs. For audio compression, entropy-based encoding schemes (Huffman-encoding \cite{huffman}) and prediction schemes (TODO cite Chebinov polynomials) are important building blocks. Wavelet decomposition is another important building block for image and video compression algorithms (TODO cite). However, data from radio interferometric radio observatories have a low signal-to-noise ratio (SNR), especially at high resolutions (TODO cite Thompson), and noise-like signals are inherently hard to compress without loss of information (TODO cite).
+
+% TODO describe compression in the context of space missions, as it is interesting
+
+% TODO compression in the context of radio astronomy? E.g., PAPER's compression technique
+
+\section{Methods}
+We consider compressing correlator output samples that consist of complex values. For radio data, each complex component is normally stored as a 32-bit IEEE 754 single precision floating point value\footnote{See e.g. ``FITS Interferometry Data Interchange Format'', AIPS memo \#114, \S4.1;\\and ``MeasurementSet definition version 2.0'', CASA Memo \#229.}. We test two compression algorithms on recorded data from several telescopes. The first method is a loss-less encoding technique using a Huffman encoding \cite{huffman}, while the second method is a lossy encoding technique in the form of a non-linear minimized-squared-error quantization scheme (TODO cite?). Both encodings are optimized for normally distributed complex samples with zero mean. The distribution of correlated samples will approximate such a distribution more closely when the SNR is low (TODO cite) and does not contain interfering sources (TODO cite my own).
+
+After we determined that loss-less compression is only effective for the 8-bit exponents of the floating point values, we avoid very large dictionary sizes by applying the Huffman encoding on the 8-bit exponents only. To overcome loss of compression rate due to integer bit counts required to represent symbols (TODO cite), the exponents of two consecutive samples are bitwise concatinated and encoded as such.
+
+In the lossy case, the standard deviation is determined dynamically, and individually stored for each pair of antennas and at each correlator time-step. The lossy quantization scheme is created by uniform sampling of the inverse of the corresponding cummulative distribution function.
+
+\section{Findings}
+
+\begin{table}
+ \caption{Compression performances. The compressed sizes are the resulting file size relative to the original size. The speed is measured relative to writing the data without compression.}
+ \begin{tabular}{|l|r|r|r|}
+  \hline
+  Observation & Size & \multicolumn{4}{ |c| }{Huffman} & Lossy\\
+  \hline
+  MWA HydA & ..MB & 86\% & .. \\
+  \hline
+ \end{tabular}
+
+\end{table}
+
+
+\section{Discussion}
+
+% TODO mention 16 quantization of VLA data
+
+\printbibliography
+
+\label{lastpage}
+
+\end{document}
