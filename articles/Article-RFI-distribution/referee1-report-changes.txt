@@ -1,0 +1,143 @@
+Summary:
+========
+
+This paper has two primary findings:  (1) The statistical distribution of intensities of time-frequency pixels in visibilities can be anticipated from simple modeling (at LOFAR frequencies) and (2) The results suggest that a LOFAR EoR detection will not be prevented by RFI.  My general assessment of the paper is that the first finding is reasonable, although is presented in a confusing and unnecessarily complicated way, but that the second finding is not well supported.  I think this paper potentially makes a useful contribution and could be suitable for publication if the work related to the first finding is presented in a more clear and concise manner, and if work related to the second finding is either presented in a more compelling way, or excluded. 
+
+General comments:
+=================
+
+The frequency range which is addressed should be clearly identified in the abstract & introduction, and relevance/irrelevance to other frequency bands in the radio spectrum should be addressed.
+(A) Added range to abstract.
+
+The derivation of section 2 and continuing intermittently throughout the paper is unnecessarily sprawling and difficult to follow.  It's clear that the distribution follows a power law with exponent between -1 and -2, and typically about -1.5 assuming a path loss factor consistent with terrestrial propagation.  This result can be obtained in just a few steps from very simple considerations.  Instead the authors follow a very convoluted route with a few false starts and extraneous information (invoking for example the Hata model) and get essentially the expected result. 
+(A) removed spherical geometry section
+
+One thing that strikes me from reading about RFI surveys and my own experience with radio astronomy is that there seems to be two distinct "populations" of RFI:  Sources which are strong and obvious (like TV transmitters, or mobile radio transmissions with transmit frequencies following a known spacing), and sources which are weak and mysterious (the splatter in figure 1 may be a good example).  Treating these all as one population seems weird to me, since the first category is so easily characterized and/or avoided, after which all that is left is the second category, which seems to be the *real* threat to 21 cm cosmology experiments. Perhaps this dichotomy can be addressed?  For example, with respect to the discussion of Sec 5.1 second paragraph.
+
+Reading this paper I was reminded of the following paper by A.E.E. Rogers of MIT/Haystack (also doing work on 21 cm cosmology at radio frequencies) on very sensitive "interference temperature" measurements from 70 MHz up in the US Northeast: 
+http://www.haystack.mit.edu/ast/arrays/deut/pdf/dyspan_rogers_2005.pdf
+I wonder: Are the findings of the Rogers paper consistent with those of this paper in terms of the efficacy of EoR detection considering interference?  Perhaps there are other RFI surveys that pertain to this issue?
+
+The statistics pertain to amplitudes of the visibilities.  It is well-known that terrestrial propagation involving mobile transmitters in this frequency range is subject to both significant doppler shifting (due to relative motion) and orders-of-magnitude wavelength-scale "fast fading" (due to plurality of multipaths arriving at the receiver).  However the paper seems to ignore these instead focusses (with excessive detail, I would argue) on path loss on geographical scales (only).  I can't say for sure, but it seems possible that doppler and fast fading effects may significantly affect the distribution of the visibility amplitudes.  I think this should be addressed. 
+
+LOFAR EoR observations are referred to, but not sufficiently well addressed.  To make the conclusion that RFI will not hurt this observing program, enough detail about the program should be clearly stated that the reader is able to make this assessment.  Similarly, there is reference to "AOFlagger" which is reasonably referenced/cited, but which nevertheless should be explained in sufficient detail to allow the reader of this paper to make the assessment as to whether RFI observed + AOFlagger is sufficient to allow the detection.  Alternatively, present results in manner which is independent of the specific instrument and RFI mitigation software employed.
+
+The coining of terms and the consistency of the use of terms is a severe problem in this paper.  Examples include names of types of statistical distributions, the multiple definitions/uses of the term "source", "time-frequency plot" vs. "dynamic spectrum", the confusing term "frequency density", multiple definitions of the term "coherent" and so on.  This makes the paper quite difficult to understand.
+
+I don't see that the possibility that some fraction of clutter in the dynamic spectrum which is detected as RFI might actually be intermodulation distortion generated within the receivers.  Has this been considered and determined (how?) to be negligible?   
+
+Specific comments:
+==================
+
+(X) Abstract: "long time integration" -- awkward.
+(A) -> long-time integration (??)
+
+(X) Abstract: "stationary and consistently" -- means what specifically?  Is "consistent" somehow distinct from "stationary"?
+(A) Removed "stationary"
+
+(X) Abstract: "low frequency RFI" means what frequencies/sources specifically?
+(A) added frequency range
+
+(X) Abstract: "would imply" --> "implies"
+(A) Ok
+
+(X) Abstract: "imply that the current LOFAR EoR observations should be severely RFI limited if these sources add up consistently" -- not clear specifically what "add up consistently" means.
+(A) explained with: "...if these sources add up consistently when the data are integrated, i.e., they are observed as coherent sources"
+
+(X) Abstract: "most RFI sources do not linearly increase the noise" -- I could not decipher this comment, even after multiple readings of the relevant section of the paper.
+(A) "it is unlikely that there are undetected RFI sources that will become visible after long-time integration"
+
+(X) Abstract: "We believe that RFI will not prevent an EoR detection" -- "believe"? I suspect this is just a matter of semantics, but either there is compelling evidence, or there is not.
+(A) reworded
+  
+(X) Sec 1, Col 1, Line 33: "mitigate this effect" -- there is no one "effect"; there are many "effects" depending on the RFI and the observation type.
+(A) changed to "their effects"
+
+(X) Sec 1, Col 1, Line 39-42: "these methods excise enough of the interference" -- Suggests these methods are actually in widespread use; I am not aware that this is true.  Certainly is not true at North American observatories.
+(A) I agree that some methods are probably not in widespread use, but at least the referenced detection/flagging methods are in widespread use, also e.g. at the VLA and especially at low frequencies, as it can be found in the various LOFAR, PAPER or MWA papers, that all describe automated detectors comparable to the referenced detectors. We have weekened the statement slightly:
+"The careful management of spectrum allocation and the construction of radio-quiet zones help to limit the number of harmful transmitters. If harmful RFI is observed nevertheless, the use of RFI mitigation methods can sometimes clean the data sufficiently to allow succesful calibration and imaging."
+
+(X) Sec 1, Col 1, line 50: "coherently" -- not sure this is really what the authors meant.  Maybe "persistently"?
+(A) Changed to "presistently"
+
+Sec 1, Col 2, Line 31: "van Haalem et al. 2013" does not appear in the reference list
+
+(X) Sec 1, Col 2, Lines 50-54: Not clear what a "differential" vs. "cumulative" distribution is.  The definition of "cumulative distribution function" (CDF) is well known -- are the authors using the standard definition?  If so, maybe "differential distribution" means "probability density function" (PDF), which is the derivative of the CDF?
+(A) Yes, we are using the standard PDFs and CDFs. In cosmology, terms like "differential galaxy counts" are used, hence we thought this explanation would help. We've now removed this comment altogether.
+
+(X) Sec 1, Col 2, Line 51: "histogram" -- suddenly using this term.  Related to "differential" or "cumulative" distribution how?  (Perhaps "histogram" = PDF?)
+(A) We believe we are using the term histogram here in the commonly used form: to refer to the distribution of the data as measured, whereas the term PDF refers to the underlying function that models the data. We think this is common terminology. We've slightly clarified it by changing it to "...and analyse brightness histograms of LOFAR data"
+
+Sec 2, Col 2, Line 60: "airplanes and satellites" are not sources by themselves.  They may have on-board transmitters which are sources; if so, be clear about what systems are of concern.  Alternatively, they may reflect ground based transmitters.  
+(A) This is only defining to say that the height of the sources differs :-/ Not sure what to do about it.
+
+(X) Sec 2, Col 2, Page 4, Line 35: "frequency density' is an extremely confusing term.  How about "rate density"?  (many places in paper)
+(A) Agreed; the statistical term "frequency density" is probably more clear for a statistical audience, but that is not our main audience.
+
+(X) Equation (1):  Given the definitions in the associated text, appears to be dimensionally incorrect:  If "I" is flux density (e.g., Jy) then "S" has units of Jy * m^{-2}; yet the paper seems to treat them as if "I" and "S" had the same units.
+(A) We had absorbed the "flux density" to "flux density per unit area" factor (and its units) in the gains, which we agree is not precise. We've changed the units of I to "the transmitting power normalized by the observational channel resolution (e.g., measured in W/Hz)", which adds a 4pi term to the formulae.
+
+(TODO recreate fig 4)
+
+(X) Sec 2, Col 1, Page 4, Lines 51-57:  Implies sources ("transmitters" in this case, I assume) will appear as coherent ("highly or perfectly correlated" in this case, I assume) at different antennas in the array.  This true for unmoving transmitters, but wrong for moving transmitters, which experience significant doppler. The doppler is sufficiently large that mobile digital comm receivers operating in the frequency range must track frequency in order to function properly.  So, there's no way that signals from mobile transmitters can be considered coherent between the widely-separated receiving antennas of an interferometer.
+(A) We do not agree with this; due to the velocity resolution of 1.5 km/s, we've not observed any Doppler shift with LOFAR except on very fast satellites. To actually decorrelate, a source should have a speed difference of 1.5 km/s between the antennas, which is nearly impossible. We've added:
+
+"Because the velocity resolution of LOFAR is 1.5~km/s at 150~MHz, and larger at lower frequencies, a Doppler frequency shift due to movement of the source will only be significant if its velocity is at least 1.5~km/s relative to the antennas. Since the relative velocities to different antennas in the array will be similar for such high-velocity transmitters (i.e., satellites), there will be hardly any decorrelation because of Doppler shifting."
+
+(X) Sec 2, Col 1, Page 4, Lines 54: "Bandwidth of the signal \delta\nu = 1 kHz" -- very few signals present in this frequency range have an occupied bandwidth this narrow.  Typical is 5 - 50 kHz.  Maybe the authors mean spectral resolution.
+(A) We agree, fixed.
+
+(X) Sec 2, Col 2, Page 4, Line 24 "we need the reverse" -- you mean "inverse"?
+(A) Changed to "complement"
+
+Fig 1: Units of time and relative to what time?
+
+Sec 2.2, Page 5, Col 1, Line 47: "sub-urban" --> "suburban"
+
+Sec 2.2, Page 5, Col 1, Lines 49-53: Define "Loss" in this case? 
+
+Equations 9-10:  I was not able to determine what is the point of defining this quantity.  Does not seem to be used in the paper.  Also, seems dimensionally incorrect.  
+
+Figure 3's vertical axis is labeled "probability density" -- so this is a PDF (or histogram)?  The integral of a PDF should equal 1 (i.e., the sum of probabilities of all possible outcomes should be 1) -- is that really true for both curves (and in particular the "-2 power law distribution)?
+
+Figure 4 "Frequency density" -- units?  '
+
+(X) Section 2.3 Page 6 Col 2 paragraph beginning "to understand the distribution of samples..." -- I am baffled by this paragraph.  OK, so RFI and noise add coherently, and that influences the statistical distribution of amplitudes.  So...?
+(A) paragraph indeed unnecessary, now removed.
+
+Section 2.3 Page 6 Col 2 Line 58 "U(0,1)" -- not clear -- maybe this means  "uniformly distributed over [0,1]"?
+
+Sec 2.3 Page 7 Col 1 Line 21 "phased array beam" -- seems the discussion has suddenly become LOFAR-specific?  Presumably "phased array beam" means "station beam", and the interferometer is now an array of these station beams?
+
+Sec 2.3 Page 7 Col 1 Lines 23-34:  This seems to me to be a somewhat long-winded and repetitive way of pointing out that RFI shows up as a tail distribution on top of the expected Gaussian noise distribution.  
+
+Sec 2.4 Page 7 Col 1 Line 52: "they act like stochastic variables"?  Maybe you mean they "are" or "can be modeled as"? 
+
+Second paragraph in Sec 2.4 seems out of place -- shouldn't this go with the description of the dataset?
+
+Third paragraph in Sec 2.4:  Baffled by this entire paragraph.  For example "effect of the band-pass on the data distribution is consequently limited to one order of magnitude or less" -- one order of magnitude of what?  What specifically is meant by "effect of the band-pass"?
+
+Sec 3.2 Page 8 Col 1 Line 9-10:  "slope estimated using linear regression over a visually-selected interval": OK, but then is it really reasonable to imply that the slope exponent can be determined with more than one signficant figure following the decimal point? 
+ 
+Sec 3.3 Page 8 Col 1 Line 49: "visually inspection"
+
+Sec 3.2-3.3:  I don't specifically object, but I find this to be excessively rigorous for something that is ultimately limited by relatively bold assumptions and still requires a some "eyeballing" to set parameters.
+
+Sec 3.3 Page 9 Col 2 Line 6-7: "AOFlagger" suddenly comes into play.  Presumably this work is intended to be more broadly applicable than just to LOFAR using this RFI mitigation scheme?
+
+Sec 3.4 "The current LOFAR SEFD is found to be approximately ...." -- no way these numbers can be generally true.  Since LOFAR uses phased array stations they must vary significantly as a function of beam pointing in zenith angle at least; but also with respect to beam pointing in RA/DEC and LST as well.  Also I am not aware of a reference that compellingly demonstrates LOFAR SEFD -- can this be identified/cited?
+
+Sec 4, first paragraph:  Not indicated how the receiving antennas are geographically positioned, and especially how they are positioned with respect to known strong transmitters and population centers.  
+
+Table 1:  "Amount of RFI detected" is given in %.  What constitutes an "RFI detection"? i.e., what is the criterion for detection?  Saying "AOFlagger" considers it RFI (last paragraph of Sec 4) is not sufficient.
+
+Figure 6: "correlation coefficient" -- just want to be clear -- is this between stations, or between individual antennas?
+
+First paragraph of Section 6:  This seems to me to be "overinterpreting" the results.
+
+Figure 11:  The large variation here seems to underscore my point that perhaps the mathematical derivation is over-detailed and implied precision of the model & model parameters is perhaps overstated.
+
+Equation (35): What is "N_feed" and "N_interferometers"?
+
+References identified as "submitted" do not appear in the reference list.  Also, it always strikes me as unreasonable to cite a "submitted" paper without somehow indicating how to get hold of a preprint.
+

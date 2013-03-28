@@ -93,7 +93,7 @@ $^{33}$Argelander-Institut f\"{u}r Astronomie, University of Bonn, Auf dem H\"{u
 \maketitle
 
 \begin{abstract}
-Faint undetected sources of radio-frequency interference (RFI) might become visible after long time integration of radio observations if they are stationary and consistently present over time. Thereby, they might obstruct the detection of the weak astronomical signals of interest. This issue is especially important for Epoch of Reionisation (EoR) projects that try to detect the faint redshifted HI signals from the time of the earliest structures in the Universe. We explore the low-frequency RFI situation by studying brightness histograms of visibility data observed with LOFAR, similar to radio-source-count analyses that are used in cosmology. The histograms show an RFI distribution that follows a power-law distribution with an estimated exponent around -1.5. With several assumptions, this can be explained with a uniform distribution of terrestrial radio sources whose radiation follows existing propagation models. Extrapolation of the power law would imply that the current LOFAR EoR observations should be severely RFI limited if these sources add up consistently. This is in contrast with actual observations, which almost reach the thermal noise and are thought not to be limited by RFI. Therefore, we conclude that it is likely that most RFI sources do not linearly increase the noise. We believe that RFI will not prevent an EoR detection with LOFAR.
+Faint undetected sources of radio-frequency interference (RFI) might become visible after long-time integration of radio observations if they are consistently present over time. Thereby, they might obstruct the detection of the weak astronomical signals of interest. This issue is especially important for Epoch of Reionisation (EoR) projects that try to detect the faint redshifted HI signals from the time of the earliest structures in the Universe. We explore the RFI situation at 30--163~MHz by studying brightness histograms of visibility data observed with LOFAR, similar to radio-source-count analyses that are used in cosmology. The histograms show an RFI distribution that follows a power-law distribution with an estimated exponent around -1.5. With several assumptions, this can be explained with a uniform distribution of terrestrial radio sources whose radiation follows existing propagation models. Extrapolation of the power law implies that the current LOFAR EoR observations should be severely RFI limited if the integrated strength of RFI sources are consistent, i.e., they are observed as coherent sources. This is in contrast with actual observations, which almost reach the thermal noise and are thought not to be limited by RFI. Therefore, we conclude that it is unlikely that there are undetected RFI sources that will become visible after long-time integration. Consequently, it is likely that RFI will not prevent an EoR detection with LOFAR.
 \end{abstract}
 
 \begin{keywords}
@@ -101,16 +101,17 @@ atmospheric effects -- instrumentation: interferometers -- methods: observationa
 \end{keywords}
 
 \section{Introduction}
-Radio astronomy concerns itself with the observation of radiation from celestial sources at radio wavelengths. However, astronomical radio observations can be affected by radio-frequency interference (RFI), which might make it difficult to calibrate the instrument and achieve high sensitivities \citep{impact-of-warc79,interference-and-radioastronomy-1991,interference-model-lemmon,rfi-mitigation-overview-fridman-baan}. Many techniques have been designed to mitigate this effect, such as detection and flagging of data \citep{chi-square-time-blanking-weber, multichannel-rfi-mitigation, exoplanet-detection-with-rfi, wsrt-rfims, pulse-blanking, effelsberg-rfi-mitigation, post-correlation-rfi-classification}, adaptive cancellation techniques \citep{adaptive-cancellation,post-correlation-reference-signal} and spatial filtering \citep{multichannel-rfi-mitigation, ellingson-spatial-nulling-2002, hampson-spatial-nulling-2002, boonstra-dissertation, spatial-filtering-parkes-multibeam-for-pulses, post-correlation-filtering}. In most cases, and with the help of careful spectrum allocation management and radio-quiet zones, these methods excise enough of the interference to allow calibration and imaging of the data.
+Radio astronomy concerns itself with the observation of radiation from celestial sources at radio wavelengths. However, astronomical radio observations can be affected by radio-frequency interference (RFI), which might make it difficult to calibrate the instrument and achieve high sensitivities \citep{impact-of-warc79,interference-and-radioastronomy-1991,interference-model-lemmon,rfi-mitigation-overview-fridman-baan}. The careful management of spectrum allocation and the construction of radio-quiet zones help to limit the number of harmful transmitters. If harmful RFI is observed nevertheless, the use of RFI mitigation methods can sometimes clean the data sufficiently to allow succesful calibration and imaging. Many techniques have been designed to mitigate the effects of RFI, such as detection and flagging of data \citep{chi-square-time-blanking-weber, multichannel-rfi-mitigation, exoplanet-detection-with-rfi, wsrt-rfims, pulse-blanking, effelsberg-rfi-mitigation, post-correlation-rfi-classification}, adaptive cancellation techniques \citep{adaptive-cancellation,post-correlation-reference-signal} and spatial filtering \citep{multichannel-rfi-mitigation, ellingson-spatial-nulling-2002, hampson-spatial-nulling-2002, boonstra-dissertation, spatial-filtering-parkes-multibeam-for-pulses, post-correlation-filtering}. 
 
-Typical radio observations record a few hours of data, and the results are integrated. In these cases, excising only the interference that is apparent and thus above the noise often suffices, i.e., the observation can still reach the thermal noise limit of the instrument. A new challenge arises, however, when one desires much deeper observations, and hundreds of hours of observations need to be integrated. In such a case, weak interference caused by stationary sources might not manifest itself above the noise in individual observations, but might be coherently present in the data. Subsequently, when averaging these data, the interference might become apparent and occlude the signal of interest. This is very relevant for the 21-cm Epoch of Reionisation (EoR) experiments, because they involve long integration times. Several such experiments are underway, to either measure the angular power spectrum \citep{gmrt-eor-2011-paciga,de-bruyn-eor-ursi-2011,eor-paper-2011-jacobs,eor-mwa-2012-williams} or the global signal \citep{edges}. Ground-based Cosmic Microwave Background (CMB) experiments are another class of experiments involving long integration times (e.g., \citealt{ska-cmb-subrahmanyan}). For these experiments, it is important to know the possible effect of low-level interference on the data, as these might overshadow or alter the signal of interest. In this article, we will connect new insights about RFI to the angular Epoch of Reionisation experiment that is using the Low-Frequency Array (LOFAR) (\citealt{de-bruyn-eor-ursi-2011}, van Haarlem et al. 2013, \textit{submitted}).
+Typical radio observations record a few hours of data, and the results are integrated. In these cases, excising only the interference that is apparent and thus above the noise often suffices, i.e., the observation can still reach the thermal noise limit of the instrument. A new challenge arises, however, when one desires much deeper observations, and hundreds of hours of observations need to be integrated. In such a case, weak interference caused by stationary sources might not manifest itself above the noise in individual observations, but might be persistently present in the data. Subsequently, when averaging these data, the interference might become apparent and occlude the signal of interest. This is very relevant for the 21-cm Epoch of Reionisation (EoR) experiments, because they involve long integration times. Several such experiments are underway, to either measure the angular power spectrum \citep{gmrt-eor-2011-paciga,de-bruyn-eor-ursi-2011,eor-paper-2011-jacobs,eor-mwa-2012-williams} or the global signal \citep{edges}. Ground-based Cosmic Microwave Background (CMB) experiments are another class of experiments involving long integration times (e.g., \citealt{ska-cmb-subrahmanyan}). For these experiments, it is important to know the possible effect of low-level interference on the data, as these might overshadow or alter the signal of interest. In this article, we will connect new insights about RFI to the angular Epoch of Reionisation experiment that is using the Low-Frequency Array (LOFAR) (\citealt{de-bruyn-eor-ursi-2011}, van Haarlem et al. 2013, \textit{submitted}).
 % TODO correct reference if van Haarlem et al is published
 
-This work explores the information that is present in interference distributions, in order to analyse possible low-level interference that is not detectable by standard detection methods. Our approach is similar to the radio-source-count analyses that are used in cosmology \citep{condon-cosm-evol-of-radio-sources}, also named $\log N$ -- $\log S$ analyses, where $N$ and $S$ refer to the celestial source count and brightness respectively. The slope in such a plot contains information about source populations, their luminosity functions and the geometry of the Universe. We analyse such a double-logarithmic plot for the case of terrestrial sources, with the ultimate goal of estimating their full spatial and brightness distributions. This results in a better insight into the effects of low-level interference and allows one to simulate the effects of interference more accurately. A distribution can be expressed either as a differential or cumulative function. This work uses differential distributions, because they are better suited for visualizing the parameters we are interested in, although the two distributions basically convey the same information.
+This work explores the information that is present in interference distributions, in order to analyse possible low-level interference that is not detectable by standard detection methods. Our approach is similar to the radio-source-count analyses that are used in cosmology \citep{condon-cosm-evol-of-radio-sources}, also named $\log N$ -- $\log S$ analyses, where $N$ and $S$ refer to the celestial source count and brightness respectively. The slope in such a plot contains information about source populations, their luminosity functions and the geometry of the Universe. We analyse such a double-logarithmic plot for the case of terrestrial sources, with the ultimate goal of estimating their full spatial and brightness distributions. This results in a better insight into the effects of low-level interference and allows one to simulate the effects of interference more accurately.
+% A distribution can be expressed either as the probability density function (PDF) or as cumulative density function (CDF). This work uses PDFs, because they are better suited for visualizing the parameters we are interested in, although the two distributions basically convey the same information.
 
 %TODO maybe also discuss atmospheric (lightning), e.g. see 'Harry M. Hall, A New Model for ``Impulsive'' phenomena: application to atmospheric-noise communication channels', as contains also discussion on energy distributions.
 
-This paper is organised as follows: in Sect.~\ref{sec:distribution-prediction}, we calculate a model for terrestrial interfering source distribution based on various assumptions. Sect.~\ref{sec:distribution-methods} presents the methods that we use to generate and analyse the histograms. This is followed in Sect.~\ref{sec:dist-data} by a short description of the two LOFAR data sets that have been used to perform the experiment. The results of analysing the sets are presented in Sect.~\ref{sec:dist-results}. Finally, in Sect.~\ref{sec:dist-discussion} the results are discussed and conclusions are drawn.
+This paper is organised as follows: in Sect.~\ref{sec:distribution-prediction}, we calculate a model for terrestrial interfering source distribution based on various assumptions. Sect.~\ref{sec:distribution-methods} presents the methods that we use to generate and analyse brightness histograms of LOFAR data. This is followed in Sect.~\ref{sec:dist-data} by a short description of the two LOFAR data sets that have been used to perform the experiment. The results of analysing the sets are presented in Sect.~\ref{sec:dist-results}. Finally, in Sect.~\ref{sec:dist-discussion} the results are discussed and conclusions are drawn.
 
 \section{Modelling the brightness distribution} \label{sec:distribution-prediction}
 Interference is generated by many different kinds of transmitters, and these will have different spatial and brightness distributions (``spatial'' refers here to the distribution on the Earth). For example, aeroplanes and satellites have widely different heights, while other sources are ground-based. Even ground-based sources might be spread differently. For example, it can be expected that citizens' band (CB) devices, that are often used in cars, are distributed differently from broadcasting transmitters. For deliberate transmitters, the frequency at which interference occurs can identify the involved class of devices, because devices are constrained by the bands that have been allocated for the given class.
@@ -121,61 +122,61 @@ First we will derive the expected intrinsic source distribution for interfering 
 
 \begin{figure*}
 \begin{center}
-\includegraphics[height=8cm]{img/TF-L43786_L220-rfi-example.pdf}
+\includegraphics[height=8cm]{img/TF-L43786_L220-rfi-example-xaxistext.pdf}
 \caption{A small part of an observation displayed in a time-frequency plot. The features with significantly higher values are caused by interference. Some of these have a constant frequency, while others are more erratic.}
 \label{fig:dist-rfi-example}
 \end{center}
 \end{figure*}
 
-In every dynamic spectrum we can measure the number of times that the flux density is within a particular range. Dividing this quantity by the total number of samples yields the relative number of events as a function of intensity. We will refer to this quantity with the statistical term ``frequency density'' (not to be confused with the physical radiation frequency). We will now start by estimating the frequency density function of ground-based interfering sources. Consider an interfering point source of strength $I$ measured in flux density. This source is observed by an interferometer that consists of two antennas or stations with gains $g_1,g_2$, which include all instrumental effects. The antennas are located at distances $r_1,r_2$ from the source. The interferometer will record an apparent instantaneous strength $\mathcal{S}$ of
+In every dynamic spectrum we can measure the number of times that the flux density is within a particular range. Dividing this quantity by the total number of samples yields the relative number of events as a function of intensity. We will refer to this quantity with the term ``rate density''. We will now start by estimating the rate density function of ground-based interfering sources. Consider an interfering point source of strength $I$ that denotes the transmitting power normalized by the observational channel resolution (e.g., measured in W/Hz). This source is observed by an interferometer that consists of two antennas or stations with gains $g_1,g_2$, which include all instrumental effects. The antennas are located at distances $r_1,r_2$ from the source. The interferometer will record an apparent instantaneous strength $\mathcal{S}$ of
 \begin{equation}
- \mathcal{S}(r_1, r_2) = I \frac{g_1 g_2}{r_1 r_2},
+ \mathcal{S}(r_1, r_2) = I \frac{g_1 g_2}{4\pi r_1 r_2},
 \end{equation}
 with (real-valued amplitude) gains $g_1,g_2>0$ and $r_\textrm{L} > r_1,r_2 > 0$. Here, $r_\textrm{L}$ is a limiting distance, which will be well below the diameter of the Earth. The formula represents a spherically propagating wave in free space. We will limit our analysis to cross-correlated antennas; the auto-correlations will be ignored.
 
-We assume that the source observed is fully coherent, but a possible de-coherence factor can be absorbed in the gains. Due to the small bandwidth of most interfering sources, most RFI will be received coherently, because of the narrow-band condition. For example, if the bandwidth of the signal $\Delta\nu=1$ kHz, the narrow-band condition $\Delta \nu \ll (2\pi \tau)^{-1}$ with correlation delay $\tau$ will hold for baselines up to a few km, because it holds as long as the baseline length is significantly less than $\Delta x = c (2 \pi \Delta \nu)^{-1} \approx$ 50 km.
+We assume that the source observed is fully coherent, but a possible de-coherence factor can be absorbed in the gains. Due to the small bandwidth of most interfering sources, most RFI will be received coherently, because of the narrow-band condition. With a frequency resolution $\Delta\nu=$ 0.76~kHz, the narrow-band condition $\Delta \nu \ll (2\pi \tau)^{-1}$ with correlation delay $\tau$ will hold for baselines up to a few km, because it holds as long as the baseline length is significantly less than $\Delta x = c (2 \pi \Delta \nu)^{-1} \approx$ 50~km. Because the velocity resolution of LOFAR is 1.5~km/s at 150~MHz, and larger at lower frequencies, a Doppler frequency shift due to movement of the source will only be significant if its velocity is at least 1.5~km/s relative to the antennas. Since the relative velocities to different antennas in the array will be similar for such high-velocity transmitters (i.e., satellites), there will be hardly any decorrelation because of Doppler shifting.
 
 Although two antennas do not necessarily observe the same RFI sources, for source count analysis we can treat the interferometer geometrically as a single point, as both antennas will see the same distribution. Then, we can express the received amplitude $\mathcal{S}$ for a given distance $r$ and interferometric gain $g = g_1 g_2$ as
 \begin{equation} \label{eq:amplitude-fall-off-in-free-space}
- S(r) = \frac{Ig}{r^2}.
+ S(r) = \frac{Ig}{4\pi r^2}.
 \end{equation}
 
-Next, we assume that all RFI sources have equal constant strength $I$ and follow a uniform spatial distribution in the local two-dimensional horizontal plane. This is obviously a simplification, as the RFI sources are actually distributed on the surface of a sphere with different heights. Beyond some distance, the Earth will partly block the path between transmitter and receiver. Therefore, the assumption of uniformly distributed sources on a two-dimensional plane is only approximately valid. Using these assumptions, we can express the expected cumulative frequency density of sources $F_{\textrm{distance} \le r}(r)$ at distance $r$ as
+Next, we assume that all RFI sources have equal constant strength $I$ and follow a uniform spatial distribution in the local two-dimensional horizontal plane. This is obviously a simplification, as the RFI sources are actually distributed on the surface of a sphere with different heights. Beyond some distance, the Earth will partly block the path between transmitter and receiver. Therefore, the assumption of uniformly distributed sources on a two-dimensional plane is only approximately valid. Using these assumptions, we can express the expected cumulative rate density of sources $F_{\textrm{distance} \le r}(r)$ at distance $r$ as
 \begin{equation} \label{eq:cumulative-distance-function}
 F_{\textrm{distance} \le r}(r)=\rho \pi r^2,
 \end{equation}
 for some constant $\rho$ that represents the number of sources per unit area. In other words, we will observe $F$ sources that are at most a distance $r$ away.
 
-We need the reverse of Eq.~\eqref{eq:cumulative-distance-function} to calculate the amplitude distribution, because sources with an amplitude of \emph{at most} a given strength will have a distance of \emph{at least} some distance. Sources with at least a distance of $r$ are given by $F_{\textrm{distance} \ge r}(r) = N - \rho \pi r^2$, with $N$ the total number of sources. Because $r$ is restricted, $N$ is finite.
+We need the complement of Eq.~\eqref{eq:cumulative-distance-function} to calculate the amplitude distribution, because sources with an amplitude of \emph{at most} a given strength will have a distance of \emph{at least} some distance. Sources with at least a distance of $r$ are given by $F_{\textrm{distance} \ge r}(r) = N - \rho \pi r^2$, with $N$ the total number of sources. Because $r$ is restricted, $N$ is finite.
 
 The cumulative number of sources $F_{\textrm{amplitude} \le S}$ that have an amplitude of at most $S$ can now be calculated with
 \begin{align} \label{eq:cumulative-rfi-distribution}
  F_{\textrm{amplitude} \le S}(S) = & F_{\textrm{distance} \ge r}(\mathcal{R}(S))\\
-\notag = & F_{\textrm{distance} \ge r}(\pm\sqrt\frac{Ig}{S})\\
-\notag = & N-\frac{\rho \pi Ig}{S}
+\notag = & F_{\textrm{distance} \ge r}(\pm\sqrt\frac{Ig}{4\pi S})\\
+\notag = & N-\frac{\rho Ig}{4S}
 \end{align}
-where $\mathcal{R}(S)=\mathcal{S}^{-1}$, the inverse of $\mathcal{S}$, i.e., the function that returns the distance $r$ for a given amplitude $S$. Finally, the differential frequency density can be calculated by taking the derivative,
+where $\mathcal{R}(S)=\mathcal{S}^{-1}$, the inverse of $\mathcal{S}$, i.e., the function that returns the distance $r$ for a given amplitude $S$. Finally, the rate density can be calculated by taking the derivative,
 \begin{align} \label{eq:two-dimensional-distribution}
- f_S(S) = & \frac{dF_{\textrm{amplitude} \le S}}{dS} = \frac{\rho \pi Ig}{S^2}.
+ f_S(S) = & \frac{dF_{\textrm{amplitude} \le S}}{dS} = \frac{\rho Ig}{4S^2}.
 \end{align}
 
 Therefore, if we plot the histogram of the RFI amplitudes in a $\log$-$\log$ plot, we expect to see a power law with a slope of $-2$ over the interval in which the RFI sources are spread like uniform sources on a two-dimensional plane. For this, we have assumed that the variables $I$, $g$ and $\rho$ are constants. In reality, these variables have a stochastic nature. The effect of this will be discussed in \S\ref{sec:parameter-variability}.
 
-\subsection{Spherical case} \label{sec:spherical-geometry}
-If we do take into account the fact that the sources lie on a sphere instead of a plane, Eq.~\eqref{eq:cumulative-distance-function} changes. In this case, the RFI sources are distributed over the surface of a sphere. If we assume their difference in height is negligible, we can use the formula for the surface area of a spherical cap,
-\begin{equation}\label{eq:spherical-cap-area}
- A_\textrm{cap} = \pi \left( a^2 + h^2 \right) \hspace{0.4cm}\textrm{with } (a \le R) \wedge (h \le 2R),
-\end{equation}
-with $R$ the radius of the Earth, $a$ the radius of the base of the cap and $h$ the height of the cap. Because the Euclidean distance $r$ between the source and the antenna is $r^2 = a^2 + h^2$, the resulting number of sources within Euclidean distance $r$ becomes
-\begin{equation} \label{eq:cumulative-spherical}
-\tilde{F}_{\textrm{distance} \le r}(r) = \rho A_\textrm{cap} = \rho \pi r^2 \hspace{0.4cm}\textrm{with } r \le 2R,
-\end{equation}
-which equals the formula for a planar source distribution given in Eq.~\eqref{eq:cumulative-distance-function}. Therefore, the spherical and two-dimensional cases lead to a distribution with equal power law. Eq.~\eqref{eq:cumulative-spherical} is valid for $r \le 2R$, but in practice the lowest amplitude of observed sources is further constrained because of the curvature of the Earth. This causes distant sources to settle below the horizon. Nevertheless, some of those sources might still be visible due to reflection of the ionosphere and other (semi-)spherical propagation effects.
+%\subsection{Spherical case} \label{sec:spherical-geometry}
+%If we do take into account the fact that the sources lie on a sphere instead of a plane, Eq.~\eqref{eq:cumulative-distance-function} changes. If we assume their difference in height is negligible, we can use the formula for the surface area of a spherical cap,
+%\begin{equation}\label{eq:spherical-cap-area}
+% A_\textrm{cap} = \pi \left( a^2 + h^2 \right) \hspace{0.4cm}\textrm{with } (a \le R) \wedge (h \le 2R),
+%\end{equation}
+%with $R$ the radius of the Earth, $a$ the radius of the base of the cap and $h$ the height of the cap. Because the Euclidean distance $r$ between the source and the antenna is $r^2 = a^2 + h^2$, the resulting number of sources within Euclidean distance $r$ becomes
+%\begin{equation} \label{eq:cumulative-spherical}
+%\tilde{F}_{\textrm{distance} \le r}(r) = \rho A_\textrm{cap} = \rho \pi r^2 \hspace{0.4cm}\textrm{with } r \le 2R,
+%\end{equation}
+%which equals the formula for a planar source distribution given in Eq.~\eqref{eq:cumulative-distance-function}. Therefore, the spherical and two-dimensional cases lead to a distribution with equal power law. Eq.~\eqref{eq:cumulative-spherical} is valid for $r \le 2R$, but in practice the lowest amplitude of observed sources is further constrained because of the curvature of the Earth. This causes distant sources to settle below the horizon. Nevertheless, some of those sources might still be visible due to reflection of the ionosphere and other (semi-)spherical propagation effects.
 
 \subsection{Propagation effects}
 So far, we have assumed that the electromagnetic radiation propagates through free space, resulting in an $r^{-2}$ fall-off. In reality, the radiation will be affected by complicated propagational effects. Because of the irregular surface of the Earth (including urban areas) and the absence of a direct line of sight between transmitter and receiver, the propagation mode might be indirect. Multiple indirect paths might be formed that include reflection, refraction, diffraction and absorption of the electromagnetic wave. 
 
-A commonly used propagation model is the empirical model determined by \citet{okumura-propagation-model}, which was further developed by \citet{hata-propagation-loss}. The original model is based on urban areas, but corrections are given by \citeauthor{hata-propagation-loss} for sub-urban areas with a lower population density and for open areas. \citeauthor{hata-propagation-loss} gives the following analytical estimate for $L_p$, the electromagnetic propagation loss over land:
+A commonly used propagation model is the empirical model determined by \citet{okumura-propagation-model}, which was further developed by \citet{hata-propagation-loss}. The original model is based on urban areas, but corrections are given by Hata for sub-urban areas with a lower population density and for open areas. Hata gives the following analytical estimate for $L_p$, the electromagnetic propagation loss over land:
 \begin{align} 
 \notag                L_p & = & 69.55 + 26.16 \log_{10} f_c - 13.82 \log_{10} h_b - \\
 \label{eq:hata-model} & &  a(h_m) + (44.9 - 6.55 \log_{10} h_b) \log_{10} r, 
@@ -192,16 +193,16 @@ with
 \end{equation}
 Note that according to Hata's model, the exponent of the power law in Eq.~\eqref{eq:propagation-loss-factor} depends only on the height of the transmitting antenna, i.e., it is independent of frequency, receiver height and urban density. Now, if in Eqs.~\eqref{eq:cumulative-rfi-distribution} and \eqref{eq:two-dimensional-distribution} one replaces the definition of $S(r)$ from Eq.~\eqref{eq:amplitude-fall-off-in-free-space} with one that includes the propagation effects,
 \begin{equation}
- S(r) = \frac{Ig}{\zeta r^\eta},
+ S(r) = \frac{Ig}{4\pi \zeta r^\eta},
 \end{equation}
-with $\eta = 4.49 - 0.655 \log_{10} h_b$, one finds the frequency density function $f_p$ that considers propagation effects,
+with $\eta = 4.49 - 0.655 \log_{10} h_b$, one finds the rate density function $f_p$ that considers propagation effects,
 % S(r):=I*g/(r^alpha);
 % assume(g>0,I>0,S>0);
 % diff(rho*%pi*r^2,S),solve(S(r)=S,r);
 \begin{align} \label{eq:frequency-density-with-propagation}
 f_p(S)
-= & \frac{d}{dS} \left[ N - \rho \pi \left( \frac{Ig }{\zeta S} \right)^{2/\eta} \right]
-= \frac{\rho 2\pi}{\eta S} \left( \frac{Ig}{\zeta S} \right)^{2/\eta}.
+= & \frac{d}{dS} \left[ N - \rho \pi \left( \frac{Ig }{4\pi\zeta S} \right)^{2/\eta} \right]
+= \frac{\rho 2\pi}{\eta S} \left( \frac{Ig}{4\pi\zeta S} \right)^{2/\eta}.
 \end{align}
 Consequently, due to non-free-space propagation effects, the observed log-log histogram is predicted to have a $-(\frac{2}{\eta}+1)$ slope. By substituting $\eta$, one finds
 \begin{equation}
@@ -245,15 +246,13 @@ So far, these are the expected histograms for pure noise and pure RFI that propa
 \end{center}
 \end{figure}
 
-To understand the distribution of samples consisting of RFI + noise, one needs to consider the individual contributions of the real and imaginary components. The real and imaginary components of samples that are affected by RFI, will follow a multi-variate distribution: each complex component is the sum of a complex component of RFI and a noise sample. The noise comes from a Gaussian distribution with zero mean. The RFI distribution is assumed to be a power-law distribution with yet unknown exponent.
-
-To calculate the corresponding amplitude distribution that is formed by the combination of the real and imaginary component distributions, it is easier to perform numerical simulations, as analytic derivation is not trivial. The histogram can be numerically estimated by drawing complex samples from the two distributions and calculating and counting the amplitudes. A sample can be drawn from the RFI distribution by scaling and inverting the cumulative frequency function in Eq.~\eqref{eq:cumulative-rfi-distribution} and evaluating it for a uniformly distributed variable. Note however that $F_{\textrm{amplitude}\le S}(S)$ is not limited; when decreasing the amplitude $S$ towards zero, the number of sources will go to infinity. Therefore, one needs to assume that there are no samples beyond some limiting distance $r_L$ to invert the cumulative function. With this assumption, a single complex RFI contaminated sample $S_{\textrm{RFI}}$ can be sampled with
+To calculate the corresponding amplitude distribution that is formed by the combination of the real and imaginary component distributions, it is easier to perform numerical simulations, as analytic derivation is not trivial. The histogram can be numerically estimated by drawing complex samples from the two distributions and calculating and counting the amplitudes. A sample can be drawn from the RFI distribution by scaling and inverting the cumulative rate density function in Eq.~\eqref{eq:cumulative-rfi-distribution} and evaluating it for a uniformly distributed variable. Note however that $F_{\textrm{amplitude}\le S}(S)$ is not limited; when decreasing the amplitude $S$ towards zero, the number of sources will go to infinity. Therefore, one needs to assume that there are no samples beyond some limiting distance $r_L$ to invert the cumulative function. With this assumption, a single complex RFI contaminated sample $S_{\textrm{RFI}}$ can be sampled with
 \begin{equation} \label{eq:drawing-rfi-distribution}
-S_{\textrm{RFI}} \leftarrow \frac{Ig}{x_u r_L^2} e^{i 2 \pi y_u},
+S_{\textrm{RFI}} \leftarrow \frac{Ig}{4\pi x_u r_L^2} e^{i 2 \pi y_u},
 \end{equation}
-with $x_u, y_u \sim U(0, 1)$. The result is an amplitude sample $S_{\textrm{RFI}}$, with $S_{\textrm{RFI}} \ge Ig/r_L^2$, that follows a power-law distribution. The corresponding formula for drawing a sample $S$ that is contaminated by both RFI and noise is
+where $x_u$ and $y_u$ are independently drawn from a uniform distribution between 0 and 1. The result is an amplitude sample $S_{\textrm{RFI}}$, with $S_{\textrm{RFI}} \ge Ig/r_L^2$, that follows a power-law distribution. The corresponding formula for drawing a sample $S$ that is contaminated by both RFI and noise is
 \begin{equation} \label{eq:drawing-combined-distribution}
-S \leftarrow v_n + w_n i + \frac{Ig}{x_u r_L^2} e^{i 2 \pi y_u},
+S \leftarrow v_n + w_n i + \frac{Ig}{4\pi x_u r_L^2} e^{i 2 \pi y_u},
 \end{equation}
 with $v_n, w_n \sim N(\mu=0; \sigma)$. The final amplitude sample $S_A$ can be calculated with 
 \begin{equation} \label{eq:drawing-amplitudes}
@@ -265,7 +264,7 @@ If we assume that $I$, the average source strength; $g$, the average instrumenta
 
 Fig.~\ref{fig:rayleigh-and-rfi-combined} shows that the left side of the graph corresponds with the original Rayleigh distribution. From the right side of the histogram, we are able to estimate $Ig/r_L^2$, as the placing of the power-law curve is independent of the Rayleigh distribution for large $S$. Methods to constrain the parameters of the RFI distribution will be discussed in \S\ref{sec:rfi-distribution-constraints}. The curves in Fig.~\ref{fig:rayleigh-and-rfi-combined} are from histograms of samples that are all contaminated by both noise and RFI. In practice, we can not make this distinction accurately, as RFI detectors have a limited accuracy. Consequently, the observed histogram will be the sum of two types of histograms: the first histogram being contaminated by both noise and RFI, the second one only by noise.
 
-For completeness we show the formula for sampling apparent source strengths that include propagation effects according to Hata's model, which can be used for sampling realistic source amplitudes in simulations. This can be derived by integration, scaling and inversion of the frequency density function in Eq.~\eqref{eq:frequency-density-with-propagation}, resulting in:
+For completeness we show the formula for sampling apparent source strengths that include propagation effects according to Hata's model, which can be used for sampling realistic source amplitudes in simulations. This can be derived by integration, scaling and inversion of the rate density function in Eq.~\eqref{eq:frequency-density-with-propagation}, resulting in:
 \begin{equation} \label{eq:sample-with-propagation}
 \tilde{S}_{\textrm{RFI}} \leftarrow \frac{I g}{\zeta x_u^{\eta/2} r_L^\eta} e^{i 2 \pi y_u}.
 \end{equation}
@@ -286,7 +285,7 @@ The stochastic nature of $I$, that is caused by the spread of transmitters with 
 In this section we will briefly discuss how the histograms are created, how the slope of the underlying RFI distribution is estimated and show how to constrain some of the intrinsic RFI parameters.
 
 \subsection{Creating a histogram} \label{sec:histogram}
-While creating a histogram is trivial, it is important to note that it is necessary to have a variable bin size. This is mandated by the large dynamic range of the histogram that we are interested in. Therefore, we chose to have a bin size that increases linearly with the amplitude $S$, and the frequency counts are divided by the bin size after counting. Consequently, in parts of the histogram that have a sparse number of samples, the outlying samples will follow a $1/S$ curve, or a -1 slope in a log-log plot. This can be seen in the tails of the distributions of Fig.~\ref{fig:rayleigh-and-rfi-combined}. This, however, is not an intrinsic feature of the data but a consequence of the binning method.
+While creating a histogram is trivial, it is important to note that it is necessary to have a variable bin size. This is mandated by the large dynamic range of the histogram that we are interested in. Therefore, we chose to have a bin size that increases linearly with the amplitude $S$, and the rate counts are divided by the bin size after counting. Consequently, in parts of the histogram that have a sparse number of samples, the outlying samples will follow a $1/S$ curve, or a -1 slope in a log-log plot. This can be seen in the tails of the distributions of Fig.~\ref{fig:rayleigh-and-rfi-combined}. This, however, is not an intrinsic feature of the data but a consequence of the binning method.
 
 \subsection{Estimating $\sigma$ and slope parameters}
 The mode $\sigma$ of the Rayleigh distribution is estimated by finding the amplitude with the maximum occurrences, i.e., the amplitude corresponding to the peak of the histogram. The slope is estimated using linear regression over a visually selected interval.
@@ -300,10 +299,10 @@ One should note that fitting straight lines to the distribution curve in a log-l
  \hat \alpha_H = 1 + N \left(\sum\limits_{i=1}^{N} \ln \frac{x_i}{x_\textrm{min}} \right)^{-1},
 \end{equation}
 with $N$ the number of samples and $x_i$ for $0 < i \le N$ the samples that follow a power law with lower bound $x_\textrm{min}$.
-However, this estimator assumes the distribution is not cut-off at a high point. In our case, the distribution is cut-off at both sides, for example because of the limit of the analogue-digital converter (see \S\ref{sec:rfi-distribution-constraints}). Therefore, using this estimator will result in an estimate that is steeper (i.e., more negative) than the actual distribution. Moreover, the estimator requires reading and processing all data points, and because of the size of the data sets this is somewhat impractical. However, we can calculate Eq.~\eqref{eq:hill} by adding the bin centre values $N$ times to the calculation, where $N$ is the bin frequency. Because our bin size is small and the distribution is well sampled, the resulting estimate will be close to the normal Hill estimator. This avoids the need to iterate over all data.
+However, this estimator assumes the distribution is not cut-off at a high point. In our case, the distribution is cut-off at both sides, for example because of the limit of the analogue-digital converter (see \S\ref{sec:rfi-distribution-constraints}). Therefore, using this estimator will result in an estimate that is steeper (i.e., more negative) than the actual distribution. Moreover, the estimator requires reading and processing all data points, and because of the size of the data sets this is somewhat impractical. However, we can calculate Eq.~\eqref{eq:hill} by adding the bin centre values $N$ times to the calculation, where $N$ is the bin rate. Because our bin size is small and the distribution is well sampled, the resulting estimate will be close to the normal Hill estimator. This avoids the need to iterate over all data.
 
 \subsection{Determining RFI distribution limits} \label{sec:rfi-distribution-constraints}
-In this section we will show methods to find $S_U$ and $S_L$, the upper and lower flux limits of the power-law distribution at which the power law breaks down. Once the exponent of the power-law part of the distribution is estimated with the previously discussed techniques, the distribution can be extrapolated to find a lower flux limit. Assume that we have found a power law with exponent $\alpha$ and factor $\beta$ over an amplitude region $[S_1 ; S_2]$, resulting in the following frequency density function $h$:
+In this section we will show methods to find $S_U$ and $S_L$, the upper and lower flux limits of the power-law distribution at which the power law breaks down. Once the exponent of the power-law part of the distribution is estimated with the previously discussed techniques, the distribution can be extrapolated to find a lower flux limit. Assume that we have found a power law with exponent $\alpha$ and factor $\beta$ over an amplitude region $[S_1 ; S_2]$, resulting in the following rate density function $h$:
 \begin{equation} \label{eq:amplitude-power-law}
 h(S) = \beta S^\alpha.
 \end{equation}
@@ -320,7 +319,7 @@ $S_1$ and $S_2$ are selected by visually inspection of the histogram. Assume tha
 \begin{equation} \label{eq:upper-limit-constrained}
  \int\limits_{S_1}^{S_U} h(S) dS = N_\textrm{part}.
 \end{equation}
-In practice, the observed histogram will break down beyond some amplitude because of several reasons. First and most importantly, the samples themselves are digitized with an analogue-to-digital converter (ADC) with limited range. Second, we observe for a limited time and the frequency count is discrete. Because the chance of finding a sample with a very high intensity is low, it is unlikely to observe samples beyond some amplitude within the finite observing time. Finally, under the assumption of a uniform spatial distribution of RFI transmitters, samples with very high amplitude would have to be produced by transmitters that are very close to the telescope. However, it is likely that the uniform spatial distribution of transmitters will break down at closer distances.
+In practice, the observed histogram will break down beyond some amplitude because of several reasons. First and most importantly, the samples themselves are digitized with an analogue-to-digital converter (ADC) with limited range. Second, we observe for a limited time and the rate count is discrete. Because the chance of finding a sample with a very high intensity is low, it is unlikely to observe samples beyond some amplitude within the finite observing time. Finally, under the assumption of a uniform spatial distribution of RFI transmitters, samples with very high amplitude would have to be produced by transmitters that are very close to the telescope. However, it is likely that the uniform spatial distribution of transmitters will break down at closer distances.
 
 Solving Eq.~\eqref{eq:upper-limit-constrained} results in
 \begin{equation} \label{eq:upper-limit}
@@ -493,30 +492,6 @@ The Rayleigh parts of the distributions are plotted in Fig.~\ref{fig:histograms-
 \end{figure*}
 
 If we go back to Fig.~\ref{fig:histogram-passband-corrected}, we see that in the LBA the power law is stable for about three orders of magnitude, and one order more in the HBA. Fig.~\ref{fig:plot-slopes} shows the slope of the log-log plot as a function of amplitude, which was constructed by performing linear regression in a sliding window, with a window size of 1 decade. The HBA shows very little structure in the slope, but the LBA is less stable and shows some features in its power-law part. Linear regression on the power-law part of the log-log plot results in a slope of $-1.62$ for the LBA and $-1.53$ for the HBA. These and the other derived quantities have been summarized in Table~\ref{table:dist-data-quantities}. Although the HBA slope does not show any other significant features besides the Rayleigh and power-law curves, the LBA power law ends with a bulge around an amplitude of $10^6$. This bulge is caused by a very strong source affecting lots of samples, and is a single outlier in the spatial distribution. We found this is caused by RFI observed for about an hour in the late afternoon in the lower LBA frequency regime, around $30$--$40$~MHz. Leaving this frequency range out flattens the bulge significantly, but does not completely eliminate it, because the source put the receivers in a non-linear state, causing leakage at lower intensity levels in the other sub-bands. Unlike linear regression, the fitting region of the Hill estimator is not limited at the high end. Consequently, because of the bulge, the Hill estimator evaluates for the LBA into a slope that is less steep, with a value of $-1.53$. For the HBA set, the Hill estimator is equal to the $-1.53$ value found by linear regression.
-
-%\begin{figure}[tbp]
-%\begin{center}
-%\includegraphics[width=12cm]{img/plot-slope-over-frequency-trimmed}
-%\caption{Slope of the log-log histogram slope over frequency in the LBA set.}
-%\label{fig:plot-slope-over-frequency-LBA}
-%\end{center}
-%\end{figure}
-
-%\begin{figure}[tbp]
-%\begin{center}
-%\includegraphics[width=12cm]{img/slope-over-frequency-HBA/plot-slope-over-frequency}
-%\caption{Slope of the log-log histogram over frequency in the HBA set.}
-%\label{fig:plot-slope-over-frequency-HBA}
-%\end{center}
-%\end{figure}
-
-%\begin{figure}[tbp]
-%\begin{center}
-%\includegraphics[width=12cm]{img/slope-over-baseline-HBA/plot-slope-over-baseline-wstddev}
-%\caption{Slope of the log-log histogram over the baseline length for the HBA set. A single sub-band at 150 MHz was used. Error bars indicate $5\sigma$ level.}
-%\label{fig:plot-slope-over-baseline-HBA}
-%\end{center}
-%\end{figure}
 
 \begin{table*}
 \centering
