@@ -58,12 +58,12 @@ Specific comments:
 "The careful management of spectrum allocation and the construction of radio-quiet zones help to limit the number of harmful transmitters. If harmful RFI is observed nevertheless, the use of RFI mitigation methods can sometimes clean the data sufficiently to allow succesful calibration and imaging."
 
 (X) Sec 1, Col 1, line 50: "coherently" -- not sure this is really what the authors meant.  Maybe "persistently"?
-(A) Changed to "presistently"
+(A) Changed to "persistently"
 
 Sec 1, Col 2, Line 31: "van Haalem et al. 2013" does not appear in the reference list
 
 (X) Sec 1, Col 2, Lines 50-54: Not clear what a "differential" vs. "cumulative" distribution is.  The definition of "cumulative distribution function" (CDF) is well known -- are the authors using the standard definition?  If so, maybe "differential distribution" means "probability density function" (PDF), which is the derivative of the CDF?
-(A) Yes, we are using the standard PDFs and CDFs. In cosmology, terms like "differential galaxy counts" are used, hence we thought this explanation would help. We've now removed this comment altogether.
+(A) Yes, we are using normal PDFs and CDFs. In cosmology, terms like "differential galaxy counts" are used, hence we thought this explanation would help. We've now removed this comment altogether.
 
 (X) Sec 1, Col 2, Line 51: "histogram" -- suddenly using this term.  Related to "differential" or "cumulative" distribution how?  (Perhaps "histogram" = PDF?)
 (A) We believe we are using the term histogram here in the commonly used form: to refer to the distribution of the data as measured, whereas the term PDF refers to the underlying function that models the data. We think this is common terminology. We've slightly clarified it by changing it to "...and analyse brightness histograms of LOFAR data"
