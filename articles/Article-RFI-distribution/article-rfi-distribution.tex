@@ -147,7 +147,7 @@ F_{\textrm{distance} \le r}(r)=\rho \pi r^2,
 \end{equation}
 for some constant $\rho$ that represents the number of sources per unit area. In other words, we will observe $F$ sources that are at most a distance $r$ away.
 
-We need the complement of Eq.~\eqref{eq:cumulative-distance-function} to calculate the amplitude distribution, because sources with an amplitude of \emph{at most} a given strength will have a distance of \emph{at least} some distance. Sources with at least a distance of $r$ are given by $F_{\textrm{distance} \ge r}(r) = N - \rho \pi r^2$, with $N$ the total number of sources. Because $r$ is restricted, $N$ is finite.
+We need $F_{\textrm{distance} \ge r}(r)$, the complement of Eq.~\eqref{eq:cumulative-distance-function} to calculate the amplitude distribution, because sources with an amplitude of \emph{at most} a given strength will have a distance of \emph{at least} some distance. Sources with at least a distance of $r$ are given by $F_{\textrm{distance} \ge r}(r) = N - \rho \pi r^2$, with $N$ the total number of sources. Because $r$ is restricted, $N$ is finite.
 
 The cumulative number of sources $F_{\textrm{amplitude} \le S}$ that have an amplitude of at most $S$ can now be calculated with
 \begin{align} \label{eq:cumulative-rfi-distribution}
@@ -176,7 +176,7 @@ Therefore, if we plot the histogram of the RFI amplitudes in a $\log$-$\log$ plo
 \subsection{Propagation effects}
 So far, we have assumed that the electromagnetic radiation propagates through free space, resulting in an $r^{-2}$ fall-off. In reality, the radiation will be affected by complicated propagational effects. Because of the irregular surface of the Earth (including urban areas) and the absence of a direct line of sight between transmitter and receiver, the propagation mode might be indirect. Multiple indirect paths might be formed that include reflection, refraction, diffraction and absorption of the electromagnetic wave. 
 
-A commonly used propagation model is the empirical model determined by \citet{okumura-propagation-model}, which was further developed by \citet{hata-propagation-loss}. The original model is based on urban areas, but corrections are given by Hata for sub-urban areas with a lower population density and for open areas. Hata gives the following analytical estimate for $L_p$, the electromagnetic propagation loss over land:
+A commonly used propagation model is the empirical model determined by \citet{okumura-propagation-model}, which was further developed by \citet{hata-propagation-loss}. The original model is based on urban areas, but corrections are given by Hata for suburban areas with a lower population density and for open areas. Hata gives the following analytical estimate for $L_p$, the electromagnetic propagation loss between two ground-based antennas:
 \begin{align} 
 \notag                L_p & = & 69.55 + 26.16 \log_{10} f_c - 13.82 \log_{10} h_b - \\
 \label{eq:hata-model} & &  a(h_m) + (44.9 - 6.55 \log_{10} h_b) \log_{10} r, 
@@ -185,7 +185,7 @@ where $L_p$ the loss in dB; $f_c$ the radiation frequency in MHz; $h_b$ the heig
 
 Converting from a subtracted term in decibels to a flux density factor $L_S$, and collecting the terms of Eq.~\eqref{eq:hata-model} that are not depending on $r$ in a single variable $\zeta$, results in
 \begin{equation} \label{eq:propagation-loss-factor}
- L_S = \zeta r^{4.49 - 0.655 \log_{10} h_b},
+ L_S = \frac{1}{10} 10^{L_p} = \zeta r^{4.49 - 0.655 \log_{10} h_b},
 \end{equation}
 with
 \begin{equation} \label{eq:zeta-definition}
@@ -195,7 +195,7 @@ Note that according to Hata's model, the exponent of the power law in Eq.~\eqref
 \begin{equation}
  S(r) = \frac{Ig}{4\pi \zeta r^\eta},
 \end{equation}
-with $\eta = 4.49 - 0.655 \log_{10} h_b$, one finds the rate density function $f_p$ that considers propagation effects,
+with $\eta = 4.49 - 0.655 \log_{10} h_b$ as seen in Eq.~\eqref{eq:propagation-loss-factor}, one finds the rate density function $f_p$ that considers propagation effects,
 % S(r):=I*g/(r^alpha);
 % assume(g>0,I>0,S>0);
 % diff(rho*%pi*r^2,S),solve(S(r)=S,r);
@@ -232,7 +232,7 @@ Because most of the samples will be unaffected by RFI, this will be the dominati
 
 \begin{figure}
 \begin{center}\hspace{-5mm}\includegraphics[width=8cm]{img/plot-rayleigh-and-rfi-trimmed}
-\caption{The Rayleigh and power-law distributions in a log-log plot. The power-law distribution (Eq.~\eqref{eq:two-dimensional-distribution}) has a constant slope of -2. The slope of the Rayleigh distribution in the limit of the origin is 1. Its maximum occurs where the amplitude value equals its mode $\sigma$, which is 1 in this example. For higher amplitudes, its slope decreases exponentially.}
+\caption{The Rayleigh and power-law distributions in a log-log plot. The power-law distribution (Eq.~\eqref{eq:two-dimensional-distribution}) has a constant slope of -2. Its integral is not equal to 1 in this example, because some form of flattening would be required to make this possible. The slope of the Rayleigh distribution in the limit of the origin is 1. Its maximum occurs where the amplitude value equals its mode $\sigma$, which is 1 in this example. For higher amplitudes, its slope decreases exponentially.}
 \label{fig:rayleigh-and-rfi-distributions}
 \end{center}
 \end{figure}
@@ -250,7 +250,7 @@ To calculate the corresponding amplitude distribution that is formed by the comb
 \begin{equation} \label{eq:drawing-rfi-distribution}
 S_{\textrm{RFI}} \leftarrow \frac{Ig}{4\pi x_u r_L^2} e^{i 2 \pi y_u},
 \end{equation}
-where $x_u$ and $y_u$ are independently drawn from a uniform distribution between 0 and 1. The result is an amplitude sample $S_{\textrm{RFI}}$, with $S_{\textrm{RFI}} \ge Ig/r_L^2$, that follows a power-law distribution. The corresponding formula for drawing a sample $S$ that is contaminated by both RFI and noise is
+where $0 < x_u, y_u \le 1$ are independently drawn from a uniform distribution. The result is an amplitude sample $S_{\textrm{RFI}}$, with $S_{\textrm{RFI}} \ge Ig/r_L^2$, that follows a power-law distribution. The corresponding formula for drawing a sample $S$ that is contaminated by both RFI and noise is
 \begin{equation} \label{eq:drawing-combined-distribution}
 S \leftarrow v_n + w_n i + \frac{Ig}{4\pi x_u r_L^2} e^{i 2 \pi y_u},
 \end{equation}
@@ -260,22 +260,20 @@ S_A \leftarrow |S| = \sqrt{\textrm{real}^2({S})+\textrm{imag}^2({S})}.
 \end{equation}
 An example of distribution curves for various settings of $Ig/r_L^2$ is given in Fig.~\ref{fig:rayleigh-and-rfi-combined}.
 
-If we assume that $I$, the average source strength; $g$, the average instrumental gain; and $r_L$, the distance over which those sources are visible, are all unknown, it can be seen from Eq.~\eqref{eq:drawing-combined-distribution} that given the histogram we can solve neither $r_L$, $I$ or $g$, as they all have the same effect of scaling the -2 power-law part of the histogram. Although calibration could in theory solve $g$, almost all sources will come in through the far-sidelobes of the phased-array beam, and finding the expected values for the gains is therefore hard. The effects of these parameters on the histogram will be further discussed in \S\ref{sec:parameter-variability}.
+If we assume that $I$, the average source strength; $g$, the average instrumental gain; and $r_L$, the distance over which those sources are visible, are all unknown, it can be seen from Eq.~\eqref{eq:drawing-combined-distribution} that given the histogram we can solve neither $r_L$, $I$ or $g$, as they all have the same effect of scaling the -2 power-law part of the histogram. Although calibration could in theory solve $g$, almost all RFI sources will come in through the far-sidelobes of the beam, and finding the expected values for the gains is therefore hard. The effects of these parameters on the histogram will be further discussed in \S\ref{sec:parameter-variability}.
 
-Fig.~\ref{fig:rayleigh-and-rfi-combined} shows that the left side of the graph corresponds with the original Rayleigh distribution. From the right side of the histogram, we are able to estimate $Ig/r_L^2$, as the placing of the power-law curve is independent of the Rayleigh distribution for large $S$. Methods to constrain the parameters of the RFI distribution will be discussed in \S\ref{sec:rfi-distribution-constraints}. The curves in Fig.~\ref{fig:rayleigh-and-rfi-combined} are from histograms of samples that are all contaminated by both noise and RFI. In practice, we can not make this distinction accurately, as RFI detectors have a limited accuracy. Consequently, the observed histogram will be the sum of two types of histograms: the first histogram being contaminated by both noise and RFI, the second one only by noise.
+%Fig.~\ref{fig:rayleigh-and-rfi-combined} shows that the left side of the graph corresponds with the original Rayleigh distribution. From the right side of the histogram, we are able to estimate $Ig/r_L^2$, as the placing of the power-law curve is independent of the Rayleigh distribution for large $S$. Methods to constrain the parameters of the RFI distribution will be discussed in \S\ref{sec:rfi-distribution-constraints}. The curves in Fig.~\ref{fig:rayleigh-and-rfi-combined} are from histograms of samples that are all contaminated by both noise and RFI. In practice, we can not make this distinction accurately, as RFI detectors have a limited accuracy. Consequently, the observed histogram will be the sum of two types of histograms: the first histogram being contaminated by both noise and RFI, the second one only by noise.
 
 For completeness we show the formula for sampling apparent source strengths that include propagation effects according to Hata's model, which can be used for sampling realistic source amplitudes in simulations. This can be derived by integration, scaling and inversion of the rate density function in Eq.~\eqref{eq:frequency-density-with-propagation}, resulting in:
 \begin{equation} \label{eq:sample-with-propagation}
 \tilde{S}_{\textrm{RFI}} \leftarrow \frac{I g}{\zeta x_u^{\eta/2} r_L^\eta} e^{i 2 \pi y_u}.
 \end{equation}
-Here, $\tilde{S}_{\textrm{RFI}}$ is a new complex RFI sample; $\zeta$ and $\eta$ are as defined below Eq.~\eqref{eq:zeta-definition}; $I$ is the average intrinsic strength; $g$ is the gain of the instrument; $0 \le x_u,y_u < 1$ are two independently drawn uniformly distributed samples; and $r_L$ is the maximum distance of visible sources.
+Here, $\tilde{S}_{\textrm{RFI}}$ is a new complex RFI sample; $\zeta$ and $\eta$ are as defined below Eq.~\eqref{eq:zeta-definition}; $I$ is the average intrinsic strength; $g$ is the gain of the instrument; $0 < x_u,y_u \le 1$ are two independently drawn uniformly distributed samples; and $r_L$ is the maximum distance of visible sources.
 
 \subsection{Parameter variability} \label{sec:parameter-variability}
-In reality, the parameters $\rho$, $I$ and $g$, which are the source density per unit area, source strength and instrumental gain respectively, will not be constant, but can change over time and frequency. Therefore, they act like stochastic variables. However, since each specific value for these parameters produces a power law, the combined distribution will still show a power law, as long as the parameters follow a distribution that is steep at high amplitudes (in $\log$--$\log$ space), such as a Gaussian or uniform distribution.
+In reality, the parameters $\rho$, $I$ and $g$, which are the source density per unit area, source strength and instrumental gain respectively, will not be constant, but can change over time and frequency. Therefore, they are stochastic variables. However, since each specific value for these parameters produces a power law, the combined distribution will still show a power law, as long as the parameters follow a distribution that is steep at high amplitudes (in $\log$--$\log$ space), such as a Gaussian or uniform distribution.
 
-One instrumental effect that is absorbed in $g$ is the frequency response of the instrument, i.e., the antenna response in combination with the band-pass of the analogue and digital filters. Because the data that are analysed in Sect.~\ref{sec:dist-results} have initially not been band-pass calibrated, the instrumental response is not uniform over frequency. We determined that the variation due to the band-pass is about one order of magnitude for the low-band antennas (LBA, 30.1--77.5 MHz) and about a factor of two for the high-band antennas (HBA, 115.0--163.3 MHz).
-
-The effect of the band-pass on the data distribution is consequently limited to one order of magnitude or less. If the RFI sources have an apparent power-law distribution with a certain exponent, the distribution will have a feature at low amplitudes due to the frequency response, but a power law with equal exponent will still appear when the distribution is observed over a wide enough range.
+One instrumental effect that is absorbed in $g$ is the frequency response of the instrument, i.e., the antenna response in combination with the band-pass of the analogue and digital filters. Because the data that are analysed in Sect.~\ref{sec:dist-results} have initially not been band-pass calibrated, the instrumental response is not uniform over frequency. We determined that the gain variation due to the band-pass is about one order of magnitude for the low-band antennas (LBA, 30.1--77.5 MHz) and about a factor of two for the high-band antennas (HBA, 115.0--163.3 MHz). The frequency dependency of the gains due to the band-pass will consequently smooth the data in the brightness histogram in horizontal direction by one order of magnitude or less.
 
 Another effect that is absorbed in $g$, is the beam of the instrument. At the point of writing, LOFAR beam models are still being developed and are not yet well parametrized near the horizon. It is likely that most RFI sources are observed at the edges of the beam. Nevertheless, most sources will be observed with similar gains (within one order of magnitude), and it can be expected that the beam will have a limited effect on the histogram properties of an observation. It is therefore comparable with the effect of the frequency response.
 
@@ -294,12 +292,12 @@ The mode $\sigma$ of the Rayleigh distribution is estimated by finding the ampli
 %\end{equation}
 %In terms of the log-log histogram, the start of the interval corresponds with the point that is $1.3$ units to the right of the peak in the histogram, and the interval end corresponds with the point halfway between the start point and the maximum amplitude. This interval starts near the start of the RFI slope but past where the Rayleigh curve dominates. It also does not include the noisy data at the end of the curve. The curves are not always completely straight in this interval, but since we use the same stable way to determine the interval over which to calculate the slope, we can at least compare them.
 
-One should note that fitting straight lines to the distribution curve in a log-log plot is not the most accurate way of estimating the exponent of a power-law distribution \citep{power-law-distribution}. However, because of our enormous sample size, which allows fitting the line over a large interval, the estimator will be sufficiently accurate for our purpose. Nevertheless, we will additionally calculate a maximum likelihood estimator for comparison. The maximum-likelihood estimator for the exponent in a power-law distribution is given by the Hill estimator $\hat \alpha_H$ \citep{hill-estimator, power-law-distribution}, defined as:
+Fitting straight lines to the distribution curve in a log-log plot is not the most accurate way of estimating the exponent of a power-law distribution \citep{power-law-distribution}. However, because of our enormous sample size, which allows fitting the line over a large interval, the estimator will be sufficiently accurate for our purpose. Nevertheless, we will additionally calculate a maximum-likelihood estimator for comparison. The maximum-likelihood estimator for the exponent in a power-law distribution is given by the Hill estimator $\hat \alpha_H$ \citep{hill-estimator, power-law-distribution}, defined as:
 \begin{equation} \label{eq:hill}
  \hat \alpha_H = 1 + N \left(\sum\limits_{i=1}^{N} \ln \frac{x_i}{x_\textrm{min}} \right)^{-1},
 \end{equation}
 with $N$ the number of samples and $x_i$ for $0 < i \le N$ the samples that follow a power law with lower bound $x_\textrm{min}$.
-However, this estimator assumes the distribution is not cut-off at a high point. In our case, the distribution is cut-off at both sides, for example because of the limit of the analogue-digital converter (see \S\ref{sec:rfi-distribution-constraints}). Therefore, using this estimator will result in an estimate that is steeper (i.e., more negative) than the actual distribution. Moreover, the estimator requires reading and processing all data points, and because of the size of the data sets this is somewhat impractical. However, we can calculate Eq.~\eqref{eq:hill} by adding the bin centre values $N$ times to the calculation, where $N$ is the bin rate. Because our bin size is small and the distribution is well sampled, the resulting estimate will be close to the normal Hill estimator. This avoids the need to iterate over all data.
+However, this estimator assumes the distribution is not cut-off at a high point. In our case, the distribution is cut-off at both sides, for example because of the limit of the analogue-digital converter (see \S\ref{sec:rfi-distribution-constraints}). Therefore, using this estimator will result in an estimate that is steeper (i.e., more negative) than the actual distribution.
 
 \subsection{Determining RFI distribution limits} \label{sec:rfi-distribution-constraints}
 In this section we will show methods to find $S_U$ and $S_L$, the upper and lower flux limits of the power-law distribution at which the power law breaks down. Once the exponent of the power-law part of the distribution is estimated with the previously discussed techniques, the distribution can be extrapolated to find a lower flux limit. Assume that we have found a power law with exponent $\alpha$ and factor $\beta$ over an amplitude region $[S_1 ; S_2]$, resulting in the following rate density function $h$:
@@ -315,7 +313,7 @@ h(S) = \beta S^\alpha.
 \end{center}
 \end{figure}
 
-$S_1$ and $S_2$ are selected by visually inspection of the histogram. Assume that the histogram contains $N_\textrm{part}$ (RFI) samples with amplitude $> S_1$, as sketched in Fig.~\ref{fig:explanation-constraints}, and that the effect of the Rayleigh component on the histogram $> S_1$ is negligible. The hypothetical upper limit $S_U$ of the distribution can now be found, i.e., the highest amplitude that would be observed when the distribution follows the power law up to that point, by solving
+$S_1$ and $S_2$ are selected by visual inspection of the histogram. Assume that the histogram contains $N_\textrm{part}$ (RFI) samples with amplitude $> S_1$, as sketched in Fig.~\ref{fig:explanation-constraints}, and that the effect of the Rayleigh component on the histogram $> S_1$ is negligible. The hypothetical upper limit $S_U$ of the distribution can now be found, i.e., the highest amplitude that would be observed when the distribution follows the power law up to that point, by solving
 \begin{equation} \label{eq:upper-limit-constrained}
  \int\limits_{S_1}^{S_U} h(S) dS = N_\textrm{part}.
 \end{equation}
@@ -325,7 +323,7 @@ Solving Eq.~\eqref{eq:upper-limit-constrained} results in
 \begin{equation} \label{eq:upper-limit}
 S_U = \sqrt[\alpha+1]{\frac{\alpha+1}{\beta} N_\textrm{part} + S_1^{\alpha+1}}.
 \end{equation}
-In some cases there will be no solution for $S_U$. This situation arises because the integral of the distribution function is finite even when $S_U \rightarrow \infty$. If $N_\textrm{part}$ exceeds the integrated value of the fitted distribution function, there is no solution. This can happen when the empirical distribution is not limited at the high end, or when it contains features that are not in the model.
+In some cases there will be no solution for $S_U$. This can happen when the empirical distribution is not limited at the high end, or when it contains features that are not in the model.
 
 Similar to the calculation of $S_U$ and by using $N_\textrm{total}$ as an upper limit to the total number of samples that are affected by the power-law distribution, one can estimate the lower limit $S_L$. For Fig.~\ref{fig:explanation-constraints} this means that the areas labelled $N_a$ and $N_\textrm{total}-N_\textrm{part}$ are equal. The area labelled $N_b$ is assumed to be zero for now, which assumes the power law has a sharp cut-off on the left side, e.g., because of the curvature of the Earth. Solving $N_a = N_\textrm{total}-N_\textrm{part}$ results in
 \begin{equation} \label{eq:lower-limit-1}
@@ -341,7 +339,7 @@ which yields
 \tilde S_L = \sqrt[\alpha+1]{ - \frac{1}{\alpha} \left( \frac{\alpha+1}{\beta} \left(N_\textrm{part} - N_\textrm{total}\right) + S_1^{\alpha+1} \right) }.
 \end{equation}
 
-With estimates of $\alpha$, $\beta$, $S_L$ and $S_U$, one has obtained a parametrization of the RFI distribution. As was shown in \S\ref{sec:histogram-noise}, the left-most point where the power-law distribution falls off is $Ig/r^2$ -- assuming free space propagation for the moment -- and therefore $S_L = Ig/r^2$. For Hata's propagation model, the more generic solution $S_L = Ig / (\zeta r^\alpha)$ is found. This value represents the apparent brightness of the sources that are the furthest away from the telescope. With a fully parametrized distribution of the effect of RFI sources, an empirical model for RFI effects can be made. Moreover, one can calculate $E(S_R)$, the expected apparent strength of RFI:
+With estimates of $\alpha$, $\beta$, $S_L$ and $S_U$, one has obtained a parametrization of the RFI distribution. As was shown in \S\ref{sec:histogram-noise}, the left-most point where the power-law distribution falls off is $Ig/(4\pi r^2)$ -- assuming free space propagation for the moment -- and therefore $S_L = Ig/(4\pi r^2)$. For Hata's propagation model, the more generic solution $S_L = Ig / (4\pi \zeta r^\alpha)$ is found. This value represents the apparent brightness of the sources that are the furthest away from the telescope. With a fully parametrized distribution of the effect of RFI sources, an empirical model for RFI effects can be made. Moreover, one can calculate $E(S_R)$, the expected apparent strength of RFI:
 \begin{align} \label{eq:expected-value-rfi-def}
 E(S_R) & = \frac{1}{N_{LU}}\int\limits_{S_L}^{S_U} \beta S^\alpha S dS
  = \frac{\beta}{N_{LU}} \left[ \frac{1}{\alpha+2} S^{\alpha+2} \right]_{S_L}^{S_U} \\
@@ -357,9 +355,11 @@ Substitution and simplification of these two results in
 {\left( S_U^{\alpha+2} - S_L^{\alpha+2}\right)\left(\alpha+1\right)} 
 {\left(S_U^{\alpha+1} - S_L^{\alpha+1}\right) \left(\alpha+2 \right)}.
 \end{align}
-This is essentially the average flux density that is caused by RFI without using RFI detection or excision algorithms. $E(S_R)$ has the same units as $S_L$ and $S_U$, thus after calibration (see \S\ref{sec:calibration}) could be given in Jy. In practice, the increase of data noise after correlation is much less severe because of RFI flagging, which excises a part of the RFI. One can assume that all RFI above a certain power level is found by the detector. Since modern RFI detection algorithms can find all RFI that is detectable ``by eye'' \citep{post-correlation-rfi-classification}, this power level will be near the level of the noise mode. In
+This is essentially the average flux density that is caused by RFI without using RFI detection or excision algorithms. $E(S_R)$ has the same units as $S_L$ and $S_U$, thus after calibration (see \S\ref{sec:calibration}) could be given in Jy. In practice, the increase of data noise after correlation is much less severe because of RFI flagging, which excises a part of the RFI. One can assume that all RFI above a certain power level is found by the detector. Since modern RFI detection algorithms can find all RFI that is detectable ``by eye'' \citep{post-correlation-rfi-classification}, this power level will be near the level of the noise mode. We use the AOFlagger for RFI detection, which will be described in Sect.~\ref{sec:dist-data}. In
 \citet{lofar-radio-environment}
-the false-positives rate for the AOFlagger is estimated to be 0.5\%. An estimate of $S_d$, the average lower limit of detected RFI, can be calculated by finding the point on the distribution where the area under the distribution to the right of $S_d$ equals the real number (true positives) of RFI samples. Therefore, the limit is calculated similar to Eq.~\eqref{eq:lower-limit-1}, where the term $N_\textrm{part} - N_\textrm{total}$ needs to be replaced with $N_\textrm{RFI}$, which equals the total number of samples detected as RFI minus the 0.5\% false positives.
+the false-positives rate for the AOFlagger is estimated to be 0.5\%.
+
+An estimate of $S_d$, the average lower limit of detected RFI, can be calculated by finding the point on the distribution where the area under the distribution to the right of $S_d$ equals the real number (true positives) of RFI samples. Therefore, the limit is calculated similar to Eq.~\eqref{eq:lower-limit-1}, where the term $N_\textrm{part} - N_\textrm{total}$ needs to be replaced with $N_\textrm{RFI}$, which equals the total number of samples detected as RFI minus the false positives.
 
 Finally, $E(S_\textrm{leak})$, which is the expected value of leaked RFI not detected by the flagger, can be calculated by replacing $S_U$ with $S_d$ in the numerator of Eq.~\eqref{eq:expected-value-rfi} and subtracting the removed number of samples from the total of number of samples. Assume that a fraction of $\kappa$ samples are not detected as RFI and $1-\kappa$ have been detected as RFI, then
 \begin{align} \label{eq:expected-value-leaked-rfi}
@@ -404,7 +404,9 @@ In one set, the low-band antennas (LBA) were used and the frequency range 30.1--
 
 Although we have used Hata's model to estimate the RFI log-log histogram slope, our frequency range falls partly outside the frequency range over which Hata's model has been verified. However, according to Hata's model the observing frequency does not influence the power-law exponent in the frequency range 150--1500 MHz, thus it can be assumed the exponent will at least not significantly differ over the HBA range.
 
-To detect RFI, the AOFlagger \citep{LOFAR-RFI-pipeline, scale-invariant-rank-operator} was used. However, since this flagger is partly amplitude-based, it is likely that low-level RFI will leak through the detector. Since it is also low-level RFI we are interested in, we will analyse unflagged data and the RFI classified data.
+To detect RFI, the AOFlagger \citep{LOFAR-RFI-pipeline} is used. This RFI detector estimates the sky contribution by iteratively applying a high-pass filter to the visibility amplitudes of a single baseline in the time-frequency plane. Subsequently, it flags line-shaped features with the SumThreshold method, which is a combinatorial threshold method \citep{post-correlation-rfi-classification}. Finally, the scale-invariant rank operator, a morphological technique to search for contaminated samples, is applied on the two-dimensional flag mask \citep{scale-invariant-rank-operator}.
+
+Because the AOFlagger detector is partly amplitude-based, it is likely that low-level RFI will leak through the detector. Since it is also low-level RFI we are interested in, we will analyse unflagged data and the RFI classified data.
 
 \begin{table}
 \caption{Data set specifications}\label{table:dist-data-specs}

@@ -85,47 +85,70 @@ Sec 2, Col 2, Line 60: "airplanes and satellites" are not sources by themselves.
 "Because the velocity resolution of LOFAR is 1.5~km/s at 150~MHz, and larger at lower frequencies, a Doppler frequency shift due to movement of the source will only be significant if its velocity is at least 1.5~km/s relative to the antennas. Since the relative velocities to different antennas in the array will be similar for such high-velocity transmitters (i.e., satellites), there will be hardly any decorrelation because of Doppler shifting."
 
 (X) Sec 2, Col 1, Page 4, Lines 54: "Bandwidth of the signal \delta\nu = 1 kHz" -- very few signals present in this frequency range have an occupied bandwidth this narrow.  Typical is 5 - 50 kHz.  Maybe the authors mean spectral resolution.
-(A) We agree, fixed.
+(A) We agree, we meant spectral resolution.
 
 (X) Sec 2, Col 2, Page 4, Line 24 "we need the reverse" -- you mean "inverse"?
 (A) Changed to "complement"
 
-Fig 1: Units of time and relative to what time?
+(X) Fig 1: Units of time and relative to what time?
+(A) Added "(h, UTC)"
 
-Sec 2.2, Page 5, Col 1, Line 47: "sub-urban" --> "suburban"
+(X) Sec 2.2, Page 5, Col 1, Line 47: "sub-urban" --> "suburban"
+(A) Changed
 
-Sec 2.2, Page 5, Col 1, Lines 49-53: Define "Loss" in this case? 
+(X) Sec 2.2, Page 5, Col 1, Lines 49-53: Define "Loss" in this case? 
+(A) Added "between two ground-based antennas"
 
-Equations 9-10:  I was not able to determine what is the point of defining this quantity.  Does not seem to be used in the paper.  Also, seems dimensionally incorrect.  
+(X) Equations 9-10:  I was not able to determine what is the point of defining this quantity.  Does not seem to be used in the paper.  Also, seems dimensionally incorrect.  
+(A) (these are now equation 7-8) Equation 7 presents what the exponential dependency in the loss-factor is (the exponent is later named Eta) and shows how Zeta is extracted. Equation 9 uses both Eta and Zeta as defined in 7 and 8, thus both equations are used. By deriving Equation 7, it is also shown that the power-law exponent is not depending on frequency, receiver height and urban density. Although Eq 7 is an intermediate step and technically we could go from Eq 6 + 8 straight to Eq 10, we think it is helpful understanding the derivation. Eq 7 is dimensionally equal to Eq 6, which is coming from the cited paper by Hata, except that the 1/10 x exp10 was taken on both sides to be able to apply the formula on flux densities. Since it is an emperical formula converting distance and other quantities to an energy loss without full theoretical derivation, it is an implicit assumption that it converts one dimensionality (the right hand side) to another (1/distance^2), and our assumption is the same as in the paper by Hata, which is very often used (can can also be seen from its high number of citations). We don't think that discussing dimensionality here will be useful, as it will only distract the reader from the main points here, which are the implications of Hata's formula on the observed power-law distribution.
+
+To make the use of the equations more clear, we have added:
+L_S = 1/10 10^L_p = ..
+to Eq 7 and "as seen in Eq. (7)" below below Eq. 9.
 
 Figure 3's vertical axis is labeled "probability density" -- so this is a PDF (or histogram)?  The integral of a PDF should equal 1 (i.e., the sum of probabilities of all possible outcomes should be 1) -- is that really true for both curves (and in particular the "-2 power law distribution)?
 
-Figure 4 "Frequency density" -- units?  '
+TODO: give power law a lower cut-off.
+
+Figure 4 "Frequency density" -- units?
 
 (X) Section 2.3 Page 6 Col 2 paragraph beginning "to understand the distribution of samples..." -- I am baffled by this paragraph.  OK, so RFI and noise add coherently, and that influences the statistical distribution of amplitudes.  So...?
-(A) paragraph indeed unnecessary, now removed.
+(A) paragraph indeed unnecessary, removed.
 
-Section 2.3 Page 6 Col 2 Line 58 "U(0,1)" -- not clear -- maybe this means  "uniformly distributed over [0,1]"?
+(X) Section 2.3 Page 6 Col 2 Line 58 "U(0,1)" -- not clear -- maybe this means  "uniformly distributed over [0,1]"?
+(A) Yes, clarified.
 
-Sec 2.3 Page 7 Col 1 Line 21 "phased array beam" -- seems the discussion has suddenly become LOFAR-specific?  Presumably "phased array beam" means "station beam", and the interferometer is now an array of these station beams?
+(X) Sec 2.3 Page 7 Col 1 Line 21 "phased array beam" -- seems the discussion has suddenly become LOFAR-specific?  Presumably "phased array beam" means "station beam", and the interferometer is now an array of these station beams?
+(A) Since it is indeed not a requirement to have phased-array beams for this statement to be valid, we've removed "phased-array" to keep this point generic.
 
-Sec 2.3 Page 7 Col 1 Lines 23-34:  This seems to me to be a somewhat long-winded and repetitive way of pointing out that RFI shows up as a tail distribution on top of the expected Gaussian noise distribution.  
+(X) Sec 2.3 Page 7 Col 1 Lines 23-34:  This seems to me to be a somewhat long-winded and repetitive way of pointing out that RFI shows up as a tail distribution on top of the expected Gaussian noise distribution.  
+(A) Agree, paragraph removed.
 
-Sec 2.4 Page 7 Col 1 Line 52: "they act like stochastic variables"?  Maybe you mean they "are" or "can be modeled as"? 
+(X) Sec 2.4 Page 7 Col 1 Line 52: "they act like stochastic variables"?  Maybe you mean they "are" or "can be modeled as"? 
+(A) Changed to "are"
 
-Second paragraph in Sec 2.4 seems out of place -- shouldn't this go with the description of the dataset?
+(X) Second paragraph in Sec 2.4 seems out of place -- shouldn't this go with the description of the dataset?
+(A) While we do indeed mention the data here already, we mainly discuss gain variation in the data and its relation to the histogram, and combine this with variation due to the other stochastic variables (such as I). Since the latter is not part of the data description, and we think it is useful to have the discussion of the gain variation and the other variables together, we think it is better to keep this paragraph at its current position. It's not necessary to have read Sect. 4 to understand this paragraph.
 
-Third paragraph in Sec 2.4:  Baffled by this entire paragraph.  For example "effect of the band-pass on the data distribution is consequently limited to one order of magnitude or less" -- one order of magnitude of what?  What specifically is meant by "effect of the band-pass"?
+(X) Third paragraph in Sec 2.4:  Baffled by this entire paragraph.  For example "effect of the band-pass on the data distribution is consequently limited to one order of magnitude or less" -- one order of magnitude of what?  What specifically is meant by "effect of the band-pass"?
+(A) We've removed the paragraph and replaced it with the following sentence: "The frequency dependency of the gains due to the band-pass will consequently smooth the data in the brightness histogram in horizontal direction by one order of magnitude or less."
 
-Sec 3.2 Page 8 Col 1 Line 9-10:  "slope estimated using linear regression over a visually-selected interval": OK, but then is it really reasonable to imply that the slope exponent can be determined with more than one signficant figure following the decimal point? 
- 
-Sec 3.3 Page 8 Col 1 Line 49: "visually inspection"
+(X) Sec 3.2 Page 8 Col 1 Line 9-10:  "slope estimated using linear regression over a visually-selected interval": OK, but then is it really reasonable to imply that the slope exponent can be determined with more than one signficant figure following the decimal point? 
+(A) Yes, we think so. Uncertainty in selecting the range does not affect the certainty in the slope estimate significantly. For example, in simulations with 10^6 samples, the fitting range for the HBA an order of magnitude (i.e., one tick on the x-axis) to the right affects the slope estimate by only 0.002. Since the LBA/HBA histograms have many more samples, the uncertainty because of the visually selected interval can be neglected. We've also verified that changing the range slightly does not affect our estimates. Uncertainty because of variation in the curve is captured in our estimates of the standard error. Even our most pessimistic standard error of the slope estimate (epsilon_alpha in Table 2) says that we can estimate the slope more accurate than 0.1, so the second digit has value. Arguments could be given for how to select the interval based on where the Rayleigh distribution becomes insignificant, but this would make the discussion even more rigorous and add little value.
 
-Sec 3.2-3.3:  I don't specifically object, but I find this to be excessively rigorous for something that is ultimately limited by relatively bold assumptions and still requires a some "eyeballing" to set parameters.
+(X) Sec 3.2-3.3:  I don't specifically object, but I find this to be excessively rigorous for something that is ultimately limited by relatively bold assumptions and still requires a some "eyeballing" to set parameters.
+(A) We have slightly shortened both sections. Sect 3.2 is brief, and since we use a method that is discouraged in science (fitting straight lines to a power-law distribution) it is good to mention why we do this and that we confirmed it. Section 3.3 is extensive, but introduces estimators that we think are very interesting. Without most of these estimators we do not have a full parameterization of the RFI distribution, and thus the distribution can not be simulated. The other estimators help to understand the effectivity of flagging, and the resulting measures provide an argument in the "LOFAR RFI is manageable" discussion. As said during the "visually-selected interval" discussion, the uncertainty of roughly estimating the interval is negligable, thus our results are not depending on eyeballing.
 
-Sec 3.3 Page 9 Col 2 Line 6-7: "AOFlagger" suddenly comes into play.  Presumably this work is intended to be more broadly applicable than just to LOFAR using this RFI mitigation scheme?
+(X) Sec 3.3 Page 9 Col 2 Line 6-7: "AOFlagger" suddenly comes into play.  Presumably this work is intended to be more broadly applicable than just to LOFAR using this RFI mitigation scheme?
+(A) Added: "We use the AOFlagger for RFI detection, which will be described in Sect. 4. " before "In Offringa et al. (2013), the false-positives rate for the AOFlagger is estimated to be 0.5%."
+and changed "which equals the [..] minus the 0.5% false positives." to "which equals the [..] minus the false positives."
 
-Sec 3.4 "The current LOFAR SEFD is found to be approximately ...." -- no way these numbers can be generally true.  Since LOFAR uses phased array stations they must vary significantly as a function of beam pointing in zenith angle at least; but also with respect to beam pointing in RA/DEC and LST as well.  Also I am not aware of a reference that compellingly demonstrates LOFAR SEFD -- can this be identified/cited?
+We've extended the description of the AOFlagger in Sect. 4.
+
+(X) Sec 3.4 "The current LOFAR SEFD is found to be approximately ...." -- no way these numbers can be generally true.  Since LOFAR uses phased array stations they must vary significantly as a function of beam pointing in zenith angle at least; but also with respect to beam pointing in RA/DEC and LST as well.  Also I am not aware of a reference that compellingly demonstrates LOFAR SEFD -- can this be identified/cited?
+(A) They are officially given on the website of Astron, and these match with our numbers, see:
+- http://www.astron.nl/radio-observatory/astronomers/lofar-imaging-capabilities-sensitivity/sensitivity-lofar-array/sensiti
+In the reference "Haarlem et al., submitted 2013" (see last comment for obtaining), these numbers are also given, with a more extensive description of what they mean. The declination is taken into account, and the numbers provide an "average" SEFD for typical observations. The NCP observations we analyse are typical and match with our SEFD. In the reference Yatawatta et al. 2013, it is shown that 6h NCP observations almost achieve the imaging noise corresponding to this SEFD for the HBA (the main limitation is assumed to be calibration issues & off-axis sources).
 
 Sec 4, first paragraph:  Not indicated how the receiving antennas are geographically positioned, and especially how they are positioned with respect to known strong transmitters and population centers.  
 
