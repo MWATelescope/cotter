@@ -5,7 +5,7 @@ set yrange [5:13.5]
 set output "histograms-with-fits.ps"
 set key top left Left reverse
 set xlabel "Log amplitude of correlation coefficients (arbitrary units)"
-set ylabel "Log count"
+set ylabel "Rate density (log count)"
 plot \
 "lba-histogram-data.txt" using 2:3 with lines title 'LBA Total' lw 3.0 lt 1 lc rgb "#0000FF", \
 "hba-histogram-data.txt" using 2:3 with lines title 'HBA Total' lw 3.0 lt 1 lc rgb "#0080FF", \

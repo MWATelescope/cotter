@@ -4,7 +4,7 @@ set terminal postscript enhanced color font 'Helvetica,16'
 set output "plot-dist-per-frequency.ps"
 set key top right
 set xlabel "Log amplitude of correlation coefficients (arbitrary units)"
-set ylabel "Log count"
+set ylabel "Rate density (log count)"
 plot \
 "data-120MHz.txt" using 2:3 with lines title '120 MHz' lw 3.0 lt 1 lc rgb "#0000FF", \
 "data-130MHz.txt" using 2:3 with lines title '130 MHz' lw 3.0 lt 1 lc rgb "#40D040", \

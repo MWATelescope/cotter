@@ -4,7 +4,7 @@ set yrange [-5:15]
 set output "histograms-raw.ps"
 set key bottom left Left reverse
 set xlabel "Log amplitude of correlation coefficient (arbitrary units)"
-set ylabel "Log count"
+set ylabel "Rate density (log count)"
 set label "LBA" at 2.8,5.8
 set label "HBA" at 1,4.5
 plot \
