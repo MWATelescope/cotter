@@ -6,8 +6,8 @@
 class FitsUser
 {
 	protected:
-		void checkStatus(int status);
-		void throwError(int status, const std::string &msg = std::string());
+		static void checkStatus(int status);
+		static void throwError(int status, const std::string &msg = std::string());
 };
 
 #endif

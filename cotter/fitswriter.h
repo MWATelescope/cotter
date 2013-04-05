@@ -28,14 +28,39 @@ class FitsWriter : public Writer, private FitsUser
 		virtual void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights);
 		
 	private:
-		void writeDataDescEntry(size_t spectralWindowId, size_t polarizationId, bool flagRow);
-		void writeFeedEntries(const std::vector<Writer::AntennaInfo>& antennae, double time);
+		void initGroupHeader();
+		void setKeywordToDouble(const char *keywordName, double value) const
+		{
+			int status = 0;
+			if(fits_update_key(_fptr, TDOUBLE, keywordName, &value, NULL, &status))
+				throwError(status, "Could not write keyword");
+		}
+		void setKeywordToFloat(const char *keywordName, float value) const
+		{
+			int status = 0;
+			if(fits_update_key(_fptr, TFLOAT, keywordName, &value, NULL, &status))
+				throwError(status, "Could not write keyword");
+		}
+		void setKeywordToString(const char *keywordName, const char *value) const
+		{
+			int status = 0;
+			if(fits_update_key(_fptr, TFLOAT, keywordName, const_cast<char*>(value), NULL, &status))
+				throwError(status, "Could not write keyword");
+		}
+		void setKeywordToString(const char *keywordName, const std::string &value) const
+		{
+			setKeywordToString(keywordName, value.c_str());
+		}
 		
-		class MSWriterData *_data;
-		size_t _rowIndex;
-		
-		size_t _nChannels;
 		fitsfile *_fptr;
+		
+		struct {
+			std::string name;
+			std::vector<ChannelInfo> channels;
+			double refFreq;
+			double totalBandwidth;
+			bool flagRow;
+		} _bandInfo;
 };
 
 #endif
