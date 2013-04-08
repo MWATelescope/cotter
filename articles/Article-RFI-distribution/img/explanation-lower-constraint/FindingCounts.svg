@@ -13,8 +13,8 @@
    height="225.18692"
    id="svg5482"
    version="1.1"
-   inkscape:version="0.48.1 r9760"
-   sodipodi:docname="FindingCounts.pdf">
+   inkscape:version="0.48.3.1 r9886"
+   sodipodi:docname="FindingCounts.svg">
   <defs
      id="defs5484">
     <marker
@@ -54,7 +54,7 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="1.979899"
-     inkscape:cx="23.046573"
+     inkscape:cx="24.056726"
      inkscape:cy="112.30361"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
@@ -63,8 +63,8 @@
      fit-margin-left="0"
      fit-margin-right="0"
      fit-margin-bottom="0"
-     inkscape:window-width="1272"
-     inkscape:window-height="919"
+     inkscape:window-width="1920"
+     inkscape:window-height="1025"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1" />
@@ -76,7 +76,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -371,7 +371,7 @@
          id="tspan4670"
          x="-602.16687"
          y="315.36542"
-         style="font-size:9px">Logarithmic frequency density</tspan></text>
+         style="font-size:9px">Logarithmic rate density</tspan></text>
     <path
        style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Mend)"
        d="m 312.86543,672.16689 0,-65"

@@ -4,7 +4,7 @@ set yrange [-5:18]
 set output "histograms-corrected.ps"
 set key top right
 set xlabel "Effective flux density (Jy)"
-set ylabel "Log count"
+set ylabel "Rate density (log count)"
 set label "S_{l2}" at (770/0.67714)*10**(-4.7213158865289-0.55), 17.546667840847-0.1
 set label "S_{l1}" at (770/0.67714)*10**(-4.3829143670338+0.2), 16.999878917959
 set label "S_d" at (770/0.67714)*10**(-1.6406456219421+0.1), 12.568923124279+0.2
