@@ -151,8 +151,7 @@ int main(int argc, char **argv)
 		{
 			if(i >= fileSets[j].size() || fileSets[j][i].empty()) {
 				std::ostringstream errstr;
-				errstr << "Unable to correctly order the raw GPU input files: missing information from GPU box " << (j+1) << ", timerange " << i << ". Maybe you are missing an input file?";
-				throw std::runtime_error(errstr.str());
+				std::cout << "Missing information from GPU box " << i << ", timerange " << j << ". Maybe you are missing an input file?\n";
 			}
 		}
 	}

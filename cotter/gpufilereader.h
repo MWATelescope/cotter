@@ -33,7 +33,7 @@
 class GPUFileReader : private FitsUser
 {
 	public:
-		GPUFileReader() : _isOpen(false), _nAntenna(32), _nChannelsInTotal(3072), _bufferSize(0) { }
+		GPUFileReader(size_t nAntenna, size_t nChannelsInTotal) : _isOpen(false), _nAntenna(nAntenna), _nChannelsInTotal(nChannelsInTotal), _bufferSize(0) { }
 		~GPUFileReader() { closeFiles(); }
 		
 		void AddFile(const char *filename) { _filenames.push_back(std::string(filename)); }
@@ -69,7 +69,8 @@ class GPUFileReader : private FitsUser
 		}
 		std::time_t StartTime() const { return _startTime; }
 	private:
-		const static int pfb_output_to_input[64];
+		const static int single_pfb_output_to_input[64];
+		std::vector<int> pfb_output_to_input;
 		
 		GPUFileReader(const GPUFileReader &) { }
 		void operator=(const GPUFileReader &) { }
@@ -77,6 +78,7 @@ class GPUFileReader : private FitsUser
 		void closeFiles();
 		void findStopHDU();
 		void initMapping();
+		void initializePFBMapping();
 		BaselineBuffer &getBuffer(size_t antenna1, size_t antenna2)
 		{
 			return _buffers[_nAntenna*antenna1 + antenna2];

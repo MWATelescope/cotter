@@ -314,17 +314,12 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 void Cotter::createReader(const std::vector< std::string >& curFileset)
 {
 	delete _reader; // might be 0, but that's ok.
-	_reader = new GPUFileReader();
+	_reader = new GPUFileReader(_mwaConfig.NAntennae(), _mwaConfig.Header().nChannels);
 
 	for(std::vector<std::string>::const_iterator i=curFileset.begin(); i!=curFileset.end(); ++i)
 		_reader->AddFile(i->c_str());
 	
 	_reader->Initialize();
-	
-	if(_reader->AntennaCount() != _mwaConfig.NAntennae())
-		throw std::runtime_error("nAntennae in GPU files do not match nAntennae in config");
-	if(_reader->ChannelCount() != _mwaConfig.Header().nChannels)
-		throw std::runtime_error("nChannels in GPU files do not match nChannels in config");
 }
 
 void Cotter::initializeReader()
