@@ -330,6 +330,7 @@ void Cotter::initializeReader()
 		_reader->SetCorrInputToOutput(i, _mwaConfig.Input(i).antennaIndex, _mwaConfig.Input(i).polarizationIndex);
 	
 	// Initialize buffers of reader
+	_reader->ResetBuffers();
 	for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
 	{
 		for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)

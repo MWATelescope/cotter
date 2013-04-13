@@ -47,6 +47,10 @@ class GPUFileReader : private FitsUser
 		size_t AntennaCount() { return _nAntenna; }
 		size_t ChannelCount() { return _nChannelsInTotal; }
 		
+		void ResetBuffers()
+		{
+			_bufferSize = 0;
+		}
 		void SetDestBaselineBuffer(size_t antenna1, size_t antenna2, const BaselineBuffer &buffer)
 		{
 			if(_bufferSize != buffer.nElementsPerRow)
