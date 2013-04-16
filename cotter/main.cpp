@@ -76,6 +76,7 @@ int main(int argc, char **argv)
 	std::vector<std::string> unsortedFiles;
 	int argi = 1;
 	size_t freqAvg = 1, timeAvg = 1;
+	double memPercentage = 90.0;
 	Cotter cotter;
 	const char *outputFilename = "preprocessed.ms";
 	while(argi!=argc)
@@ -93,6 +94,11 @@ int main(int argc, char **argv)
 		{
 			++argi;
 			cotter.SetMetaFilename(argv[argi]);
+		}
+		else if(strcmp(argv[argi], "-mem") == 0)
+		{
+			++argi;
+			memPercentage = atof(argv[argi]);
 		}
 		else if(strcmp(argv[argi], "-norfi") == 0)
 		{
@@ -188,7 +194,7 @@ int main(int argc, char **argv)
 	std::cout << "Detected " << round(memSizeInGB*10.0)/10.0 << " GB of system memory.\n";
 	
 	cotter.SetFileSets(fileSets);
-	cotter.SetMaxBufferSize(memSize/10*9/(sizeof(float)*2+1));
+	cotter.SetMaxBufferSize(memSize*memPercentage/(100*(sizeof(float)*2+1)));
 	cotter.SetThreadCount(sysconf(_SC_NPROCESSORS_ONLN));
 	cotter.Run(outputFilename, timeAvg, freqAvg);
 	
