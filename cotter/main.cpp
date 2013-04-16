@@ -4,6 +4,8 @@
 #include "cotter.h"
 #include "radeccoord.h"
 
+#include <boost/algorithm/string.hpp>
+
 bool isDigit(char c)
 {
 	return c >= '0' && c <= '9';
@@ -32,6 +34,20 @@ size_t gpuBoxNumberFromFilename(const std::string &filename)
 	if(num == 0)
 		throw std::runtime_error("Could not parse gpu box number in filename (it was zero)");
 	return num-1;
+}
+
+bool isFitsFile(const std::string &filename)
+{
+	return false;
+}
+
+bool isMWAFlagFile(const std::string &filename)
+{
+	if(filename.size() > 5)
+	{
+		return boost::to_upper_copy(filename.substr(filename.size()-5)) == ".MWAF";
+	}
+	return false;
 }
 
 void usage()
@@ -68,6 +84,10 @@ int main(int argc, char **argv)
 		{
 			++argi;
 			outputFilename = argv[argi];
+			if(isFitsFile(outputFilename))
+				cotter.SetOutputFormat(Cotter::FitsOutputFormat);
+			else if(isMWAFlagFile(outputFilename))
+				cotter.SetOutputFormat(Cotter::FlagsOutputFormat);
 		}
 		else if(strcmp(argv[argi], "-m") == 0)
 		{
