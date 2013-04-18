@@ -55,7 +55,7 @@ class FitsWriter : public Writer, private FitsUser
 		void setKeywordToString(const char *keywordName, const char *value) const
 		{
 			int status = 0;
-			if(fits_update_key(_fptr, TFLOAT, keywordName, const_cast<char*>(value), NULL, &status))
+			if(fits_update_key(_fptr, TSTRING, keywordName, const_cast<char*>(value), NULL, &status))
 				throwError(status, "Could not write keyword");
 		}
 		
@@ -87,6 +87,10 @@ class FitsWriter : public Writer, private FitsUser
 			double totalBandwidth;
 			bool flagRow;
 		} _bandInfo;
+		
+		double _fieldRA, _fieldDec;
+		double _startTime;
+		std::string _sourceName;
 };
 
 #endif

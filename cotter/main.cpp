@@ -90,9 +90,15 @@ int main(int argc, char **argv)
 			++argi;
 			outputFilename = argv[argi];
 			if(isFitsFile(outputFilename))
+			{
+				cotter.SetCollectStatistics(false);
 				cotter.SetOutputFormat(Cotter::FitsOutputFormat);
+			}
 			else if(isMWAFlagFile(outputFilename))
+			{
+				cotter.SetCollectStatistics(false);
 				cotter.SetOutputFormat(Cotter::FlagsOutputFormat);
+			}
 		}
 		else if(strcmp(argv[argi], "-m") == 0)
 		{

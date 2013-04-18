@@ -56,9 +56,8 @@ void FitsWriter::initGroupHeader()
   naxes[4] = 1;
   naxes[5] = 1;
 	const unsigned nGroupParams = 5; // u,v,w,baseline,time
-	// Total number of groups, i.e., nr time scans x nr baselines
-	// Since we don't know this yet, init to 0.
-	const unsigned nRows = 1;
+	// Total number of rows: don't know yet, start with one timestep.
+	const unsigned nRows = _antennae.size() * (_antennae.size() + 1) / 2;
   fits_write_grphdr(_fptr, TRUE, FLOAT_IMG, NAXIS, naxes, nGroupParams,
 										nRows, TRUE, &status);
 	checkStatus(status);
@@ -67,7 +66,8 @@ void FitsWriter::initGroupHeader()
 	
   // Set the UU,VV,WW,BASELINE and DATE header names and scales
   const char *parameterNames[] = {"UU", "VV", "WW", "BASELINE", "DATE"};
-  for(unsigned i=0; i<nGroupParams; i++) {
+  for(unsigned i=0; i<nGroupParams; i++)
+	{
 		std::ostringstream ptypeName;
 		ptypeName << "PTYPE" << (i+1);
 		setKeywordToString(ptypeName.str().c_str(), parameterNames[i]);
@@ -76,13 +76,20 @@ void FitsWriter::initGroupHeader()
 		pscaleName << "PSCAL" << (i+1);
 		setKeywordToFloat(pscaleName.str().c_str(), 1.0);
 		
-		if(i != 4) // The 'DATE' zerolevel will be set later by the WriteObservation call.
+		if(i != 4) // The 'DATE' zerolevel will be set later
 		{
 			std::ostringstream pzeroName;
 			pzeroName << "PZERO" << (i+1);
 			setKeywordToFloat(pzeroName.str().c_str(), 0.0);
 		}
   }
+  int year, month, day;
+	julianDateToYMD(_startTime + 2400000.5, year, month, day);
+	char dateStr[40];
+  std::sprintf(dateStr, "%d-%02d-%02dT00:00:00.0", year, month, day);
+	setKeywordToString("DATE-OBS", dateStr);
+	// Set the zero level for the DATE column.
+  setKeywordToDouble("PZERO5", _startTime + 2400000.5); // convert MJD to JD
 
   // The dimensions...
   setKeywordToString("CTYPE2", "COMPLEX");
@@ -95,55 +102,14 @@ void FitsWriter::initGroupHeader()
 	setKeywordToFloat("CDELT3", -1); // Required for linear pols
   setKeywordToFloat("CRPIX3", 1.0);
 	
-	// (other dimensions will be set by the specific Write..Info() calls)
-
-	// This is apparently required...
-	if(fits_write_history(_fptr, "AIPS WTSCAL =  1.0", &status))
-		throwError(status, "Could not write history to FITS file");
-	
-	_groupHeadersInitialized = true;
-}
-
-void FitsWriter::WriteBandInfo(const std::string& name, const std::vector<ChannelInfo>& channels, double refFreq, double totalBandwidth, bool flagRow)
-{
-	if(!_groupHeadersInitialized)
-		initGroupHeader();
-	_bandInfo.name = name;
-	_bandInfo.channels = channels;
-	_bandInfo.refFreq = refFreq;
-	_bandInfo.totalBandwidth = totalBandwidth;
-	_bandInfo.flagRow = flagRow;
-	
 	setKeywordToString("CTYPE4", "FREQ");
-  setKeywordToFloat("CRVAL4", (channels.begin()->chanFreq + channels.rbegin()->chanFreq) * 0.5);
-  setKeywordToFloat("CDELT4", totalBandwidth / (double) channels.size());
-  setKeywordToFloat("CRPIX4", channels.size()/2 + 1);
-}
+  setKeywordToFloat("CRVAL4", (_bandInfo.channels.begin()->chanFreq + _bandInfo.channels.rbegin()->chanFreq) * 0.5);
+  setKeywordToFloat("CDELT4", _bandInfo.totalBandwidth / (double) _bandInfo.channels.size());
+  setKeywordToFloat("CRPIX4", _bandInfo.channels.size()/2 + 1);
 
-void FitsWriter::WriteAntennae(const std::vector<AntennaInfo>& antennae, double time)
-{
-	// We can't write the table yet, so we store the info and wait until file is finished.
-	_antennae = antennae;
-	_antennaDate = time;
-}
-
-void FitsWriter::WritePolarizationForLinearPols(bool flagRow)
-{
-}
-
-void FitsWriter::WriteField(const FieldInfo& field)
-{
-	if(!_groupHeadersInitialized)
-		initGroupHeader();
-	
-	double
-		raDeg = field.referenceDirRA*180.0/M_PI,
-		decDeg = field.referenceDirDec*180.0/M_PI;
-	
-	// RA and DEC in degrees
-	setKeywordToDouble("OBSRA", raDeg);
-	setKeywordToDouble("OBSDEC", decDeg);
-  setKeywordToFloat("EPOCH", 2000.0);
+	const double
+		raDeg = _fieldRA*180.0/M_PI,
+		decDeg = _fieldDec*180.0/M_PI;
 	
 	setKeywordToString("CTYPE5", "RA");
   setKeywordToFloat("CRVAL5", raDeg);
@@ -154,32 +120,58 @@ void FitsWriter::WriteField(const FieldInfo& field)
   setKeywordToFloat("CRVAL6", decDeg);
 	setKeywordToFloat("CRPIX6", 1);
 	setKeywordToFloat("CDELT6", 1);
+	
+	// RA and DEC in degrees
+	setKeywordToDouble("OBSRA", raDeg);
+	setKeywordToDouble("OBSDEC", decDeg);
+  setKeywordToFloat("EPOCH", 2000.0);
+	
+  setKeywordToString("OBJECT", _sourceName);
+	
+	setKeywordToString("TELESCOP", _telescopeName);
+	setKeywordToString("INSTRUME", _telescopeName);
+	
+	// This is apparently required...
+	if(fits_write_history(_fptr, "AIPS WTSCAL =  1.0", &status))
+		throwError(status, "Could not write history to FITS file");
+	
+	_groupHeadersInitialized = true;
+}
+
+void FitsWriter::WriteBandInfo(const std::string& name, const std::vector<ChannelInfo>& channels, double refFreq, double totalBandwidth, bool flagRow)
+{
+	_bandInfo.name = name;
+	_bandInfo.channels = channels;
+	_bandInfo.refFreq = refFreq;
+	_bandInfo.totalBandwidth = totalBandwidth;
+	_bandInfo.flagRow = flagRow;
+}
+
+void FitsWriter::WriteAntennae(const std::vector<AntennaInfo>& antennae, double time)
+{
+	_antennae = antennae;
+	_antennaDate = time;
+}
+
+void FitsWriter::WritePolarizationForLinearPols(bool flagRow)
+{
+}
+
+void FitsWriter::WriteField(const FieldInfo& field)
+{
+	_fieldRA = field.referenceDirRA;
+	_fieldDec = field.referenceDirDec;
 }
 
 void FitsWriter::WriteSource(const SourceInfo &source)
 {
-	if(!_groupHeadersInitialized)
-		initGroupHeader();
-	
-  setKeywordToString("OBJECT", source.name);
+	_sourceName = source.name;
 }
 
 void FitsWriter::WriteObservation(const std::string& telescopeName, double startTime, double endTime, const std::string& observer, const std::string& scheduleType, const std::string& project, double releaseDate, bool flagRow)
 {
-	if(!_groupHeadersInitialized)
-		initGroupHeader();
-	
-	setKeywordToString("TELESCOP", telescopeName);
-	setKeywordToString("INSTRUME", telescopeName);
 	_telescopeName = telescopeName;
-	
-	int year, month, day;
-	julianDateToYMD(startTime + 2400000.5, year, month, day);
-	char dateStr[40];
-  std::sprintf(dateStr,"%d-%02d-%02dT00:00:00.0", year, month, day);
-	setKeywordToString("DATE-OBS", dateStr);
-	// Set the zero level for the DATE column.
-  setKeywordToDouble("PZERO5", startTime + 2400000.5); // convert MJD to JD
+	_startTime = startTime;
 }
 
 void FitsWriter::WriteHistoryItem(const std::string &commandLine, const std::string &application, const std::vector<std::string> &params)
@@ -194,6 +186,8 @@ void FitsWriter::WriteHistoryItem(const std::string &commandLine, const std::str
 
 void FitsWriter::AddRows(size_t count)
 {
+	if(!_groupHeadersInitialized)
+		initGroupHeader();
 }
 
 void FitsWriter::WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights)
@@ -211,7 +205,7 @@ void FitsWriter::WriteRow(double time, double timeCentroid, size_t antenna1, siz
 	rowData[3] = baselineIndex(antenna1+1, antenna2+1);
 	rowData[4] = time + 2400000.5;
 
-	float *rowDataPtr = &rowData[0];
+	float *rowDataPtr = &rowData[5];
 	const float *weightPtr = weights;
 	const bool *flagPtr = flags;
 	const std::complex<float> *dataPtr = data;
@@ -233,7 +227,7 @@ void FitsWriter::WriteRow(double time, double timeCentroid, size_t antenna1, siz
 	}
 	
 	int status = 0;
-	fits_write_grppar_flt(_fptr ,_nRowsWritten, 1 ,nElements + nGroupParameters, &rowData[0], &status);
+	fits_write_grppar_flt(_fptr, _nRowsWritten, 1 ,nElements + nGroupParameters, &rowData[0], &status);
 	checkStatus(status);
 	++_nRowsWritten;
 }
