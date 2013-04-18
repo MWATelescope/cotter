@@ -1,6 +1,7 @@
 #include "cotter.h"
 
 #include "baselinebuffer.h"
+#include "flagwriter.h"
 #include "fitswriter.h"
 #include "geometry.h"
 #include "mswriter.h"
@@ -36,7 +37,7 @@ Cotter::Cotter() :
 	_quackSampleCount(4),
 	_rfiDetection(true),
 	_collectStatistics(true),
-	_outputInFitsFormat(false),
+	_outputFormat(MSOutputFormat),
 	_metaFilename(),
 	_statistics(0),
 	_correlatorMask(0),
@@ -99,10 +100,21 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	size_t maxScansPerPart = _maxBufferSize / (nChannels*(antennaCount+1)*antennaCount*2);
 	
 	Writer *rootWriter;
-	if(_outputInFitsFormat)
-		rootWriter = new FitsWriter(outputFilename);
-	else
-		rootWriter = new MSWriter(outputFilename);
+	switch(_outputFormat)
+	{
+		case FlagsOutputFormat:
+			std::cout << "Only flags will be outputted.\n";
+			if(freqAvgFactor != 1 || timeAvgFactor != 1)
+				throw std::runtime_error("You have specified time or frequency averaging and outputting only flags: this is incompatible");
+			rootWriter = new FlagWriter(outputFilename, _mwaConfig.HeaderExt().gpsTime);
+			break;
+		case FitsOutputFormat:
+			rootWriter = new FitsWriter(outputFilename);
+			break;
+		case MSOutputFormat:
+			rootWriter = new MSWriter(outputFilename);
+			break;
+	}
 	if(freqAvgFactor == 1 && timeAvgFactor == 1)
 		_writer = rootWriter;
 	else {
@@ -307,8 +319,11 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		_flagger->WriteStatistics(*_statistics, outputFilename);
 	}
 	
-	std::cout << "Writing MWA fields to file...\n";
-	writeMWAFields(outputFilename, _mwaConfig.Header().nScans/partCount);
+	if(_outputFormat == MSOutputFormat)
+	{
+		std::cout << "Writing MWA fields to file...\n";
+		writeMWAFields(outputFilename, _mwaConfig.Header().nScans/partCount);
+	}
 }
 
 void Cotter::createReader(const std::vector< std::string >& curFileset)

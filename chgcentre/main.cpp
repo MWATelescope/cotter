@@ -192,12 +192,29 @@ void readAntennas(MeasurementSet &set, std::vector<MPosition> &antennas)
 	//std::cout << diff[0]/5000.0 << "\t" << diff[1]/5000.0 << "\t" << diff[2]/5000.0 << '\n';
 }
 
+void printPhaseDir(const std::string &filename)
+{
+	MeasurementSet set(filename);
+	MSField fieldTable = set.field();
+	MDirection::ROArrayColumn phaseDirCol(fieldTable, fieldTable.columnName(MSFieldEnums::PHASE_DIR));
+	for(size_t i=0; i!=fieldTable.nrow(); ++i)
+	{
+		Vector<MDirection> phaseDirVector = phaseDirCol(i);
+		MDirection phaseDirection = phaseDirVector[0];
+		std::cout << dirToString(phaseDirection) << '\n';
+	}
+}
+
 int main(int argc, char **argv)
 {
 	std::cout <<
 		"A program to change the phase centre of a measurement set.\n"
 		"Written by André Offringa (offringa@gmail.com).\n\n";
-	if(argc != 4)
+	if(argc == 2)
+	{
+		printPhaseDir(argv[1]);
+	}
+	else if(argc != 4)
 	{
 		std::cout <<
 			"Syntax: chgcentre <ms> <new ra> <new dec>\n\n"

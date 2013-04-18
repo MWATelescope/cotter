@@ -25,12 +25,14 @@ class MSWriter;
 class Cotter : private UVWCalculater
 {
 	public:
+		enum OutputFormat { MSOutputFormat, FitsOutputFormat, FlagsOutputFormat };
+		
 		Cotter();
 		~Cotter();
 		
 		void Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAvgFactor);
 		
-		void SetOutputInFitsFormat(bool outputInFitsFormat) { _outputInFitsFormat = outputInFitsFormat; }
+		void SetOutputFormat(enum OutputFormat format) { _outputFormat = format; }
 		void SetFileSets(const std::vector<std::vector<std::string> >& fileSets) { _fileSets = fileSets; }
 		void SetThreadCount(size_t threadCount) { _threadCount = threadCount; }
 		void SetRFIDetection(bool performRFIDetection) { _rfiDetection = performRFIDetection; }
@@ -66,7 +68,8 @@ class Cotter : private UVWCalculater
 		size_t _quackSampleCount;
 		size_t _missingEndScans;
 		size_t _curChunkStart, _curChunkEnd;
-		bool _rfiDetection, _collectStatistics, _outputInFitsFormat;
+		bool _rfiDetection, _collectStatistics;
+		enum OutputFormat _outputFormat;
 		std::string _commandLine;
 		std::string _metaFilename;
 		
