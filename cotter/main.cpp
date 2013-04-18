@@ -38,6 +38,10 @@ size_t gpuBoxNumberFromFilename(const std::string &filename)
 
 bool isFitsFile(const std::string &filename)
 {
+	if(filename.size() > 7)
+	{
+		return boost::to_upper_copy(filename.substr(filename.size()-7)) == ".UVFITS";
+	}
 	return false;
 }
 

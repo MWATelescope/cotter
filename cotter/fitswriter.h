@@ -29,30 +29,56 @@ class FitsWriter : public Writer, private FitsUser
 		
 	private:
 		void initGroupHeader();
+		void writeAntennaTable();
+		
 		void setKeywordToDouble(const char *keywordName, double value) const
 		{
 			int status = 0;
 			if(fits_update_key(_fptr, TDOUBLE, keywordName, &value, NULL, &status))
 				throwError(status, "Could not write keyword");
 		}
+		
 		void setKeywordToFloat(const char *keywordName, float value) const
 		{
 			int status = 0;
 			if(fits_update_key(_fptr, TFLOAT, keywordName, &value, NULL, &status))
 				throwError(status, "Could not write keyword");
 		}
+		
+		void setKeywordToInt(const char *keywordName, int value) const
+		{
+			int status = 0;
+			if(fits_update_key(_fptr, TINT, keywordName, &value, NULL, &status))
+				throwError(status, "Could not write keyword");
+		}
+		
 		void setKeywordToString(const char *keywordName, const char *value) const
 		{
 			int status = 0;
 			if(fits_update_key(_fptr, TFLOAT, keywordName, const_cast<char*>(value), NULL, &status))
 				throwError(status, "Could not write keyword");
 		}
+		
 		void setKeywordToString(const char *keywordName, const std::string &value) const
 		{
 			setKeywordToString(keywordName, value.c_str());
 		}
 		
+		static void julianDateToYMD(double jd, int &year, int &month, int &day);
+		
+		static float baselineIndex(int b1, int b2) {
+			return (b2 > 255) ?
+				b1*2048 + b2 + 65536 :
+				b1*256 + b2;
+		}
+		
 		fitsfile *_fptr;
+		
+		std::vector<AntennaInfo> _antennae;
+		double _antennaDate;
+		std::string _telescopeName;
+		size_t _nRowsWritten;
+		bool _groupHeadersInitialized;
 		
 		struct {
 			std::string name;
