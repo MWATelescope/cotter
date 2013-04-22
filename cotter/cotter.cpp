@@ -615,11 +615,19 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 		flagBadCorrelatorSamples(*flagMask);
 	}
 	
-	_flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second = flagMask;
-	
 	// Collect statistics
 	if(_collectStatistics)
 		_flagger->CollectStatistics(statistics, *imageSet, *flagMask, *correlatorMask, antenna1, antenna2);
+	
+	// If this is an auto-correlation, it wouldn't have been flagged yet,
+	// to allow collecting its statistics. But we want to flag it...
+	if(_rfiDetection && (antenna1 == antenna2))
+	{
+		delete flagMask;
+		flagMask = new FlagMask(*_fullysetMask);
+	}
+	
+	_flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second = flagMask;
 }	
 
 void Cotter::correctConjugated(ImageSet& imageSet, size_t imgImageIndex) const
