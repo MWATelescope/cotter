@@ -594,9 +594,7 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 	}
 	
 	// Perform RFI detection, if baseline is not flagged.
-	bool is1Flagged = input1X.isFlagged || input1Y.isFlagged;
-	bool is2Flagged = input2X.isFlagged || input2Y.isFlagged;
-	bool skipFlagging = is1Flagged || is2Flagged;
+	bool skipFlagging = input1X.isFlagged || input1Y.isFlagged || input2X.isFlagged || input2Y.isFlagged;
 
 	FlagMask *flagMask, *correlatorMask;
 	if(skipFlagging)
@@ -619,9 +617,9 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 	if(_collectStatistics)
 		_flagger->CollectStatistics(statistics, *imageSet, *flagMask, *correlatorMask, antenna1, antenna2);
 	
-	// If this is an auto-correlation, it wouldn't have been flagged yet,
+	// If this is an auto-correlation, it wouldn't have been flagged yet
 	// to allow collecting its statistics. But we want to flag it...
-	if(_rfiDetection && (antenna1 == antenna2))
+	if(antenna1 == antenna2)
 	{
 		delete flagMask;
 		flagMask = new FlagMask(*_fullysetMask);
