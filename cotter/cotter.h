@@ -47,6 +47,7 @@ class Cotter : private UVWCalculater
 			_customRARad = newRARad;
 			_customDecRad = newDecRad;
 		}
+		void SetSubbandCount(size_t subbandCount) { _subbandCount = subbandCount; }
 		
 	private:
 		MWAConfig _mwaConfig;

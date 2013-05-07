@@ -92,6 +92,11 @@ class AveragingMSWriter : public Writer
 			_writer.WriteObservation(telescopeName, startTime, endTime, observer, scheduleType, project, releaseDate, flagRow);
 		}
 		
+		virtual void SetArrayLocation(double x, double y, double z)
+		{
+			_writer.SetArrayLocation(x, y, z);
+		}
+		
 		void AddRows(size_t rowCount)
 		{
 			if(_rowsAdded == 0)
@@ -111,6 +116,11 @@ class AveragingMSWriter : public Writer
 		bool IsTimeAligned(size_t antenna1, size_t antenna2) {
 			const Buffer &buffer = getBuffer(antenna1, antenna2);
 			return buffer._rowTimestepCount==0;
+		}
+		
+		virtual bool AreAntennaPositionsLocal() const
+		{
+			return _writer.AreAntennaPositionsLocal();
 		}
 	private:
 		struct Buffer

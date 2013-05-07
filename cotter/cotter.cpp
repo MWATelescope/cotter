@@ -385,6 +385,7 @@ void Cotter::processAndWriteTimestep(size_t timeIndex)
 	_writer->AddRows(antennaCount*(antennaCount+1)/2);
 	
 	double cosAngles[nChannels], sinAngles[nChannels];
+	
 	initializeWeights(_outputWeights);
 	for(size_t antenna1=0; antenna1!=antennaCount; ++antenna1)
 	{
@@ -665,11 +666,16 @@ void Cotter::writeAntennae()
 {
 	double arrayX, arrayY, arrayZ;
 	Geometry::Geodetic2XYZ(_mwaConfig.ArrayLattitudeRad(), _mwaConfig.ArrayLongitudeRad(), _mwaConfig.ArrayHeightMeters(), arrayX, arrayY, arrayZ);
-	std::vector<MSWriter::AntennaInfo> antennae;
+	_writer->SetArrayLocation(arrayX, arrayY, arrayZ);
+	
+	if(_writer->AreAntennaPositionsLocal())
+		std::cout << "Antenna positions are written in LOCAL MERIDIAN\n";
+	
+	std::vector<MSWriter::AntennaInfo> antennae(_mwaConfig.NAntennae());
 	for(size_t i=0; i!=_mwaConfig.NAntennae(); ++i)
 	{
 		const MWAAntenna &mwaAnt = _mwaConfig.Antenna(i);
-		MSWriter::AntennaInfo antennaInfo;
+		MSWriter::AntennaInfo &antennaInfo = antennae[i];
 		antennaInfo.name = mwaAnt.name;
 		antennaInfo.station = "MWA";
 		antennaInfo.type = "GROUND-BASED";
@@ -681,21 +687,18 @@ void Cotter::writeAntennae()
 		// The following rotation is necessary because we found that the XYZ locations are
 		// still in local frame (local meridian). However, the UVW calculations depend on
 		// this assumption, so that's why I rotate them only when writing...
-		// This fixes UVW calculations in Casa, but I believe the calculated positions are
-		// still wrong, as they are not perpendicular to the Earth's normal. For a full fix,
-		// I think three rotations are required; longitude, latitude, and finally correcting
-		// the orientation.
-		Geometry::Rotate(_mwaConfig.ArrayLongitudeRad(), x, y);
-		x += arrayX;
-		y += arrayY;
-		z += arrayZ;
+		if(!_writer->AreAntennaPositionsLocal())
+		{
+			Geometry::Rotate(_mwaConfig.ArrayLongitudeRad(), x, y);
+			x += arrayX;
+			y += arrayY;
+			z += arrayZ;
+		}
 		antennaInfo.x = x;
 		antennaInfo.y = y;
 		antennaInfo.z = z;
 		antennaInfo.diameter = 4; /** TODO can probably give more exact size! */
 		antennaInfo.flag = false;
-		
-		antennae.push_back(antennaInfo);
 	}
 	_writer->WriteAntennae(antennae, _mwaConfig.Header().dateFirstScanMJD*86400.0);
 }
@@ -792,7 +795,13 @@ void Cotter::readSubbandPassbandFile()
 		subBandCount = _mwaConfig.Header().nChannels / channelsPerSubband;
 	std::cout << "Read subband passband, using " << channelsPerSubband << " gains to correct for " << subBandCount << " subbands.\n";
 	if(subBandCount != _subbandCount)
-		throw std::runtime_error("Unexpected number of channels in subband passband correction file");
+	{
+		std::ostringstream str;
+		str
+			<< "Unexpected number of channels in subband passband correction file: "
+			<< "file implies " << subBandCount << " sub-bands, but I expect " << _subbandCount << ".";
+		throw std::runtime_error(str.str());
+	}
 }
 
 void Cotter::readSubbandGainsFile()
@@ -940,15 +949,13 @@ void Cotter::reorderSubbands(ImageSet& imageSet) const
 
 void Cotter::initializeSbOrder(size_t centerSbNumber)
 {
-	if(_subbandCount != 24)
-		throw std::runtime_error("Not 24 subbands: I only know mappings for 24 subbands.");
 	if(centerSbNumber<=12 || centerSbNumber > 243)
 		throw std::runtime_error("Center channel must be between 13 and 243");
 
-	_subbandOrder.resize(24);
-	size_t firstSb = centerSbNumber-12;
+	_subbandOrder.resize(_subbandCount);
+	size_t firstSb = centerSbNumber-(_subbandCount/2);
 	size_t nbank1 = 0, nbank2 = 0;
-	for(size_t i=firstSb; i!=firstSb+24; ++i)
+	for(size_t i=firstSb; i!=firstSb+_subbandCount; ++i)
 	{
 		if(i<=128)
 			++nbank1;
@@ -958,10 +965,10 @@ void Cotter::initializeSbOrder(size_t centerSbNumber)
 	for(size_t i=0; i!=nbank1; ++i)
 		_subbandOrder[i]=i;
 	for(size_t i=0; i!=nbank2; ++i)
-		_subbandOrder[i+nbank1] = 23-i;
+		_subbandOrder[i+nbank1] = _subbandCount-1-i;
 	
 	std::cout << "Subband order for centre subband " << centerSbNumber << ": " << _subbandOrder[0];
-	for(size_t i=1; i!=24; ++i)
+	for(size_t i=1; i!=_subbandCount; ++i)
 		std::cout << ',' << _subbandOrder[i];
 	std::cout << '\n';
 }

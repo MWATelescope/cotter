@@ -140,6 +140,11 @@ int main(int argc, char **argv)
 			long double centreDec = RaDecCoord::ParseDec(argv[argi]);
 			cotter.SetOverridePhaseCentre(centreRA, centreDec);
 		}
+		else if(strcmp(argv[argi], "-sbcount") == 0)
+		{
+			++argi;
+			cotter.SetSubbandCount(atoi(argv[argi]));
+		}
 		else if(argv[argi][0] == '-')
 		{
 			usage();
@@ -187,7 +192,7 @@ int main(int argc, char **argv)
 		{
 			if(i >= fileSets[j].size() || fileSets[j][i].empty()) {
 				std::ostringstream errstr;
-				std::cout << "Missing information from GPU box " << i << ", timerange " << j << ". Maybe you are missing an input file?\n";
+				std::cout << "Missing information from GPU box " << (i+1) << ", timerange " << j << ". Maybe you are missing an input file?\n";
 			}
 		}
 	}
@@ -195,8 +200,9 @@ int main(int argc, char **argv)
 	
 	std::ostringstream commandLineStr;
 	commandLineStr << argv[0];
-	for(int i=1;i!=argc;++i)
-		commandLineStr << ' ' << argv[i];
+	for(int i=1; i!= argc; ++i)
+		commandLineStr << ' ' << '\"' << argv[i] << '\"';
+	cotter.SetHistoryInfo(commandLineStr.str());
 	
 	long int pageCount = sysconf(_SC_PHYS_PAGES), pageSize = sysconf(_SC_PAGE_SIZE);
 	int64_t memSize = (int64_t) pageCount * (int64_t) pageSize;

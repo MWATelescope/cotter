@@ -83,14 +83,15 @@ void FitsWriter::initGroupHeader()
 			setKeywordToFloat(pzeroName.str().c_str(), 0.0);
 		}
   }
+	// Set the zero level for the DATE column.
+  setKeywordToDouble("PZERO5", floor(_startTime / (60.0*60.0*24.0) + 2400000.5) - 0.5);
+
   int year, month, day;
-	julianDateToYMD(_startTime + 2400000.5, year, month, day);
+	julianDateToYMD(_startTime / (60.0*60.0*24.0) + 2400000.5, year, month, day);
 	char dateStr[40];
   std::sprintf(dateStr, "%d-%02d-%02dT00:00:00.0", year, month, day);
 	setKeywordToString("DATE-OBS", dateStr);
-	// Set the zero level for the DATE column.
-  setKeywordToDouble("PZERO5", _startTime + 2400000.5); // convert MJD to JD
-
+	
   // The dimensions...
   setKeywordToString("CTYPE2", "COMPLEX");
   setKeywordToFloat("CRVAL2", 1.0);
@@ -103,7 +104,7 @@ void FitsWriter::initGroupHeader()
   setKeywordToFloat("CRPIX3", 1.0);
 	
 	setKeywordToString("CTYPE4", "FREQ");
-  setKeywordToFloat("CRVAL4", (_bandInfo.channels.begin()->chanFreq + _bandInfo.channels.rbegin()->chanFreq) * 0.5);
+  setKeywordToFloat("CRVAL4", (_bandInfo.channels[_bandInfo.channels.size()/2].chanFreq));
   setKeywordToFloat("CDELT4", _bandInfo.totalBandwidth / (double) _bandInfo.channels.size());
   setKeywordToFloat("CRPIX4", _bandInfo.channels.size()/2 + 1);
 
@@ -193,17 +194,20 @@ void FitsWriter::AddRows(size_t count)
 void FitsWriter::WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights)
 {
 	const size_t nGroupParameters = 5;
+	double frequencyOffset = (_bandInfo.channels.begin()->chanFreq + _bandInfo.channels.rbegin()->chanFreq) * 0.5;
 	
 	// 3 dimensions (real,imag,weight), 4 pol, nch
 	const size_t nElements = 3 * 4 * _bandInfo.channels.size();
 	
+	// TODO might be efficient to declare this outside function
 	std::vector<float> rowData(nElements + nGroupParameters); 
 
-	rowData[0] = u;
-	rowData[1] = v;
-	rowData[2] = w;
+	rowData[0] = u / frequencyOffset;
+	rowData[1] = v / frequencyOffset;
+	rowData[2] = w / frequencyOffset;
 	rowData[3] = baselineIndex(antenna1+1, antenna2+1);
-	rowData[4] = time + 2400000.5;
+	double zeroTimeLevel = floor(_startTime / (60.0*60.0*24.0) + 2400000.5) + 0.5;
+	rowData[4] = time / (60.0*60.0*24.0) + 2400000.5 - zeroTimeLevel;
 
 	float *rowDataPtr = &rowData[5];
 	const float *weightPtr = weights;
@@ -211,25 +215,48 @@ void FitsWriter::WriteRow(double time, double timeCentroid, size_t antenna1, siz
 	const std::complex<float> *dataPtr = data;
 	for(size_t ch=0; ch != _bandInfo.channels.size(); ++ch)
 	{
-		for(size_t p=0; p != 4; ++p)
-		{
-			*rowDataPtr = dataPtr->real();
-			++rowDataPtr;
-			*rowDataPtr = dataPtr->imag();
-			++rowDataPtr;
-			++dataPtr;
-			
-			*rowDataPtr = *(flagPtr) ? -(*weightPtr) : (*weightPtr);  // weight
-			++rowDataPtr;
-			++weightPtr;
-			++flagPtr;
-		}
+		const std::complex<float> xx = *dataPtr; ++dataPtr;
+		const std::complex<float> xy = *dataPtr; ++dataPtr;
+		const std::complex<float> yx = *dataPtr; ++dataPtr;
+		const std::complex<float> yy = *dataPtr; ++dataPtr;
+		const float weightXX = (*flagPtr) ? -(*weightPtr) : (*weightPtr); ++ weightPtr; ++flagPtr;
+		const float weightXY = (*flagPtr) ? -(*weightPtr) : (*weightPtr); ++ weightPtr; ++flagPtr;
+		const float weightYX = (*flagPtr) ? -(*weightPtr) : (*weightPtr); ++ weightPtr; ++flagPtr;
+		const float weightYY = (*flagPtr) ? -(*weightPtr) : (*weightPtr); ++ weightPtr; ++flagPtr;
+		
+		*rowDataPtr = xx.real();
+		++rowDataPtr;
+		*rowDataPtr = xx.imag();
+		++rowDataPtr;
+		*rowDataPtr = weightXX;
+		++rowDataPtr;
+		
+		*rowDataPtr = yy.real();
+		++rowDataPtr;
+		*rowDataPtr = yy.imag();
+		++rowDataPtr;
+		*rowDataPtr = weightYY;
+		++rowDataPtr;
+		
+		*rowDataPtr = xy.real();
+		++rowDataPtr;
+		*rowDataPtr = xy.imag();
+		++rowDataPtr;
+		*rowDataPtr = weightXY;
+		++rowDataPtr;
+		
+		*rowDataPtr = yx.real();
+		++rowDataPtr;
+		*rowDataPtr = yx.imag();
+		++rowDataPtr;
+		*rowDataPtr = weightYX;
+		++rowDataPtr;
 	}
 	
 	int status = 0;
+	++_nRowsWritten;
 	fits_write_grppar_flt(_fptr, _nRowsWritten, 1 ,nElements + nGroupParameters, &rowData[0], &status);
 	checkStatus(status);
-	++_nRowsWritten;
 }
 
 void FitsWriter::writeAntennaTable()
@@ -247,20 +274,20 @@ void FitsWriter::writeAntennaTable()
 									"AIPS AN", &status);
 	checkStatus(status);
 
-  setKeywordToDouble("ARRAYX", 0.0);
-	setKeywordToDouble("ARRAYY", 0.0);
-	setKeywordToDouble("ARRAYZ", 0.0);
-  setKeywordToFloat("FREQ", (_bandInfo.channels.begin()->chanFreq + _bandInfo.channels.rbegin()->chanFreq) * 0.5);
+  setKeywordToDouble("ARRAYX", _arrayX);
+	setKeywordToDouble("ARRAYY", _arrayY);
+	setKeywordToDouble("ARRAYZ", _arrayZ);
+  setKeywordToFloat("FREQ", (_bandInfo.channels[_bandInfo.channels.size()/2].chanFreq));
 
   // GSTIAO is the GST at zero hours in the time system of TIMSYS (i.e. UTC)
-  double mjd = trunc(_antennaDate);
+  double mjd = trunc(_antennaDate / (60.0*60.0*24.0));
 	
 	// technically, slaGmst takes UT1, but it won't matter here.
   setKeywordToDouble("GSTIA0", slaGmst(mjd)*180.0/M_PI);
   setKeywordToDouble("DEGPDY", 3.60985e2); // Earth's rotation rate
 
 	int year, mon, day;
-  julianDateToYMD(_antennaDate + 2400000.5, year, mon, day);
+  julianDateToYMD(_antennaDate / (60.0*60.0*24.0) + 2400000.5, year, mon, day);
 	char tempstr[80];
   std::sprintf(tempstr,"%d-%02d-%02dT00:00:00.0", year, mon, day);
   setKeywordToString("RDATE", tempstr);

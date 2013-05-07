@@ -23,9 +23,16 @@ class FitsWriter : public Writer, private FitsUser
 		virtual void WriteSource(const SourceInfo &source);
 		virtual void WriteObservation(const std::string& telescopeName, double startTime, double endTime, const std::string& observer, const std::string& scheduleType, const std::string& project, double releaseDate, bool flagRow);
 		virtual void WriteHistoryItem(const std::string &commandLine, const std::string &application, const std::vector<std::string> &params);
+		virtual void SetArrayLocation(double x, double y, double z)
+		{
+			_arrayX = x;
+			_arrayY = y;
+			_arrayZ = z;
+		}
 		
 		virtual void AddRows(size_t count);
 		virtual void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights);
+		virtual bool AreAntennaPositionsLocal() const { return true; }
 		
 	private:
 		void initGroupHeader();
@@ -90,6 +97,7 @@ class FitsWriter : public Writer, private FitsUser
 		
 		double _fieldRA, _fieldDec;
 		double _startTime;
+		double _arrayX, _arrayY, _arrayZ;
 		std::string _sourceName;
 };
 
