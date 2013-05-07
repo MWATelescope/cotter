@@ -56,7 +56,7 @@ class MWAMS
 		
 		~MWAMS();
 		
-		void AddMWAFields()
+		void InitializeMWAFields()
 		{
 			addMWAAntennaFields();
 			addMWAFieldFields();

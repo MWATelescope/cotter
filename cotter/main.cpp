@@ -60,6 +60,7 @@ void usage()
 	"Options:\n"
 	"  -o <filename>      Save output to given filename. Default is 'preprocessed.ms'.\n"
 	"  -m <filename>      Read meta data from given fits filename.\n"
+	"  -mem <percentage>  Use at most the given percentage of memory.\n"
 	"  -timeavg <factor>  Average 'factor' timesteps together before writing to measurement set.\n"
 	"  -freqavg <factor>  Average 'factor' channels together before writing to measurement set.\n"
 	"                     When averaging: flagging, collecting statistics and cable length fixes will be done\n"
@@ -67,7 +68,9 @@ void usage()
 	"  -norfi             Disable RFI detection\n"
 	"  -nostats           Disable collecting statistics\n"
 	"  -nogeom            Disable geometric corrections\n"
+	"  -noantennapruning  Output all antennae, also auto-correlations and flagged antennae.\n"
 	"  -centre <ra> <dec> Set alternative phase centre, e.g. -centre 00h00m00.0s 00d00m00.0s\n"
+	"  -sbcount <count>   Read/processes the first given number of subbands\n"
 	"\n"
 	"The filenames of the input gpu files should end in '...nn_mm.fits', where nn >= 1 is the\n"
 	"gpu box number and mm >= 0 is the time step number.\n";
@@ -121,6 +124,10 @@ int main(int argc, char **argv)
 		else if(strcmp(argv[argi], "-nogeom") == 0)
 		{
 			cotter.SetDisableGeometricCorrections(true);
+		}
+		else if(strcmp(argv[argi], "-noantennapruning") == 0)
+		{
+			cotter.SetRemoveFlaggedAntennae(false);
 		}
 		else if(strcmp(argv[argi], "-timeavg") == 0)
 		{

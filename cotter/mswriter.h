@@ -24,6 +24,10 @@ class MSWriter : public Writer
 		virtual void AddRows(size_t count);
 		virtual void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights);
 		
+		virtual bool CanWriteStatistics() const
+		{
+			return true;
+		}
 	private:
 		void writeDataDescEntry(size_t spectralWindowId, size_t polarizationId, bool flagRow);
 		void writeFeedEntries(const std::vector<Writer::AntennaInfo>& antennae, double time);

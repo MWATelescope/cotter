@@ -4,6 +4,7 @@
 #include "averagingmswriter.h"
 #include "gpufilereader.h"
 #include "mwaconfig.h"
+#include "stopwatch.h"
 
 #include <boost/thread/mutex.hpp>
 
@@ -48,19 +49,20 @@ class Cotter : private UVWCalculater
 			_customDecRad = newDecRad;
 		}
 		void SetSubbandCount(size_t subbandCount) { _subbandCount = subbandCount; }
-		
+		void SetRemoveFlaggedAntennae(bool removeFlaggedAntennae) { _removeFlaggedAntennae = removeFlaggedAntennae; }
 	private:
 		MWAConfig _mwaConfig;
 		Writer *_writer;
-		/** In case a averaging writer is used, the writerParent will do the actual writer,
-		 *  while the _writer will average and forward the calls. */
-		Writer *_writerParent;
 		GPUFileReader *_reader;
 		aoflagger::AOFlagger *_flagger;
 		aoflagger::Strategy *_strategy;
 		
 		std::vector<double> _subbandCorrectionFactors[4];
 		std::vector<double> _subbandGainCorrection;
+		bool *_isAntennaFlaggedMap;
+		size_t _unflaggedAntennaCount;
+		
+		Stopwatch _readWatch, _processWatch, _writeWatch;
 		
 		std::vector<std::vector<std::string> > _fileSets;
 		size_t _threadCount;
@@ -88,7 +90,7 @@ class Cotter : private UVWCalculater
 		bool *_outputFlags;
 		std::complex<float> *_outputData;
 		float *_outputWeights;
-		bool _disableGeometricCorrections;
+		bool _disableGeometricCorrections, _removeFlaggedAntennae;
 		bool _overridePhaseCentre;
 		long double _customRARad, _customDecRad;
 		
@@ -113,6 +115,22 @@ class Cotter : private UVWCalculater
 		void initializeSbOrder(size_t centerSbNumber);
 		void writeAlignmentScans();
 		void writeMWAFields(const char *outputFilename, size_t flagWindowSize);
+		size_t rowsPerTimescan() const
+		{
+			// if removing flagged antennae, auto correlations will also be removed
+			if(_removeFlaggedAntennae)
+				return _unflaggedAntennaCount*(_unflaggedAntennaCount-1)/2;
+			else
+				return _mwaConfig.NAntennae()*(_mwaConfig.NAntennae()+1)/2;
+		}
+		bool outputBaseline(size_t antenna1, size_t antenna2) const
+		{
+			if(_removeFlaggedAntennae)
+				return (!_isAntennaFlaggedMap[antenna1]) && (!_isAntennaFlaggedMap[antenna2]) &&
+					antenna1 != antenna2;
+			else
+				return true;
+		}
 		
 		// Implementing UVWCalculater
 		virtual void CalculateUVW(double date, size_t antenna1, size_t antenna2, double &u, double &v, double &w);
