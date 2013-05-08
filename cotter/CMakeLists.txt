@@ -24,7 +24,7 @@ find_package(LibXml2 REQUIRED)
 find_library(LIBSLA_LIB sla REQUIRED)
 find_library(PNG_LIB png REQUIRED)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -DNDEBUG -funroll-loops -msse2 -O0 -ggdb -march=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -DNDEBUG -msse2 -O3 -ggdb -march=native")
 
 include_directories(${AOFLAGGER_INCLUDE_DIR})
 include_directories(${CASA_INCLUDE_DIR})
