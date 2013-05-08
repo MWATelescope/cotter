@@ -6,6 +6,7 @@
 #include "geometry.h"
 #include "mswriter.h"
 #include "mwams.h"
+#include "subbandpassband.h"
 
 #include <aoflagger.h>
 
@@ -40,6 +41,7 @@ Cotter::Cotter() :
 	_collectStatistics(true),
 	_outputFormat(MSOutputFormat),
 	_metaFilename(),
+	_subbandPassbandFilename(),
 	_statistics(0),
 	_correlatorMask(0),
 	_fullysetMask(0),
@@ -90,7 +92,11 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	for(size_t ch=0; ch!=_mwaConfig.Header().nChannels; ++ch)
 		_channelFrequenciesHz[ch] = _mwaConfig.ChannelFrequencyHz(ch);
 	
-	readSubbandPassbandFile();
+	if(_subbandPassbandFilename.empty())
+		initializeSubbandPassband();
+	else
+		readSubbandPassbandFile();
+	
 	if(_metaFilename.empty())
 		readSubbandGainsFile();
 	else
@@ -814,9 +820,9 @@ void Cotter::writeObservation()
 
 void Cotter::readSubbandPassbandFile()
 {
-	std::ifstream passbandFile("subband-passband.txt");
+	std::ifstream passbandFile(_subbandPassbandFilename.c_str());
 	if(!passbandFile.good())
-		throw std::runtime_error("Unable to read subband-passband.txt");
+		throw std::runtime_error("Unable to read subband passband file");
 	while(passbandFile.good())
 	{
 		size_t rowIndex;
@@ -840,6 +846,32 @@ void Cotter::readSubbandPassbandFile()
 			<< "file implies " << subBandCount << " sub-bands, but I expect " << _subbandCount << ".";
 		throw std::runtime_error(str.str());
 	}
+}
+
+void Cotter::initializeSubbandPassband()
+{
+	if(_mwaConfig.Header().nChannels % _subbandCount != 0)
+		throw std::runtime_error("Total number of channels is not divisable by subband count!");
+
+	const size_t nChannelsPerSubband = _mwaConfig.Header().nChannels / _subbandCount;
+	std::vector<double> passband;
+	SubbandPassband::GetSubbandPassband(passband, nChannelsPerSubband);
+	
+	for(size_t p=0; p!=4; ++p)
+		_subbandCorrectionFactors[p].resize(nChannelsPerSubband);
+	
+	std::cout << "Using a-priori subband passband with " << nChannelsPerSubband << " channels:\n[";
+	for(size_t ch=0; ch!=nChannelsPerSubband; ++ch)
+	{
+		if(ch != 0) std::cout << ',';
+		std::cout << round(passband[ch]*100.0)/100.0;
+		
+		double correctionFactor = 1.0 / passband[ch];
+		for(size_t p=0; p!=4; ++p) {
+			_subbandCorrectionFactors[p][ch] = correctionFactor;
+		}
+	}
+	std::cout << "]\n";
 }
 
 void Cotter::readSubbandGainsFile()

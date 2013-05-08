@@ -50,6 +50,10 @@ class Cotter : private UVWCalculater
 		}
 		void SetSubbandCount(size_t subbandCount) { _subbandCount = subbandCount; }
 		void SetRemoveFlaggedAntennae(bool removeFlaggedAntennae) { _removeFlaggedAntennae = removeFlaggedAntennae; }
+		void SetReadSubbandPassbandFile(const std::string subbandPassbandFilename)
+		{
+			_subbandPassbandFilename = subbandPassbandFilename;
+		}
 	private:
 		MWAConfig _mwaConfig;
 		Writer *_writer;
@@ -75,6 +79,7 @@ class Cotter : private UVWCalculater
 		enum OutputFormat _outputFormat;
 		std::string _commandLine;
 		std::string _metaFilename;
+		std::string _subbandPassbandFilename;
 		
 		std::map<std::pair<size_t, size_t>, aoflagger::ImageSet*> _imageSetBuffers;
 		std::map<std::pair<size_t, size_t>, aoflagger::FlagMask*> _flagBuffers;
@@ -109,6 +114,7 @@ class Cotter : private UVWCalculater
 		void initSubbandGainsFromMeta();
 		void readSubbandGainsFile();
 		void readSubbandPassbandFile();
+		void initializeSubbandPassband();
 		void flagBadCorrelatorSamples(aoflagger::FlagMask &flagMask) const;
 		void initializeWeights(float *outputWeights);
 		void reorderSubbands(aoflagger::ImageSet& imageSet) const;
