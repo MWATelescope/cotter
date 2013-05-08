@@ -68,7 +68,6 @@ Cotter::~Cotter()
 void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAvgFactor)
 {
 	_readWatch.Start();
-	
 	bool lockPointing = false;
 	
 	if(_metaFilename.empty())
@@ -161,8 +160,13 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	std::vector<std::vector<std::string> >::const_iterator
 		currentFileSetPtr = _fileSets.begin();
 	createReader(*currentFileSetPtr);
+	
+	_readWatch.Pause();
+	
 	for(size_t chunkIndex = 0; chunkIndex != partCount; ++chunkIndex)
 	{
+		_readWatch.Start();
+		
 		_curChunkStart = _mwaConfig.Header().nScans*chunkIndex/partCount;
 		_curChunkEnd = _mwaConfig.Header().nScans*(chunkIndex+1)/partCount;
 		
