@@ -358,7 +358,7 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 void Cotter::createReader(const std::vector< std::string >& curFileset)
 {
 	delete _reader; // might be 0, but that's ok.
-	_reader = new GPUFileReader(_mwaConfig.NAntennae(), _mwaConfig.Header().nChannels);
+	_reader = new GPUFileReader(_mwaConfig.NAntennae(), _mwaConfig.Header().nChannels, _threadCount);
 
 	for(std::vector<std::string>::const_iterator i=curFileset.begin(); i!=curFileset.end(); ++i)
 		_reader->AddFile(i->c_str());

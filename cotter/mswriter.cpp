@@ -29,6 +29,13 @@ class MSWriterData
 		ArrayColumn<float> *_sigmaCol;
 		ArrayColumn<float> *_weightCol;
 		ArrayColumn<float> *_weightSpectrumCol;
+		
+		casa::Vector<double> *_uvwVec;
+		casa::Vector<float> *_sigmaArr;
+		casa::Array<std::complex<float> > *_dataArr;
+		casa::Array<bool> *_flagArr;
+		casa::Array<float> *_weightSpectrumArr;
+		casa::Vector<float> *_weightsArr;
 };
 
 MSWriter::MSWriter(const char* filename) :
