@@ -60,6 +60,7 @@ void usage()
 	"Options:\n"
 	"  -o <filename>      Save output to given filename. Default is 'preprocessed.ms'.\n"
 	"  -m <filename>      Read meta data from given fits filename.\n"
+	"  -mem <percentage>  Use at most the given percentage of memory.\n"
 	"  -timeavg <factor>  Average 'factor' timesteps together before writing to measurement set.\n"
 	"  -freqavg <factor>  Average 'factor' channels together before writing to measurement set.\n"
 	"                     When averaging: flagging, collecting statistics and cable length fixes will be done\n"
@@ -67,7 +68,11 @@ void usage()
 	"  -norfi             Disable RFI detection\n"
 	"  -nostats           Disable collecting statistics\n"
 	"  -nogeom            Disable geometric corrections\n"
+	"  -noantennapruning  Output all antennae, also auto-correlations and flagged antennae.\n"
 	"  -centre <ra> <dec> Set alternative phase centre, e.g. -centre 00h00m00.0s 00d00m00.0s\n"
+	"  -sbcount <count>   Read/processes the first given number of subbands\n"
+	"  -sbpassband <file> Read the sub-band passband from given file instead of using default passband\n"
+	"                     (default passband does a reasonably good job)\n"
 	"\n"
 	"The filenames of the input gpu files should end in '...nn_mm.fits', where nn >= 1 is the\n"
 	"gpu box number and mm >= 0 is the time step number.\n";
@@ -122,6 +127,10 @@ int main(int argc, char **argv)
 		{
 			cotter.SetDisableGeometricCorrections(true);
 		}
+		else if(strcmp(argv[argi], "-noantennapruning") == 0)
+		{
+			cotter.SetRemoveFlaggedAntennae(false);
+		}
 		else if(strcmp(argv[argi], "-timeavg") == 0)
 		{
 			++argi;
@@ -139,6 +148,16 @@ int main(int argc, char **argv)
 			++argi;
 			long double centreDec = RaDecCoord::ParseDec(argv[argi]);
 			cotter.SetOverridePhaseCentre(centreRA, centreDec);
+		}
+		else if(strcmp(argv[argi], "-sbcount") == 0)
+		{
+			++argi;
+			cotter.SetSubbandCount(atoi(argv[argi]));
+		}
+		else if(strcmp(argv[argi], "-sbpassband") == 0)
+		{
+			++argi;
+			cotter.SetReadSubbandPassbandFile(argv[argi]);
 		}
 		else if(argv[argi][0] == '-')
 		{
@@ -187,7 +206,7 @@ int main(int argc, char **argv)
 		{
 			if(i >= fileSets[j].size() || fileSets[j][i].empty()) {
 				std::ostringstream errstr;
-				std::cout << "Missing information from GPU box " << i << ", timerange " << j << ". Maybe you are missing an input file?\n";
+				std::cout << "Missing information from GPU box " << (i+1) << ", timerange " << j << ". Maybe you are missing an input file?\n";
 			}
 		}
 	}
@@ -195,8 +214,9 @@ int main(int argc, char **argv)
 	
 	std::ostringstream commandLineStr;
 	commandLineStr << argv[0];
-	for(int i=1;i!=argc;++i)
-		commandLineStr << ' ' << argv[i];
+	for(int i=1; i!= argc; ++i)
+		commandLineStr << ' ' << '\"' << argv[i] << '\"';
+	cotter.SetHistoryInfo(commandLineStr.str());
 	
 	long int pageCount = sysconf(_SC_PHYS_PAGES), pageSize = sysconf(_SC_PAGE_SIZE);
 	int64_t memSize = (int64_t) pageCount * (int64_t) pageSize;

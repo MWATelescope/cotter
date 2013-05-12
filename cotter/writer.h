@@ -59,6 +59,7 @@ class Writer
 		};
 		
 		virtual ~Writer() { }
+		virtual void SetArrayLocation(double x, double y, double z) { }
 		virtual void WriteBandInfo(const std::string &name, const std::vector<ChannelInfo> &channels, double refFreq, double totalBandwidth, bool flagRow) = 0;
 		virtual void WriteAntennae(const std::vector<AntennaInfo> &antennae, double time) = 0;
 		virtual void WritePolarizationForLinearPols(bool flagRow) = 0;
@@ -69,6 +70,9 @@ class Writer
 		
 		virtual void AddRows(size_t count) = 0;
 		virtual void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights) = 0;
+		
+		virtual bool AreAntennaPositionsLocal() const { return false; }
+		virtual bool CanWriteStatistics() const { return false; }
 		
 		/**
 		 * In case time is regridded, this returns 'true' when the current time samples fit on

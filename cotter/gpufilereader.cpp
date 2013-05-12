@@ -1,5 +1,7 @@
 #include "gpufilereader.h"
 
+#include <boost/thread/thread.hpp>
+
 #include <complex>
 #include <iostream>
 #include <sstream>
@@ -73,8 +75,17 @@ bool GPUFileReader::Read(size_t &bufferPos, size_t count) {
 	const size_t nBaselines = (_nAntenna + 1) * _nAntenna / 2;
 	const size_t gpuMatrixSizePerFile = _nChannelsInTotal * nBaselines * nPol / _filenames.size(); // cuda matrix length per file
 
-	std::vector<std::complex<float> > gpuMatrix(gpuMatrixSizePerFile);
-	
+	_shuffleTasks.reset();
+	_availableGPUMatrixBuffers.reset();
+	std::vector<std::vector<std::complex<float> > > gpuMatrixBuffers(_threadCount);
+	boost::thread_group threadGroup;
+	for(size_t i=0; i!=_threadCount; ++i)
+	{
+		gpuMatrixBuffers[i].resize(gpuMatrixSizePerFile);
+		_availableGPUMatrixBuffers.write(&gpuMatrixBuffers[i][0]);
+		threadGroup.create_thread(boost::bind(&GPUFileReader::shuffleThreadFunc, this));
+	}
+
 	if(!_isOpen)
 	{
 		openFiles();
@@ -88,8 +99,12 @@ bool GPUFileReader::Read(size_t &bufferPos, size_t count) {
 	initMapping();
 
 	std::cout << "Reading GPU files" << std::flush;
-	while (_currentHDU <= _stopHDU && bufferPos < count) {
-		for (size_t iFile = 0; iFile != _filenames.size(); ++iFile) {
+	
+	size_t fileHDU = _currentHDU, fileBufferPos = bufferPos;
+	for (size_t iFile = 0; iFile != _filenames.size(); ++iFile) {
+		fileHDU = _currentHDU;
+		fileBufferPos = bufferPos;
+		while (fileHDU <= _stopHDU && fileBufferPos < count) {
 			std::cout << '.' << std::flush;
 
 			fitsfile *fptr = _fitsFiles[iFile];
@@ -97,7 +112,7 @@ bool GPUFileReader::Read(size_t &bufferPos, size_t count) {
 			if(fptr != 0)
 			{
 				int status = 0, hduType = 0;
-				fits_movabs_hdu(fptr, _currentHDU, &hduType, &status);
+				fits_movabs_hdu(fptr, fileHDU, &hduType, &status);
 				checkStatus(status);
 				if (hduType == BINARY_TBL) {
 					throw std::runtime_error("GPU file seems not to contain image headers; format not understood.");
@@ -129,67 +144,96 @@ bool GPUFileReader::Read(size_t &bufferPos, size_t count) {
 						throw std::runtime_error(s.str());
 					}
 
-					std::complex<float> *matrixPtr = &gpuMatrix[0];
+					//std::complex<float> *matrixPtr = &gpuMatrix[0];
+					std::complex<float> *matrixPtr;
+					_availableGPUMatrixBuffers.read(matrixPtr);
 					fits_read_img(fptr, TFLOAT, fpixel, channelsInFile * baselTimesPolInFile, &nullval, (float *) matrixPtr, &anynull, &status);
 					checkStatus(status);
 					
-					
-					/** Note that the following antenna indices do not refer to the actual
-					* antennae indices, but to correlator input indices. These need to be
-					* mapped to the actual antenna indices. */
-					size_t correlationIndex = 0;
-					for(size_t antenna1=0; antenna1!=_nAntenna; ++antenna1)
-					{
-						for(size_t antenna2=0; antenna2<=antenna1; ++antenna2)
-						{
-							size_t channelStart = iFile * channelsInFile;
-							size_t channelEnd = (iFile+1) * channelsInFile;
-							size_t index = correlationIndex * nPol;
-							// Because possibly antenna2 <= antenna1 in the GPU file, and Casa MS expects it the other way
-							// around, we change the order and take the complex conjugates later. TODO
-							BaselineBuffer &buffer = getMappedBuffer(antenna2, antenna1);
-							size_t destChanIndex = bufferPos + channelStart * _bufferSize;
-							//std::cout << antenna1 << 'x' << antenna2 << "--" << index << '\n';
-							for(size_t ch=channelStart; ch!=channelEnd; ++ch)
-							{
-								std::complex<float> *dataPtr = &gpuMatrix[index];
-								
-								*(buffer.real[0] + destChanIndex) = dataPtr->real();
-								*(buffer.imag[0] + destChanIndex) = dataPtr->imag();
-								++dataPtr;
-								
-								*(buffer.real[2] + destChanIndex) = dataPtr->real();
-								*(buffer.imag[2] + destChanIndex) = dataPtr->imag();
-								++dataPtr;
-								
-								*(buffer.real[1] + destChanIndex) = dataPtr->real();
-								*(buffer.imag[1] + destChanIndex) = dataPtr->imag();
-								++dataPtr;
-								
-								*(buffer.real[3] + destChanIndex) = dataPtr->real();
-								*(buffer.imag[3] + destChanIndex) = dataPtr->imag();
-
-								index += nBaselines * nPol;
-								destChanIndex += _bufferSize;
-							}
-							++correlationIndex;
-						}
-					}
+					ShuffleTask shuffleTask;
+					shuffleTask.iFile = iFile;
+					shuffleTask.channelsInFile = channelsInFile;
+					shuffleTask.fileBufferPos = fileBufferPos;
+					shuffleTask.gpuMatrix = matrixPtr;
+					_shuffleTasks.write(shuffleTask);
 				}
 			} else {
 				// this file is not available
 			}
+			
+			++fileHDU;
+			++fileBufferPos;
 		}
-
-		++_currentHDU;
-		++bufferPos;
 	}
+	
+	_shuffleTasks.write_end();
+	threadGroup.join_all();
+	
+	_currentHDU = fileHDU;
+	bufferPos = fileBufferPos;
 	std::cout << '\n';
 	
 	bool moreAvailable = _currentHDU <= _stopHDU;
 	if(!moreAvailable)
 		closeFiles();
 	return moreAvailable;
+}
+
+void GPUFileReader::shuffleThreadFunc()
+{
+	ShuffleTask task;
+	while(_shuffleTasks.read(task))
+	{
+		shuffleBuffer(task.iFile, task.channelsInFile, task.fileBufferPos, task.gpuMatrix);
+		_availableGPUMatrixBuffers.write(task.gpuMatrix);
+	}
+}
+
+void GPUFileReader::shuffleBuffer(size_t iFile, size_t channelsInFile, size_t fileBufferPos, const std::complex<float> *gpuMatrix)
+{
+	const size_t nPol = 4;
+	const size_t nBaselines = (_nAntenna + 1) * _nAntenna / 2;
+	
+	/** Note that the following antenna indices do not refer to the actual
+	* antennae indices, but to correlator input indices. These need to be
+	* mapped to the actual antenna indices. */
+	size_t correlationIndex = 0;
+	for(size_t antenna1=0; antenna1!=_nAntenna; ++antenna1)
+	{
+		for(size_t antenna2=0; antenna2<=antenna1; ++antenna2)
+		{
+			size_t channelStart = iFile * channelsInFile;
+			size_t channelEnd = (iFile+1) * channelsInFile;
+			size_t index = correlationIndex * nPol;
+			// Because possibly antenna2 <= antenna1 in the GPU file, and Casa MS expects it the other way
+			// around, we change the order and take the complex conjugates later.
+			BaselineBuffer &buffer = getMappedBuffer(antenna2, antenna1);
+			size_t destChanIndex = fileBufferPos + channelStart * _bufferSize;
+			for(size_t ch=channelStart; ch!=channelEnd; ++ch)
+			{
+				const std::complex<float> *dataPtr = &gpuMatrix[index];
+				
+				*(buffer.real[0] + destChanIndex) = dataPtr->real();
+				*(buffer.imag[0] + destChanIndex) = dataPtr->imag();
+				++dataPtr;
+				
+				*(buffer.real[2] + destChanIndex) = dataPtr->real();
+				*(buffer.imag[2] + destChanIndex) = dataPtr->imag();
+				++dataPtr;
+				
+				*(buffer.real[1] + destChanIndex) = dataPtr->real();
+				*(buffer.imag[1] + destChanIndex) = dataPtr->imag();
+				++dataPtr;
+				
+				*(buffer.real[3] + destChanIndex) = dataPtr->real();
+				*(buffer.imag[3] + destChanIndex) = dataPtr->imag();
+
+				index += nBaselines * nPol;
+				destChanIndex += _bufferSize;
+			}
+			++correlationIndex;
+		}
+	}
 }
 
 	// Check the number of HDUs in each file. Only extract the amount of time

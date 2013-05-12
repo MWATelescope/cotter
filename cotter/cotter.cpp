@@ -6,6 +6,7 @@
 #include "geometry.h"
 #include "mswriter.h"
 #include "mwams.h"
+#include "subbandpassband.h"
 
 #include <aoflagger.h>
 
@@ -27,10 +28,11 @@ using namespace aoflagger;
 
 Cotter::Cotter() :
 	_writer(0),
-	_writerParent(0),
 	_reader(0),
 	_flagger(0),
 	_strategy(0),
+	_isAntennaFlaggedMap(0),
+	_unflaggedAntennaCount(0),
 	_threadCount(1),
 	_maxBufferSize(0),
 	_subbandCount(24),
@@ -39,10 +41,12 @@ Cotter::Cotter() :
 	_collectStatistics(true),
 	_outputFormat(MSOutputFormat),
 	_metaFilename(),
+	_subbandPassbandFilename(),
 	_statistics(0),
 	_correlatorMask(0),
 	_fullysetMask(0),
 	_disableGeometricCorrections(false),
+	_removeFlaggedAntennae(true),
 	_overridePhaseCentre(false),
 	_customRARad(0.0),
 	_customDecRad(0.0)
@@ -54,15 +58,16 @@ Cotter::~Cotter()
 	delete _correlatorMask;
 	delete _fullysetMask;
 	delete _writer;
-	delete _writerParent;
 	delete _reader;
 	delete _flagger;
 	delete _strategy;
 	delete _statistics;
+	delete[] _isAntennaFlaggedMap;
 }
 
 void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAvgFactor)
 {
+	_readWatch.Start();
 	bool lockPointing = false;
 	
 	if(_metaFilename.empty())
@@ -86,7 +91,11 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	for(size_t ch=0; ch!=_mwaConfig.Header().nChannels; ++ch)
 		_channelFrequenciesHz[ch] = _mwaConfig.ChannelFrequencyHz(ch);
 	
-	readSubbandPassbandFile();
+	if(_subbandPassbandFilename.empty())
+		initializeSubbandPassband();
+	else
+		readSubbandPassbandFile();
+	
 	if(_metaFilename.empty())
 		readSubbandGainsFile();
 	else
@@ -99,27 +108,24 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	const size_t antennaCount = _mwaConfig.NAntennae();
 	size_t maxScansPerPart = _maxBufferSize / (nChannels*(antennaCount+1)*antennaCount*2);
 	
-	Writer *rootWriter;
 	switch(_outputFormat)
 	{
 		case FlagsOutputFormat:
 			std::cout << "Only flags will be outputted.\n";
 			if(freqAvgFactor != 1 || timeAvgFactor != 1)
 				throw std::runtime_error("You have specified time or frequency averaging and outputting only flags: this is incompatible");
-			rootWriter = new FlagWriter(outputFilename, _mwaConfig.HeaderExt().gpsTime);
+			_writer = new FlagWriter(outputFilename, _mwaConfig.HeaderExt().gpsTime);
 			break;
 		case FitsOutputFormat:
-			rootWriter = new FitsWriter(outputFilename);
+			_writer = new FitsWriter(outputFilename);
 			break;
 		case MSOutputFormat:
-			rootWriter = new MSWriter(outputFilename);
+			_writer = new MSWriter(outputFilename);
 			break;
 	}
-	if(freqAvgFactor == 1 && timeAvgFactor == 1)
-		_writer = rootWriter;
-	else {
-		_writerParent = rootWriter;
-		_writer = new AveragingMSWriter(*rootWriter, timeAvgFactor, freqAvgFactor, *this);
+	if(freqAvgFactor != 1 || timeAvgFactor != 1)
+	{
+		_writer = new AveragingMSWriter(_writer, timeAvgFactor, freqAvgFactor, *this);
 	}
 	writeAntennae();
 	writeSPW();
@@ -154,8 +160,13 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	std::vector<std::vector<std::string> >::const_iterator
 		currentFileSetPtr = _fileSets.begin();
 	createReader(*currentFileSetPtr);
+	
+	_readWatch.Pause();
+	
 	for(size_t chunkIndex = 0; chunkIndex != partCount; ++chunkIndex)
 	{
+		_readWatch.Start();
+		
 		_curChunkStart = _mwaConfig.Header().nScans*chunkIndex/partCount;
 		_curChunkEnd = _mwaConfig.Header().nScans*(chunkIndex+1)/partCount;
 		
@@ -245,6 +256,10 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 				std::pair<size_t,size_t>(antenna1, antenna2), 0));
 			}
 		}
+		
+		_readWatch.Pause();
+		_processWatch.Start();
+		
 		if(_rfiDetection)
 		{
 			if(_collectStatistics)
@@ -267,6 +282,9 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		
 		if(_mwaConfig.Header().geomCorrection)
 			std::cout << "Will apply geometric delay correction.\n";
+		
+		_processWatch.Pause();
+		_writeWatch.Start();
 		
 		std::cout << "Writing" << std::flush;
 		_outputFlags = new bool[nChannels*4];
@@ -297,7 +315,11 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		_correlatorMask = 0;
 		delete _fullysetMask;
 		_fullysetMask = 0;
+		
+		_writeWatch.Pause();
 	} // end for chunkIndex!=partCount
+	
+	_writeWatch.Start();
 	
 	writeAlignmentScans();
 	
@@ -307,14 +329,14 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	params.push_back(paramStr.str());
 	_writer->WriteHistoryItem(_commandLine, "Cotter MWA preprocessor", params);
 	
+	const bool writerSupportsStatistics = _writer->CanWriteStatistics();
+	
 	delete _writer;
 	_writer = 0;
-	delete _writerParent;
-	_writerParent = 0;
 	delete _reader;
 	_reader = 0;
 	
-	if(_collectStatistics) {
+	if(_collectStatistics && writerSupportsStatistics) {
 		std::cout << "Writing statistics to file...\n";
 		_flagger->WriteStatistics(*_statistics, outputFilename);
 	}
@@ -324,12 +346,19 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		std::cout << "Writing MWA fields to file...\n";
 		writeMWAFields(outputFilename, _mwaConfig.Header().nScans/partCount);
 	}
+	
+	_writeWatch.Pause();
+	
+	std::cout
+		<< "Wall-clock time in reading: " << _readWatch.ToString()
+		<< " processing: " << _processWatch.ToString()
+		<< " writing: " << _writeWatch.ToString() << '\n';
 }
 
 void Cotter::createReader(const std::vector< std::string >& curFileset)
 {
 	delete _reader; // might be 0, but that's ok.
-	_reader = new GPUFileReader(_mwaConfig.NAntennae(), _mwaConfig.Header().nChannels);
+	_reader = new GPUFileReader(_mwaConfig.NAntennae(), _mwaConfig.Header().nChannels, _threadCount);
 
 	for(std::vector<std::string>::const_iterator i=curFileset.begin(); i!=curFileset.end(); ++i)
 		_reader->AddFile(i->c_str());
@@ -382,118 +411,122 @@ void Cotter::processAndWriteTimestep(size_t timeIndex)
 		Geometry::CalcUVW(uvwInfo, x, y, z, antU[antenna],antV[antenna], antW[antenna]);
 	}
 	
-	_writer->AddRows(antennaCount*(antennaCount+1)/2);
+	_writer->AddRows(rowsPerTimescan());
 	
 	double cosAngles[nChannels], sinAngles[nChannels];
+	
 	initializeWeights(_outputWeights);
 	for(size_t antenna1=0; antenna1!=antennaCount; ++antenna1)
 	{
 		for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
 		{
-			// TODO these statements should be more efficient
-			const ImageSet &imageSet = *_imageSetBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
-			const FlagMask &flagMask = *_flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
-			
-			const size_t stride = imageSet.HorizontalStride();
-			const size_t flagStride = flagMask.HorizontalStride();
-			double
-				u = antU[antenna1] - antU[antenna2],
-				v = antV[antenna1] - antV[antenna2],
-				w = antW[antenna1] - antW[antenna2];
+			if(outputBaseline(antenna1, antenna2))
+			{
+				// TODO these statements should be more efficient
+				const ImageSet &imageSet = *_imageSetBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
+				const FlagMask &flagMask = *_flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
 				
-			// Pre-calculate rotation coefficients for geometric phase delay correction
-			if(_mwaConfig.Header().geomCorrection)
-			{
-				for(size_t ch=0; ch!=nChannels; ++ch)
+				const size_t stride = imageSet.HorizontalStride();
+				const size_t flagStride = flagMask.HorizontalStride();
+				double
+					u = antU[antenna1] - antU[antenna2],
+					v = antV[antenna1] - antV[antenna2],
+					w = antW[antenna1] - antW[antenna2];
+					
+				// Pre-calculate rotation coefficients for geometric phase delay correction
+				if(_mwaConfig.Header().geomCorrection)
 				{
-					double angle = -2.0*M_PI*w*_channelFrequenciesHz[ch] / SPEED_OF_LIGHT;
-					double sinAng, cosAng;
-					sincos(angle, &sinAng, &cosAng);
-					sinAngles[ch] = sinAng; cosAngles[ch] = cosAng;
+					for(size_t ch=0; ch!=nChannels; ++ch)
+					{
+						double angle = -2.0*M_PI*w*_channelFrequenciesHz[ch] / SPEED_OF_LIGHT;
+						double sinAng, cosAng;
+						sincos(angle, &sinAng, &cosAng);
+						sinAngles[ch] = sinAng; cosAngles[ch] = cosAng;
+					}
 				}
-			}
-			
-			size_t bufferIndex = timeIndex - _curChunkStart;
-#ifndef USE_SSE
-			for(size_t p=0; p!=4; ++p)
-			{
+				
+				size_t bufferIndex = timeIndex - _curChunkStart;
+	#ifndef USE_SSE
+				for(size_t p=0; p!=4; ++p)
+				{
+					const float
+						*realPtr = imageSet.ImageBuffer(p*2)+bufferIndex,
+						*imagPtr = imageSet.ImageBuffer(p*2+1)+bufferIndex;
+					const bool *flagPtr = flagMask.Buffer()+bufferIndex;
+					std::complex<float> *outDataPtr = &_outputData[p];
+					bool *outputFlagPtr = &_outputFlags[p];
+					for(size_t ch=0; ch!=nChannels; ++ch)
+					{
+						// Apply geometric phase delay (for w)
+						if(_mwaConfig.Header().geomCorrection)
+						{
+							const float rtmp = *realPtr, itmp = *imagPtr;
+							*outDataPtr = std::complex<float>(
+								cosAngles[ch] * rtmp - sinAngles[ch] * itmp,
+								sinAngles[ch] * rtmp + cosAngles[ch] * itmp
+							);
+						} else {
+							*outDataPtr = std::complex<float>(*realPtr, *imagPtr);
+						}
+						*outputFlagPtr = *flagPtr;
+						realPtr += stride;
+						imagPtr += stride;
+						flagPtr += flagStride;
+						outDataPtr += 4;
+						outputFlagPtr += 4;
+					}
+				}
+	#else
 				const float
-					*realPtr = imageSet.ImageBuffer(p*2)+bufferIndex,
-					*imagPtr = imageSet.ImageBuffer(p*2+1)+bufferIndex;
+					*realAPtr = imageSet.ImageBuffer(0)+bufferIndex,
+					*imagAPtr = imageSet.ImageBuffer(1)+bufferIndex,
+					*realBPtr = imageSet.ImageBuffer(2)+bufferIndex,
+					*imagBPtr = imageSet.ImageBuffer(3)+bufferIndex,
+					*realCPtr = imageSet.ImageBuffer(4)+bufferIndex,
+					*imagCPtr = imageSet.ImageBuffer(5)+bufferIndex,
+					*realDPtr = imageSet.ImageBuffer(6)+bufferIndex,
+					*imagDPtr = imageSet.ImageBuffer(7)+bufferIndex;
 				const bool *flagPtr = flagMask.Buffer()+bufferIndex;
-				std::complex<float> *outDataPtr = &_outputData[p];
-				bool *outputFlagPtr = &_outputFlags[p];
+				std::complex<float> *outDataPtr = &_outputData[0];
+				bool *outputFlagPtr = &_outputFlags[0];
 				for(size_t ch=0; ch!=nChannels; ++ch)
 				{
 					// Apply geometric phase delay (for w)
 					if(_mwaConfig.Header().geomCorrection)
 					{
-						const float rtmp = *realPtr, itmp = *imagPtr;
-						*outDataPtr = std::complex<float>(
-							cosAngles[ch] * rtmp - sinAngles[ch] * itmp,
-							sinAngles[ch] * rtmp + cosAngles[ch] * itmp
-						);
+						// Note that order within set_ps is reversed; for the four complex numbers,
+						// the first two compl are loaded corresponding to set_ps(imag2, real2, imag1, real1).
+						__m128 ra = _mm_set_ps(*realBPtr, *realBPtr, *realAPtr, *realAPtr);
+						__m128 rb = _mm_set_ps(*realDPtr, *realDPtr, *realCPtr, *realCPtr);
+						__m128 rgeom = _mm_set_ps(sinAngles[ch], cosAngles[ch], sinAngles[ch], cosAngles[ch]);
+						__m128 ia = _mm_set_ps(*imagBPtr, *imagBPtr, *imagAPtr, *imagAPtr);
+						__m128 ib = _mm_set_ps(*imagDPtr, *imagDPtr, *imagCPtr, *imagCPtr);
+						__m128 igeom = _mm_set_ps(cosAngles[ch], -sinAngles[ch], cosAngles[ch], -sinAngles[ch]);
+						__m128 outa = _mm_add_ps(_mm_mul_ps(ra, rgeom), _mm_mul_ps(ia, igeom));
+						__m128 outb = _mm_add_ps(_mm_mul_ps(rb, rgeom), _mm_mul_ps(ib, igeom));
+						_mm_store_ps((float*) outDataPtr, outa);
+						_mm_store_ps((float*) (outDataPtr+2), outb);
 					} else {
-						*outDataPtr = std::complex<float>(*realPtr, *imagPtr);
+						*outDataPtr = std::complex<float>(*realAPtr, *imagAPtr);
+						*(outDataPtr+1) = std::complex<float>(*realBPtr, *imagBPtr);
+						*(outDataPtr+2) = std::complex<float>(*realCPtr, *imagCPtr);
+						*(outDataPtr+3) = std::complex<float>(*realDPtr, *imagDPtr);
 					}
-					*outputFlagPtr = *flagPtr;
-					realPtr += stride;
-					imagPtr += stride;
+					*outputFlagPtr = *flagPtr; ++outputFlagPtr;
+					*outputFlagPtr = *flagPtr; ++outputFlagPtr;
+					*outputFlagPtr = *flagPtr; ++outputFlagPtr;
+					*outputFlagPtr = *flagPtr; ++outputFlagPtr;
+					realAPtr += stride; imagAPtr += stride;
+					realBPtr += stride; imagBPtr += stride;
+					realCPtr += stride; imagCPtr += stride;
+					realDPtr += stride; imagDPtr += stride;
 					flagPtr += flagStride;
 					outDataPtr += 4;
-					outputFlagPtr += 4;
 				}
+	#endif
+				
+				_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, u, v, w, _mwaConfig.Header().integrationTime, _outputData, _outputFlags, _outputWeights);
 			}
-#else
-			const float
-				*realAPtr = imageSet.ImageBuffer(0)+bufferIndex,
-				*imagAPtr = imageSet.ImageBuffer(1)+bufferIndex,
-				*realBPtr = imageSet.ImageBuffer(2)+bufferIndex,
-				*imagBPtr = imageSet.ImageBuffer(3)+bufferIndex,
-				*realCPtr = imageSet.ImageBuffer(4)+bufferIndex,
-				*imagCPtr = imageSet.ImageBuffer(5)+bufferIndex,
-				*realDPtr = imageSet.ImageBuffer(6)+bufferIndex,
-				*imagDPtr = imageSet.ImageBuffer(7)+bufferIndex;
-			const bool *flagPtr = flagMask.Buffer()+bufferIndex;
-			std::complex<float> *outDataPtr = &_outputData[0];
-			bool *outputFlagPtr = &_outputFlags[0];
-			for(size_t ch=0; ch!=nChannels; ++ch)
-			{
-				// Apply geometric phase delay (for w)
-				if(_mwaConfig.Header().geomCorrection)
-				{
-					// Note that order within set_ps is reversed; for the four complex numbers,
-					// the first two compl are loaded corresponding to set_ps(imag2, real2, imag1, real1).
-					__m128 ra = _mm_set_ps(*realBPtr, *realBPtr, *realAPtr, *realAPtr);
-					__m128 rb = _mm_set_ps(*realDPtr, *realDPtr, *realCPtr, *realCPtr);
-					__m128 rgeom = _mm_set_ps(sinAngles[ch], cosAngles[ch], sinAngles[ch], cosAngles[ch]);
-					__m128 ia = _mm_set_ps(*imagBPtr, *imagBPtr, *imagAPtr, *imagAPtr);
-					__m128 ib = _mm_set_ps(*imagDPtr, *imagDPtr, *imagCPtr, *imagCPtr);
-					__m128 igeom = _mm_set_ps(cosAngles[ch], -sinAngles[ch], cosAngles[ch], -sinAngles[ch]);
-					__m128 outa = _mm_add_ps(_mm_mul_ps(ra, rgeom), _mm_mul_ps(ia, igeom));
-					__m128 outb = _mm_add_ps(_mm_mul_ps(rb, rgeom), _mm_mul_ps(ib, igeom));
-					_mm_store_ps((float*) outDataPtr, outa);
-					_mm_store_ps((float*) (outDataPtr+2), outb);
-				} else {
-					*outDataPtr = std::complex<float>(*realAPtr, *imagAPtr);
-					*(outDataPtr+1) = std::complex<float>(*realBPtr, *imagBPtr);
-					*(outDataPtr+2) = std::complex<float>(*realCPtr, *imagCPtr);
-					*(outDataPtr+3) = std::complex<float>(*realDPtr, *imagDPtr);
-				}
-				*outputFlagPtr = *flagPtr; ++outputFlagPtr;
-				*outputFlagPtr = *flagPtr; ++outputFlagPtr;
-				*outputFlagPtr = *flagPtr; ++outputFlagPtr;
-				*outputFlagPtr = *flagPtr; ++outputFlagPtr;
-				realAPtr += stride; imagAPtr += stride;
-				realBPtr += stride; imagBPtr += stride;
-				realCPtr += stride; imagCPtr += stride;
-				realDPtr += stride; imagDPtr += stride;
-				flagPtr += flagStride;
-				outDataPtr += 4;
-			}
-#endif
-			
-			_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, u, v, w, _mwaConfig.Header().integrationTime, _outputData, _outputFlags, _outputWeights);
 		}
 	}
 }
@@ -548,7 +581,7 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 	ImageSet *imageSet = _imageSetBuffers.find(std::pair<size_t,size_t>(antenna1, antenna2))->second;
 	const MWAInput
 		&input1X = _mwaConfig.AntennaXInput(antenna1),
-		&input1Y = _mwaConfig.AntennaXInput(antenna1),
+		&input1Y = _mwaConfig.AntennaYInput(antenna1),
 		&input2X = _mwaConfig.AntennaXInput(antenna2),
 		&input2Y = _mwaConfig.AntennaYInput(antenna2);
 		
@@ -671,11 +704,21 @@ void Cotter::writeAntennae()
 {
 	double arrayX, arrayY, arrayZ;
 	Geometry::Geodetic2XYZ(_mwaConfig.ArrayLattitudeRad(), _mwaConfig.ArrayLongitudeRad(), _mwaConfig.ArrayHeightMeters(), arrayX, arrayY, arrayZ);
-	std::vector<MSWriter::AntennaInfo> antennae;
+	_writer->SetArrayLocation(arrayX, arrayY, arrayZ);
+	
+	if(_writer->AreAntennaPositionsLocal())
+		std::cout << "Antenna positions are written in LOCAL MERIDIAN\n";
+	
+	std::vector<MSWriter::AntennaInfo> antennae(_mwaConfig.NAntennae());
+	
+	delete[] _isAntennaFlaggedMap;
+	_isAntennaFlaggedMap = new bool[antennae.size()];
+	_unflaggedAntennaCount = 0;
+	
 	for(size_t i=0; i!=_mwaConfig.NAntennae(); ++i)
 	{
 		const MWAAntenna &mwaAnt = _mwaConfig.Antenna(i);
-		MSWriter::AntennaInfo antennaInfo;
+		MSWriter::AntennaInfo &antennaInfo = antennae[i];
 		antennaInfo.name = mwaAnt.name;
 		antennaInfo.station = "MWA";
 		antennaInfo.type = "GROUND-BASED";
@@ -687,21 +730,23 @@ void Cotter::writeAntennae()
 		// The following rotation is necessary because we found that the XYZ locations are
 		// still in local frame (local meridian). However, the UVW calculations depend on
 		// this assumption, so that's why I rotate them only when writing...
-		// This fixes UVW calculations in Casa, but I believe the calculated positions are
-		// still wrong, as they are not perpendicular to the Earth's normal. For a full fix,
-		// I think three rotations are required; longitude, latitude, and finally correcting
-		// the orientation.
-		Geometry::Rotate(_mwaConfig.ArrayLongitudeRad(), x, y);
-		x += arrayX;
-		y += arrayY;
-		z += arrayZ;
+		if(!_writer->AreAntennaPositionsLocal())
+		{
+			Geometry::Rotate(_mwaConfig.ArrayLongitudeRad(), x, y);
+			x += arrayX;
+			y += arrayY;
+			z += arrayZ;
+		}
 		antennaInfo.x = x;
 		antennaInfo.y = y;
 		antennaInfo.z = z;
 		antennaInfo.diameter = 4; /** TODO can probably give more exact size! */
-		antennaInfo.flag = false;
-		
-		antennae.push_back(antennaInfo);
+		bool isFlagged =
+			_mwaConfig.AntennaXInput(i).isFlagged || _mwaConfig.AntennaYInput(i).isFlagged;
+		antennaInfo.flag = isFlagged;
+		_isAntennaFlaggedMap[i] = isFlagged;
+		if(!isFlagged)
+			_unflaggedAntennaCount++;
 	}
 	_writer->WriteAntennae(antennae, _mwaConfig.Header().dateFirstScanMJD*86400.0);
 }
@@ -779,9 +824,9 @@ void Cotter::writeObservation()
 
 void Cotter::readSubbandPassbandFile()
 {
-	std::ifstream passbandFile("subband-passband.txt");
+	std::ifstream passbandFile(_subbandPassbandFilename.c_str());
 	if(!passbandFile.good())
-		throw std::runtime_error("Unable to read subband-passband.txt");
+		throw std::runtime_error("Unable to read subband passband file");
 	while(passbandFile.good())
 	{
 		size_t rowIndex;
@@ -798,7 +843,39 @@ void Cotter::readSubbandPassbandFile()
 		subBandCount = _mwaConfig.Header().nChannels / channelsPerSubband;
 	std::cout << "Read subband passband, using " << channelsPerSubband << " gains to correct for " << subBandCount << " subbands.\n";
 	if(subBandCount != _subbandCount)
-		throw std::runtime_error("Unexpected number of channels in subband passband correction file");
+	{
+		std::ostringstream str;
+		str
+			<< "Unexpected number of channels in subband passband correction file: "
+			<< "file implies " << subBandCount << " sub-bands, but I expect " << _subbandCount << ".";
+		throw std::runtime_error(str.str());
+	}
+}
+
+void Cotter::initializeSubbandPassband()
+{
+	if(_mwaConfig.Header().nChannels % _subbandCount != 0)
+		throw std::runtime_error("Total number of channels is not divisable by subband count!");
+
+	const size_t nChannelsPerSubband = _mwaConfig.Header().nChannels / _subbandCount;
+	std::vector<double> passband;
+	SubbandPassband::GetSubbandPassband(passband, nChannelsPerSubband);
+	
+	for(size_t p=0; p!=4; ++p)
+		_subbandCorrectionFactors[p].resize(nChannelsPerSubband);
+	
+	std::cout << "Using a-priori subband passband with " << nChannelsPerSubband << " channels:\n[";
+	for(size_t ch=0; ch!=nChannelsPerSubband; ++ch)
+	{
+		if(ch != 0) std::cout << ',';
+		std::cout << round(passband[ch]*100.0)/100.0;
+		
+		double correctionFactor = 1.0 / passband[ch];
+		for(size_t p=0; p!=4; ++p) {
+			_subbandCorrectionFactors[p][ch] = correctionFactor;
+		}
+	}
+	std::cout << "]\n";
 }
 
 void Cotter::readSubbandGainsFile()
@@ -946,15 +1023,13 @@ void Cotter::reorderSubbands(ImageSet& imageSet) const
 
 void Cotter::initializeSbOrder(size_t centerSbNumber)
 {
-	if(_subbandCount != 24)
-		throw std::runtime_error("Not 24 subbands: I only know mappings for 24 subbands.");
 	if(centerSbNumber<=12 || centerSbNumber > 243)
 		throw std::runtime_error("Center channel must be between 13 and 243");
 
-	_subbandOrder.resize(24);
-	size_t firstSb = centerSbNumber-12;
+	_subbandOrder.resize(_subbandCount);
+	size_t firstSb = centerSbNumber-(_subbandCount/2);
 	size_t nbank1 = 0, nbank2 = 0;
-	for(size_t i=firstSb; i!=firstSb+24; ++i)
+	for(size_t i=firstSb; i!=firstSb+_subbandCount; ++i)
 	{
 		if(i<=128)
 			++nbank1;
@@ -964,10 +1039,10 @@ void Cotter::initializeSbOrder(size_t centerSbNumber)
 	for(size_t i=0; i!=nbank1; ++i)
 		_subbandOrder[i]=i;
 	for(size_t i=0; i!=nbank2; ++i)
-		_subbandOrder[i+nbank1] = 23-i;
+		_subbandOrder[i+nbank1] = _subbandCount-1-i;
 	
 	std::cout << "Subband order for centre subband " << centerSbNumber << ": " << _subbandOrder[0];
-	for(size_t i=1; i!=24; ++i)
+	for(size_t i=1; i!=_subbandCount; ++i)
 		std::cout << ',' << _subbandOrder[i];
 	std::cout << '\n';
 }
@@ -992,13 +1067,16 @@ void Cotter::writeAlignmentScans()
 		}
 		while(!_writer->IsTimeAligned(0, 0))
 		{
-			_writer->AddRows(antennaCount*(antennaCount+1)/2);
+			_writer->AddRows(rowsPerTimescan());
 			const double dateMJD = _mwaConfig.Header().dateFirstScanMJD + timeIndex * _mwaConfig.Header().integrationTime/86400.0;
 			for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
 			{
 				for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
 				{
-					_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, 0.0, 0.0, 0.0, _mwaConfig.Header().integrationTime, _outputData, _outputFlags, _outputWeights);
+					if(outputBaseline(antenna1, antenna2))
+					{
+						_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, 0.0, 0.0, 0.0, _mwaConfig.Header().integrationTime, _outputData, _outputFlags, _outputWeights);
+					}
 				}
 			}
 			++timeIndex;
@@ -1014,7 +1092,7 @@ void Cotter::writeAlignmentScans()
 void Cotter::writeMWAFields(const char *outputFilename, size_t flagWindowSize)
 {
 	MWAMS mwaMs(outputFilename);
-	mwaMs.AddMWAFields();
+	mwaMs.InitializeMWAFields();
 	
 	size_t nAnt = _mwaConfig.NAntennae();
 	for(size_t i=0; i!=nAnt; ++i)

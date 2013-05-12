@@ -1,12 +1,14 @@
 #include <string>
 #include <vector>
 #include <ctime>
+#include <complex>
 
 #include <fitsio.h>
 #include <stdexcept>
 
 #include "baselinebuffer.h"
 #include "fitsuser.h"
+#include "lane.h"
 
 /**
  * The GPU file reader, that can read the files produced by the MWA correlator.
@@ -33,7 +35,15 @@
 class GPUFileReader : private FitsUser
 {
 	public:
-		GPUFileReader(size_t nAntenna, size_t nChannelsInTotal) : _isOpen(false), _nAntenna(nAntenna), _nChannelsInTotal(nChannelsInTotal), _bufferSize(0) { }
+		GPUFileReader(size_t nAntenna, size_t nChannelsInTotal, size_t threadCount) :
+			_shuffleTasks(threadCount),
+			_availableGPUMatrixBuffers(threadCount),
+			_isOpen(false),
+			_nAntenna(nAntenna),
+			_nChannelsInTotal(nChannelsInTotal),
+			_bufferSize(0),
+			_threadCount(threadCount)
+		{ }
 		~GPUFileReader() { closeFiles(); }
 		
 		void AddFile(const char *filename) { _filenames.push_back(std::string(filename)); }
@@ -73,16 +83,26 @@ class GPUFileReader : private FitsUser
 		}
 		std::time_t StartTime() const { return _startTime; }
 	private:
+		struct ShuffleTask
+		{
+			size_t iFile, channelsInFile, fileBufferPos;
+			std::complex<float> *gpuMatrix;
+		};
+		lane<ShuffleTask> _shuffleTasks;
+		lane<std::complex<float> *> _availableGPUMatrixBuffers;
+		
 		const static int single_pfb_output_to_input[64];
 		std::vector<int> pfb_output_to_input;
 		
-		GPUFileReader(const GPUFileReader &) { }
+		GPUFileReader(const GPUFileReader &) : _shuffleTasks(0), _availableGPUMatrixBuffers(0) { }
 		void operator=(const GPUFileReader &) { }
 		void openFiles();
 		void closeFiles();
 		void findStopHDU();
 		void initMapping();
 		void initializePFBMapping();
+		void shuffleThreadFunc();
+		void shuffleBuffer(size_t iFile, size_t channelsInFile, size_t fileBufferPos, const std::complex<float> *gpuMatrix);
 		BaselineBuffer &getBuffer(size_t antenna1, size_t antenna2)
 		{
 			return _buffers[_nAntenna*antenna1 + antenna2];
@@ -103,4 +123,5 @@ class GPUFileReader : private FitsUser
 		std::vector<size_t> _corrInputToOutput;
 		std::vector<bool> _isConjugated;
 		std::time_t _startTime;
+		size_t _threadCount;
 };
