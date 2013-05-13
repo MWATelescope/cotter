@@ -1,4 +1,5 @@
 #include "gpufilereader.h"
+#include "progressbar.h"
 
 #include <boost/thread/thread.hpp>
 
@@ -98,14 +99,15 @@ bool GPUFileReader::Read(size_t &bufferPos, size_t count) {
 	
 	initMapping();
 
-	std::cout << "Reading GPU files" << std::flush;
+	ProgressBar progressBar("Reading GPU files");
 	
 	size_t fileHDU = _currentHDU, fileBufferPos = bufferPos;
 	for (size_t iFile = 0; iFile != _filenames.size(); ++iFile) {
 		fileHDU = _currentHDU;
 		fileBufferPos = bufferPos;
-		while (fileHDU <= _stopHDU && fileBufferPos < count) {
-			std::cout << '.' << std::flush;
+		while (fileHDU <= _stopHDU && fileBufferPos < count)
+		{
+			progressBar.SetProgress(fileHDU + iFile*_stopHDU, _stopHDU*_filenames.size());
 
 			fitsfile *fptr = _fitsFiles[iFile];
 
@@ -144,7 +146,6 @@ bool GPUFileReader::Read(size_t &bufferPos, size_t count) {
 						throw std::runtime_error(s.str());
 					}
 
-					//std::complex<float> *matrixPtr = &gpuMatrix[0];
 					std::complex<float> *matrixPtr;
 					_availableGPUMatrixBuffers.read(matrixPtr);
 					fits_read_img(fptr, TFLOAT, fpixel, channelsInFile * baselTimesPolInFile, &nullval, (float *) matrixPtr, &anynull, &status);
@@ -171,7 +172,6 @@ bool GPUFileReader::Read(size_t &bufferPos, size_t count) {
 	
 	_currentHDU = fileHDU;
 	bufferPos = fileBufferPos;
-	std::cout << '\n';
 	
 	bool moreAvailable = _currentHDU <= _stopHDU;
 	if(!moreAvailable)

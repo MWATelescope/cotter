@@ -5,6 +5,7 @@
 #include "gpufilereader.h"
 #include "mwaconfig.h"
 #include "stopwatch.h"
+#include "progressbar.h"
 
 #include <boost/thread/mutex.hpp>
 
@@ -65,6 +66,7 @@ class Cotter : private UVWCalculater
 		std::vector<double> _subbandGainCorrection;
 		bool *_isAntennaFlaggedMap;
 		size_t _unflaggedAntennaCount;
+		std::auto_ptr<ProgressBar> _progressBar;
 		
 		Stopwatch _readWatch, _processWatch, _writeWatch;
 		

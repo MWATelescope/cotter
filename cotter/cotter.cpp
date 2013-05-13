@@ -7,6 +7,7 @@
 #include "mswriter.h"
 #include "mwams.h"
 #include "subbandpassband.h"
+#include "progressbar.h"
 
 #include <aoflagger.h>
 
@@ -260,25 +261,27 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		_readWatch.Pause();
 		_processWatch.Start();
 		
+		std::string taskDescription;
 		if(_rfiDetection)
 		{
 			if(_collectStatistics)
-				std::cout << "RFI detection, stats, conjugations, subband ordering and cable length corrections" << std::flush;
+				taskDescription = "RFI detection, stats, conjugations, subband ordering and cable length corrections" << std::flush;
 			else
-				std::cout << "RFI detection, conjugations, subband ordering and cable length corrections" << std::flush;
+				taskDescription = "RFI detection, conjugations, subband ordering and cable length corrections" << std::flush;
 		}
 		else
 		{
 			if(_collectStatistics)
-				std::cout << "Stats, conjugations, subband ordering and cable length corrections" << std::flush;
+				taskDescription = "Stats, conjugations, subband ordering and cable length corrections" << std::flush;
 			else
-				std::cout << "Conjugations, subband ordering and cable length corrections" << std::flush;
+				taskDescription = "Conjugations, subband ordering and cable length corrections" << std::flush;
 		}
+		_progressBar.reset(new ProgressBar(taskDescription));
+		
 		boost::thread_group threadGroup;
 		for(size_t i=0; i!=_threadCount; ++i)
 			threadGroup.create_thread(boost::bind(&Cotter::baselineProcessThreadFunc, this));
 		threadGroup.join_all();
-		std::cout << '\n';
 		
 		if(_mwaConfig.Header().geomCorrection)
 			std::cout << "Will apply geometric delay correction.\n";
