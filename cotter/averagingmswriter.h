@@ -20,14 +20,14 @@ class AveragingMSWriter : public Writer
 		{
 		}
 		
-		~AveragingMSWriter()
+		virtual ~AveragingMSWriter()
 		{
 			destroyBuffers();
 			
 			delete _writer;
 		}
 		
-		void WriteBandInfo(const std::string &name, const std::vector<Writer::ChannelInfo> &channels, double refFreq, double totalBandwidth, bool flagRow)
+		virtual void WriteBandInfo(const std::string &name, const std::vector<Writer::ChannelInfo> &channels, double refFreq, double totalBandwidth, bool flagRow)
 		{
 			if(channels.size()%_freqAvgFactor != 0)
 			{
@@ -65,7 +65,7 @@ class AveragingMSWriter : public Writer
 				initBuffers();
 		}
 		
-		void WriteAntennae(const std::vector<Writer::AntennaInfo> &antennae, double time)
+		virtual void WriteAntennae(const std::vector<Writer::AntennaInfo> &antennae, double time)
 		{
 			_writer->WriteAntennae(antennae, time);
 			
@@ -74,22 +74,22 @@ class AveragingMSWriter : public Writer
 				initBuffers();
 		}
 		
-		void WritePolarizationForLinearPols(bool flagRow)
+		virtual void WritePolarizationForLinearPols(bool flagRow)
 		{
 			_writer->WritePolarizationForLinearPols(flagRow);
 		}
 		
-		void WriteSource(const Writer::SourceInfo &source)
+		virtual void WriteSource(const Writer::SourceInfo &source)
 		{
 			_writer->WriteSource(source);
 		}
 		
-		void WriteField(const Writer::FieldInfo& field)
+		virtual void WriteField(const Writer::FieldInfo& field)
 		{
 			_writer->WriteField(field);
 		}
 		
-		void WriteObservation(const std::string& telescopeName, double startTime, double endTime, const std::string& observer, const std::string& scheduleType, const std::string& project, double releaseDate, bool flagRow)
+		virtual void WriteObservation(const std::string& telescopeName, double startTime, double endTime, const std::string& observer, const std::string& scheduleType, const std::string& project, double releaseDate, bool flagRow)
 		{
 			_writer->WriteObservation(telescopeName, startTime, endTime, observer, scheduleType, project, releaseDate, flagRow);
 		}
@@ -99,7 +99,7 @@ class AveragingMSWriter : public Writer
 			_writer->SetArrayLocation(x, y, z);
 		}
 		
-		void AddRows(size_t rowCount)
+		virtual void AddRows(size_t rowCount)
 		{
 			if(_rowsAdded == 0)
 				_writer->AddRows(rowCount);
@@ -108,14 +108,14 @@ class AveragingMSWriter : public Writer
 				_rowsAdded=0;
 		}
 		
-		void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights);
+		virtual void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights);
 		
-		void WriteHistoryItem(const std::string &commandLine, const std::string &application, const std::vector<std::string> &params)
+		virtual void WriteHistoryItem(const std::string &commandLine, const std::string &application, const std::vector<std::string> &params)
 		{
 			_writer->WriteHistoryItem(commandLine, application, params);
 		}
 		
-		bool IsTimeAligned(size_t antenna1, size_t antenna2) {
+		virtual bool IsTimeAligned(size_t antenna1, size_t antenna2) {
 			const Buffer &buffer = getBuffer(antenna1, antenna2);
 			return buffer._rowTimestepCount==0;
 		}
