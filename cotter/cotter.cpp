@@ -8,6 +8,7 @@
 #include "mwams.h"
 #include "subbandpassband.h"
 #include "progressbar.h"
+#include "threadedwriter.h"
 
 #include <aoflagger.h>
 
@@ -124,9 +125,11 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 			_writer = new MSWriter(outputFilename);
 			break;
 	}
+	_writer = new ThreadedWriter(_writer);
+	
 	if(freqAvgFactor != 1 || timeAvgFactor != 1)
 	{
-		_writer = new AveragingMSWriter(_writer, timeAvgFactor, freqAvgFactor, *this);
+		_writer = new ThreadedWriter(new AveragingMSWriter(_writer, timeAvgFactor, freqAvgFactor, *this));
 	}
 	writeAntennae();
 	writeSPW();
@@ -137,7 +140,7 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		
 	if(maxScansPerPart<1)
 	{
-		std::cout << "WARNING! The given amount of memory is not enough for even one scan; expect swapping and very poor flagging accuracy.\n";
+		std::cout << "WARNING! The given amount of memory is not even enough for one scan and therefore below the minimum that Cotter will need; will use more memory. Expect swapping and very poor flagging accuracy.\nWARNING! This is a *VERY BAD* condition, so better make sure to resolve it!";
 		maxScansPerPart = 1;
 	} else if(maxScansPerPart<20)
 	{
@@ -172,6 +175,7 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		_curChunkEnd = _mwaConfig.Header().nScans*(chunkIndex+1)/partCount;
 		
 		// Initialize buffers
+		std::cout << "Claiming memory for " << (_curChunkEnd-_curChunkStart) << " timesteps...\n";
 		for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
 		{
 			for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
@@ -303,6 +307,7 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		delete[] _outputFlags;
 		std::cout << '\n';
 		
+		std::cout << "Freeing memory for " << (_curChunkEnd-_curChunkStart) << " timesteps...\n";
 		for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
 		{
 			for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
@@ -662,7 +667,7 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 	}
 	
 	_flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second = flagMask;
-}	
+}
 
 void Cotter::correctConjugated(ImageSet& imageSet, size_t imgImageIndex) const
 {
