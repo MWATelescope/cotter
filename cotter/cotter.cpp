@@ -198,6 +198,7 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 					bufPtr!=_imageSetBuffers.end(); ++bufPtr)
 			{
 				bufPtr->second->ResizeWithoutReallocation(_curChunkEnd-_curChunkStart);
+				bufPtr->second->Set(0.0f);
 			}
 		}
 		
