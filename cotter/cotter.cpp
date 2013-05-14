@@ -269,16 +269,16 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		if(_rfiDetection)
 		{
 			if(_collectStatistics)
-				taskDescription = "RFI detection, stats, conjugations, subband ordering and cable length corrections" << std::flush;
+				taskDescription = "RFI detection, stats, conjugations, subband ordering and cable length corrections";
 			else
-				taskDescription = "RFI detection, conjugations, subband ordering and cable length corrections" << std::flush;
+				taskDescription = "RFI detection, conjugations, subband ordering and cable length corrections";
 		}
 		else
 		{
 			if(_collectStatistics)
-				taskDescription = "Stats, conjugations, subband ordering and cable length corrections" << std::flush;
+				taskDescription = "Stats, conjugations, subband ordering and cable length corrections";
 			else
-				taskDescription = "Conjugations, subband ordering and cable length corrections" << std::flush;
+				taskDescription = "Conjugations, subband ordering and cable length corrections";
 		}
 		_progressBar.reset(new ProgressBar(taskDescription));
 		
