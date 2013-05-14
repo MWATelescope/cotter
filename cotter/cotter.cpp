@@ -176,7 +176,6 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		_curChunkEnd = _mwaConfig.Header().nScans*(chunkIndex+1)/partCount;
 		
 		// Initialize buffers
-		std::cout << "Claiming memory for " << (_curChunkEnd-_curChunkStart) << " timesteps...\n";
 		if(chunkIndex == 0)
 		{
 			// First time: allocate the buffers
@@ -325,7 +324,6 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		delete[] _outputFlags;
 		_progressBar.reset();
 		
-		std::cout << "Freeing memory for " << (_curChunkEnd-_curChunkStart) << " timesteps...\n";
 		for(std::map<std::pair<size_t, size_t>, aoflagger::FlagMask*>::iterator flagBufIter = _flagBuffers.begin();
 				flagBufIter != _flagBuffers.end(); ++flagBufIter)
 		{
