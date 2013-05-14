@@ -169,6 +169,7 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	
 	for(size_t chunkIndex = 0; chunkIndex != partCount; ++chunkIndex)
 	{
+		std::cout << "=== Processing chunk " << (chunkIndex+1) << " of " << partCount << " ===\n";
 		_readWatch.Start();
 		
 		_curChunkStart = _mwaConfig.Header().nScans*chunkIndex/partCount;
@@ -261,9 +262,13 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 				std::pair<size_t,size_t>(antenna1, antenna2), 0));
 			}
 		}
+		_baselinesToProcessCount = _baselinesToProcess.size();
 		
 		_readWatch.Pause();
 		_processWatch.Start();
+		
+		if(_mwaConfig.Header().geomCorrection)
+			std::cout << "Will apply geometric delay correction.\n";
 		
 		std::string taskDescription;
 		if(_rfiDetection)
@@ -287,25 +292,24 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 			threadGroup.create_thread(boost::bind(&Cotter::baselineProcessThreadFunc, this));
 		threadGroup.join_all();
 		
-		if(_mwaConfig.Header().geomCorrection)
-			std::cout << "Will apply geometric delay correction.\n";
+		_progressBar.reset();
 		
 		_processWatch.Pause();
 		_writeWatch.Start();
 		
-		std::cout << "Writing" << std::flush;
+		_progressBar.reset(new ProgressBar("Writing"));
 		_outputFlags = new bool[nChannels*4];
 		posix_memalign((void**) &_outputData, 16, nChannels*4*sizeof(std::complex<float>));
 		posix_memalign((void**) &_outputWeights, 16, nChannels*4*sizeof(float));
 		for(size_t t=_curChunkStart; t!=_curChunkEnd; ++t)
 		{
+			_progressBar->SetProgress(t-_curChunkStart, _curChunkEnd-_curChunkStart);
 			processAndWriteTimestep(t);
-			std::cout << '.' << std::flush;
 		}
 		free(_outputData);
 		free(_outputWeights);
 		delete[] _outputFlags;
-		std::cout << '\n';
+		_progressBar.reset();
 		
 		std::cout << "Freeing memory for " << (_curChunkEnd-_curChunkStart) << " timesteps...\n";
 		for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
@@ -569,11 +573,12 @@ void Cotter::baselineProcessThreadFunc()
 	while(!_baselinesToProcess.empty())
 	{
 		std::pair<size_t, size_t> baseline = _baselinesToProcess.front();
+		size_t currentTaskCount = _baselinesToProcess.size();
+		_progressBar->SetProgress(_baselinesToProcessCount - currentTaskCount, _baselinesToProcessCount);
 		_baselinesToProcess.pop();
 		lock.unlock();
 		
 		processBaseline(baseline.first, baseline.second, threadStatistics);
-		std::cout << '.' << std::flush;
 		lock.lock();
 	}
 	
