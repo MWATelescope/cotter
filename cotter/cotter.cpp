@@ -177,14 +177,28 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		
 		// Initialize buffers
 		std::cout << "Claiming memory for " << (_curChunkEnd-_curChunkStart) << " timesteps...\n";
-		for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
+		if(chunkIndex == 0)
 		{
-			for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
+			// First time: allocate the buffers
+			const size_t requiredWidthCapacity = (_mwaConfig.Header().nScans+partCount-1)/partCount;
+			for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
 			{
-				ImageSet *imageSet = new ImageSet(_flagger->MakeImageSet(_curChunkEnd-_curChunkStart, nChannels, 8, 0.0));
-				_imageSetBuffers.insert(std::pair<std::pair<size_t,size_t>, ImageSet*>(
-					std::pair<size_t,size_t>(antenna1, antenna2), imageSet
-				));
+				for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
+				{
+					ImageSet *imageSet = new ImageSet(_flagger->MakeImageSet(_curChunkEnd-_curChunkStart, nChannels, 8, 0.0f, requiredWidthCapacity));
+					_imageSetBuffers.insert(std::pair<std::pair<size_t,size_t>, ImageSet*>(
+						std::pair<size_t,size_t>(antenna1, antenna2), imageSet
+					));
+				}
+			}
+		} else {
+			// Resize the buffers, but don't reallocate. I used to reallocate all buffers
+			// here, but this gave awful memory fragmentation issues, since the buffers can have slightly
+			// different sizes during each run. This led to ~2x as much memory usage.
+			for(std::map<std::pair<size_t, size_t>, aoflagger::ImageSet*>::iterator bufPtr=_imageSetBuffers.begin();
+					bufPtr!=_imageSetBuffers.end(); ++bufPtr)
+			{
+				bufPtr->second->ResizeWithoutReallocation(_curChunkEnd-_curChunkStart);
 			}
 		}
 		
@@ -312,16 +326,12 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		_progressBar.reset();
 		
 		std::cout << "Freeing memory for " << (_curChunkEnd-_curChunkStart) << " timesteps...\n";
-		for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
+		for(std::map<std::pair<size_t, size_t>, aoflagger::FlagMask*>::iterator flagBufIter = _flagBuffers.begin();
+				flagBufIter != _flagBuffers.end(); ++flagBufIter)
 		{
-			for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
-			{
-				delete _flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
-				delete _imageSetBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
-			}
+			delete flagBufIter->second;
 		}
 		_flagBuffers.clear();
-		_imageSetBuffers.clear();
 		
 		delete _correlatorMask;
 		_correlatorMask = 0;
@@ -330,6 +340,12 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		
 		_writeWatch.Pause();
 	} // end for chunkIndex!=partCount
+	
+	for(std::map<std::pair<size_t, size_t>, aoflagger::ImageSet*>::iterator imgBufIter = _imageSetBuffers.begin();
+			imgBufIter != _imageSetBuffers.end(); ++imgBufIter)
+	{
+		delete imgBufIter->second;
+	}
 	
 	_writeWatch.Start();
 	
