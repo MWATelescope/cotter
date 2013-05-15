@@ -80,10 +80,22 @@ void usage()
 	"gpu box number and mm >= 0 is the time step number.\n";
 }
 
+int cotterMain(int argc, const char* const* argv);
+
 int main(int argc, char **argv)
 {
 	std::cout << "Running Cotter MWA preprocessing pipeline.\n";
 	
+	try {
+		cotterMain(argc, argv);
+	} catch(std::exception &e)
+	{
+		std::cout << "\nAn unhandled exception occured while running Cotter:\n" << e.what() << '\n';
+	}
+}
+
+int cotterMain(int argc, const char* const* argv)
+{
 	std::vector<std::string> unsortedFiles;
 	int argi = 1;
 	size_t freqAvg = 1, timeAvg = 1;
@@ -163,7 +175,7 @@ int main(int argc, char **argv)
 		}
 		else if(argv[argi][0] == '-')
 		{
-			usage();
+			std::cout << "Unknown command line option: " << argv[argi] << '\n';
 			return -1;
 		}
 		else {
