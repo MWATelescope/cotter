@@ -169,21 +169,36 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	
 	for(size_t chunkIndex = 0; chunkIndex != partCount; ++chunkIndex)
 	{
+		std::cout << "=== Processing chunk " << (chunkIndex+1) << " of " << partCount << " ===\n";
 		_readWatch.Start();
 		
 		_curChunkStart = _mwaConfig.Header().nScans*chunkIndex/partCount;
 		_curChunkEnd = _mwaConfig.Header().nScans*(chunkIndex+1)/partCount;
 		
 		// Initialize buffers
-		std::cout << "Claiming memory for " << (_curChunkEnd-_curChunkStart) << " timesteps...\n";
-		for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
+		if(chunkIndex == 0)
 		{
-			for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
+			// First time: allocate the buffers
+			const size_t requiredWidthCapacity = (_mwaConfig.Header().nScans+partCount-1)/partCount;
+			for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
 			{
-				ImageSet *imageSet = new ImageSet(_flagger->MakeImageSet(_curChunkEnd-_curChunkStart, nChannels, 8, 0.0));
-				_imageSetBuffers.insert(std::pair<std::pair<size_t,size_t>, ImageSet*>(
-					std::pair<size_t,size_t>(antenna1, antenna2), imageSet
-				));
+				for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
+				{
+					ImageSet *imageSet = new ImageSet(_flagger->MakeImageSet(_curChunkEnd-_curChunkStart, nChannels, 8, 0.0f, requiredWidthCapacity));
+					_imageSetBuffers.insert(std::pair<std::pair<size_t,size_t>, ImageSet*>(
+						std::pair<size_t,size_t>(antenna1, antenna2), imageSet
+					));
+				}
+			}
+		} else {
+			// Resize the buffers, but don't reallocate. I used to reallocate all buffers
+			// here, but this gave awful memory fragmentation issues, since the buffers can have slightly
+			// different sizes during each run. This led to ~2x as much memory usage.
+			for(std::map<std::pair<size_t, size_t>, aoflagger::ImageSet*>::iterator bufPtr=_imageSetBuffers.begin();
+					bufPtr!=_imageSetBuffers.end(); ++bufPtr)
+			{
+				bufPtr->second->ResizeWithoutReallocation(_curChunkEnd-_curChunkStart);
+				bufPtr->second->Set(0.0f);
 			}
 		}
 		
@@ -261,24 +276,28 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 				std::pair<size_t,size_t>(antenna1, antenna2), 0));
 			}
 		}
+		_baselinesToProcessCount = _baselinesToProcess.size();
 		
 		_readWatch.Pause();
 		_processWatch.Start();
+		
+		if(_mwaConfig.Header().geomCorrection)
+			std::cout << "Will apply geometric delay correction.\n";
 		
 		std::string taskDescription;
 		if(_rfiDetection)
 		{
 			if(_collectStatistics)
-				taskDescription = "RFI detection, stats, conjugations, subband ordering and cable length corrections" << std::flush;
+				taskDescription = "RFI detection, stats, conjugations, subband ordering and cable length corrections";
 			else
-				taskDescription = "RFI detection, conjugations, subband ordering and cable length corrections" << std::flush;
+				taskDescription = "RFI detection, conjugations, subband ordering and cable length corrections";
 		}
 		else
 		{
 			if(_collectStatistics)
-				taskDescription = "Stats, conjugations, subband ordering and cable length corrections" << std::flush;
+				taskDescription = "Stats, conjugations, subband ordering and cable length corrections";
 			else
-				taskDescription = "Conjugations, subband ordering and cable length corrections" << std::flush;
+				taskDescription = "Conjugations, subband ordering and cable length corrections";
 		}
 		_progressBar.reset(new ProgressBar(taskDescription));
 		
@@ -287,37 +306,31 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 			threadGroup.create_thread(boost::bind(&Cotter::baselineProcessThreadFunc, this));
 		threadGroup.join_all();
 		
-		if(_mwaConfig.Header().geomCorrection)
-			std::cout << "Will apply geometric delay correction.\n";
+		_progressBar.reset();
 		
 		_processWatch.Pause();
 		_writeWatch.Start();
 		
-		std::cout << "Writing" << std::flush;
+		_progressBar.reset(new ProgressBar("Writing"));
 		_outputFlags = new bool[nChannels*4];
 		posix_memalign((void**) &_outputData, 16, nChannels*4*sizeof(std::complex<float>));
 		posix_memalign((void**) &_outputWeights, 16, nChannels*4*sizeof(float));
 		for(size_t t=_curChunkStart; t!=_curChunkEnd; ++t)
 		{
+			_progressBar->SetProgress(t-_curChunkStart, _curChunkEnd-_curChunkStart);
 			processAndWriteTimestep(t);
-			std::cout << '.' << std::flush;
 		}
 		free(_outputData);
 		free(_outputWeights);
 		delete[] _outputFlags;
-		std::cout << '\n';
+		_progressBar.reset();
 		
-		std::cout << "Freeing memory for " << (_curChunkEnd-_curChunkStart) << " timesteps...\n";
-		for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
+		for(std::map<std::pair<size_t, size_t>, aoflagger::FlagMask*>::iterator flagBufIter = _flagBuffers.begin();
+				flagBufIter != _flagBuffers.end(); ++flagBufIter)
 		{
-			for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
-			{
-				delete _flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
-				delete _imageSetBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
-			}
+			delete flagBufIter->second;
 		}
 		_flagBuffers.clear();
-		_imageSetBuffers.clear();
 		
 		delete _correlatorMask;
 		_correlatorMask = 0;
@@ -326,6 +339,12 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		
 		_writeWatch.Pause();
 	} // end for chunkIndex!=partCount
+	
+	for(std::map<std::pair<size_t, size_t>, aoflagger::ImageSet*>::iterator imgBufIter = _imageSetBuffers.begin();
+			imgBufIter != _imageSetBuffers.end(); ++imgBufIter)
+	{
+		delete imgBufIter->second;
+	}
 	
 	_writeWatch.Start();
 	
@@ -569,11 +588,12 @@ void Cotter::baselineProcessThreadFunc()
 	while(!_baselinesToProcess.empty())
 	{
 		std::pair<size_t, size_t> baseline = _baselinesToProcess.front();
+		size_t currentTaskCount = _baselinesToProcess.size();
+		_progressBar->SetProgress(_baselinesToProcessCount - currentTaskCount, _baselinesToProcessCount);
 		_baselinesToProcess.pop();
 		lock.unlock();
 		
 		processBaseline(baseline.first, baseline.second, threadStatistics);
-		std::cout << '.' << std::flush;
 		lock.lock();
 	}
 	
