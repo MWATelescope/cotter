@@ -127,7 +127,6 @@ class Cotter : private UVWCalculater
 		void writeMWAFields(const char *outputFilename, size_t flagWindowSize);
 		size_t rowsPerTimescan() const
 		{
-			// if removing flagged antennae, auto correlations will also be removed
 			if(_removeFlaggedAntennae && _removeAutoCorrelations)
 				return _unflaggedAntennaCount*(_unflaggedAntennaCount-1)/2;
 			else if(_removeFlaggedAntennae)
