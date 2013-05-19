@@ -23,6 +23,13 @@ MetaFitsFile::MetaFitsFile(const char* filename)
 		throw std::runtime_error("At least two HDUs are expected to be in the meta fitsfile");
 }
 
+MetaFitsFile::~MetaFitsFile()
+{
+	int status = 0;
+	if(fits_close_file(_fptr, &status))
+		throwError(status, "Could not close metafits file");
+}
+
 void MetaFitsFile::ReadHeader(MWAHeader& header, MWAHeaderExt &headerExt)
 {
 	int status = 0, hduType;

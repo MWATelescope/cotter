@@ -14,6 +14,7 @@ class MetaFitsFile : private FitsUser
 {
 public:
 	MetaFitsFile(const char *filename);
+	~MetaFitsFile();
 	
 	void ReadHeader(MWAHeader &header, MWAHeaderExt &headerExt);
 	void ReadTiles(std::vector<class MWAInput> &inputs, std::vector<class MWAAntenna> &antennae);
