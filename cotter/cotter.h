@@ -5,6 +5,7 @@
 #include "gpufilereader.h"
 #include "mwaconfig.h"
 #include "stopwatch.h"
+#include "progressbar.h"
 
 #include <boost/thread/mutex.hpp>
 
@@ -86,6 +87,8 @@ class Cotter : private UVWCalculater
 		std::vector<double> _channelFrequenciesHz;
 		std::vector<double> _scanTimes;
 		std::queue<std::pair<size_t,size_t> > _baselinesToProcess;
+		std::auto_ptr<ProgressBar> _progressBar;
+		size_t _baselinesToProcessCount;
 		std::vector<size_t> _subbandOrder;
 		
 		boost::mutex _mutex;

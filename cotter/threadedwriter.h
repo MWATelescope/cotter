@@ -3,6 +3,8 @@
 
 #include "forwardingwriter.h"
 
+#include <string.h>
+
 #include <boost/thread/condition.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
