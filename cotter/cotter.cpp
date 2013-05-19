@@ -49,6 +49,7 @@ Cotter::Cotter() :
 	_fullysetMask(0),
 	_disableGeometricCorrections(false),
 	_removeFlaggedAntennae(true),
+	_removeAutoCorrelations(false),
 	_overridePhaseCentre(false),
 	_customRARad(0.0),
 	_customDecRad(0.0)

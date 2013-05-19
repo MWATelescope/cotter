@@ -70,7 +70,8 @@ void usage()
 	"  -norfi             Disable RFI detection\n"
 	"  -nostats           Disable collecting statistics\n"
 	"  -nogeom            Disable geometric corrections\n"
-	"  -noantennapruning  Output all antennae, also auto-correlations and flagged antennae.\n"
+	"  -noantennapruning  Do not remove the flagged antennae.\n"
+	"  -noautos           Do not output auto-correlations.\n"
 	"  -centre <ra> <dec> Set alternative phase centre, e.g. -centre 00h00m00.0s 00d00m00.0s\n"
 	"  -sbcount <count>   Read/processes the first given number of subbands\n"
 	"  -sbpassband <file> Read the sub-band passband from given file instead of using default passband\n"
@@ -144,6 +145,10 @@ int cotterMain(int argc, const char* const* argv)
 		else if(strcmp(argv[argi], "-noantennapruning") == 0)
 		{
 			cotter.SetRemoveFlaggedAntennae(false);
+		}
+		else if(strcmp(argv[argi], "-noautos") == 0)
+		{
+			cotter.SetRemoveAutoCorrelations(true);
 		}
 		else if(strcmp(argv[argi], "-timeavg") == 0)
 		{

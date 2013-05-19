@@ -51,6 +51,7 @@ class Cotter : private UVWCalculater
 		}
 		void SetSubbandCount(size_t subbandCount) { _subbandCount = subbandCount; }
 		void SetRemoveFlaggedAntennae(bool removeFlaggedAntennae) { _removeFlaggedAntennae = removeFlaggedAntennae; }
+		void SetRemoveAutoCorrelations(bool removeAutoCorrelations) { _removeAutoCorrelations = removeAutoCorrelations; }
 		void SetReadSubbandPassbandFile(const std::string subbandPassbandFilename)
 		{
 			_subbandPassbandFilename = subbandPassbandFilename;
@@ -98,7 +99,7 @@ class Cotter : private UVWCalculater
 		bool *_outputFlags;
 		std::complex<float> *_outputData;
 		float *_outputWeights;
-		bool _disableGeometricCorrections, _removeFlaggedAntennae;
+		bool _disableGeometricCorrections, _removeFlaggedAntennae, _removeAutoCorrelations;
 		bool _overridePhaseCentre;
 		long double _customRARad, _customDecRad;
 		
@@ -127,18 +128,23 @@ class Cotter : private UVWCalculater
 		size_t rowsPerTimescan() const
 		{
 			// if removing flagged antennae, auto correlations will also be removed
-			if(_removeFlaggedAntennae)
+			if(_removeFlaggedAntennae && _removeAutoCorrelations)
 				return _unflaggedAntennaCount*(_unflaggedAntennaCount-1)/2;
+			else if(_removeFlaggedAntennae)
+				return _unflaggedAntennaCount*(_unflaggedAntennaCount+1)/2;
+			else if(_removeAutoCorrelations)
+				return _mwaConfig.NAntennae()*(_mwaConfig.NAntennae()-1)/2;
 			else
 				return _mwaConfig.NAntennae()*(_mwaConfig.NAntennae()+1)/2;
 		}
 		bool outputBaseline(size_t antenna1, size_t antenna2) const
 		{
+			bool output = true;
 			if(_removeFlaggedAntennae)
-				return (!_isAntennaFlaggedMap[antenna1]) && (!_isAntennaFlaggedMap[antenna2]) &&
-					antenna1 != antenna2;
-			else
-				return true;
+				output = output && (!_isAntennaFlaggedMap[antenna1]) && (!_isAntennaFlaggedMap[antenna2]);
+			if(_removeAutoCorrelations)
+				output = output && (antenna1 != antenna2);
+			return output;
 		}
 		
 		// Implementing UVWCalculater
