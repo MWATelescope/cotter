@@ -58,7 +58,7 @@ Specific comments:
 ==================
 
 (R) Abstract: "long time integration" -- awkward.
-(A) Changed to "long integration"
+(A) Reworded.
 
 (R) Abstract: "stationary and consistently" -- means what specifically?  Is "consistent" somehow distinct from "stationary"?
 (A) Removed "stationary"
@@ -73,7 +73,7 @@ Specific comments:
 (A) explained with: "...if the strength of RFI sources remains strong after time integration"
 
 (R) Abstract: "most RFI sources do not linearly increase the noise" -- I could not decipher this comment, even after multiple readings of the relevant section of the paper.
-(A) Changed to "it is unlikely that there are undetected RFI sources that will become visible after long integration"
+(A) Changed to "it is unlikely that there are undetected RFI sources that will become visible in long observations"
 
 (R) Abstract: "We believe that RFI will not prevent an EoR detection" -- "believe"? I suspect this is just a matter of semantics, but either there is compelling evidence, or there is not.
 (A) Reworded
@@ -190,7 +190,7 @@ In the reference "Haarlem et al., submitted 2013" (see final comment for obtaini
 (A) There are multiple statements in this section. About "The found power-law exponents [..] can be explained by a uniform spatial distribution of RFI sources": There is not any other hypothesis on how such an accurate power law over such a large amplitude range could be created, so we think it is fair to say that our results imply a uniform distribution. We agree that the transmitter heights are more uncertain, but for the HBA the boundaries show that given the assumptions, these might be valid, and even though the LBA estimate seems off, the large uncertainty in the LBA slope does not reject the validity of the model. We've added the following sentences to accentuate the involved uncertainty: "[..] This translates to boundaries on the average transmitter height of [0.6; 800] and [3.1; 23] m for the LBA and HBA respectively. Therefore, the LBA measurements are clearly not accurate enough to be conclusive. Moreover, because the power-law distribution analyses involve many assumptions, it is uncertain whether the analyses are sufficiently accurate for making these detailed conclusions."
 
 (R) Figure 11:  The large variation here seems to underscore my point that perhaps the mathematical derivation is over-detailed and implied precision of the model & model parameters is perhaps overstated.
-(A) Our stated precision involves this variation, and the LBA uncertainty reflects its high variation. We do agree that the plot might be confusing: because this is a plot of the slope of a fit on small blocks of the data, its variation is naturally higher than in a single slope estimate over a larger range. It is very hard to see from this plot whether features are significant or are there because of sampling, which is why we need some of the mathematical derivations. We've now created this plot by samples the slope every order of magnitude, instead of sliding a window. This unsmooths the plot, which is a better representation of the limited amount of information in the plot.
+(A) Our stated precision involves this variation, and the LBA uncertainty reflects its high variation. We do agree that the plot might be confusing: because this is a plot of the slope of a fit on small blocks of the data, its variation is naturally higher than in a single slope estimate over a larger range. It is very hard to see from this plot whether features are significant or are there because of sampling, which is why we need some of the mathematical derivations. We've now created this plot by sampling the slope every order of magnitude, instead of sliding a window. This unsmooths the plot, which is a better representation of the limited amount of information in the plot.
 
 (R) Equation (35): What is "N_feed" and "N_interferometers"?
 (A) Added: "where N_feed=2 is the number of feeds per antenna and N_interferometers=1/2 60 x 59 is the number of interferometers."
