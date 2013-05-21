@@ -1,6 +1,11 @@
 Summary:
 ========
 
+Dear referee and editor,
+
+We would like to thank the referee for his detailed comments. We think the referee has done a very careful review and we appreciate this effort. We have considered his comments and changed our article accordingly, and we believe this has increased the quality of the paper.
+
+We will answer the referee's comments one by one:
 (R) -- referee comment
 (A) -- our answer
 
@@ -12,21 +17,25 @@ Summary:
 
 We think the arguments given here are by itself already sufficiently strong to make our conclusion. Moreover, there's no evidence showing RFI will be a problem, we already anticipate flagging on integrated data to find the low-level RFI as described, and we show that our detector is accurate enough to detect RFI slightly below the noise level. Also, a first result has been published showing that no RFI accumulates at the NCP (Sect 4.3 of Yatawatta et al, 2013).
 
-We have weakened the statement in the abstract slightly, to say that it is "likely" that a LOFAR EoR detection will not be prevented by RFI, and think this is more than warranted by the arguments given.
+We have weakened the statement in the abstract slightly, to say that "there is no indication" that a LOFAR EoR detection will be prevented by RFI, and we think this is more than warranted by the arguments given.
 
 General comments:
 =================
 
 (R) The frequency range which is addressed should be clearly identified in the abstract & introduction, and relevance/irrelevance to other frequency bands in the radio spectrum should be addressed.
-(A) Added range to abstract. The relevance to other frequency bands is not fully clear and a follow-up on other frequencies might be interesting, but we think it is not necessary to mention this in the abstract.
+(A) We've added the range to abstract. The relevance to other frequency bands is not fully clear and a follow-up on other frequencies might be interesting, but we think it is not necessary to mention this in the abstract.
 
 (R) The derivation of section 2 and continuing intermittently throughout the paper is unnecessarily sprawling and difficult to follow.  It's clear that the distribution follows a power law with exponent between -1 and -2, and typically about -1.5 assuming a path loss factor consistent with terrestrial propagation.  This result can be obtained in just a few steps from very simple considerations.  Instead the authors follow a very convoluted route with a few false starts and extraneous information (invoking for example the Hata model) and get essentially the expected result. 
 
-(A) To shorten the discussion, we've removed the section on the spherical geometry. However, we disagree with the statement that the derivation of the histogram slope is unnecessary sprawling. We believe it is not common knowledge that RFI creates a power law with an exponent around -1.5, and haven't found papers stating this. Our derivation in Sect. 2 in which we show that free propagating RFI would show a -2 distribution takes one page and 5 steps (Eq 1-5). Many non-trivial but relevant assumptions are mentioned here, including coherency properties and the I, g and rho parameters. While it might be possible to skip a step, we think it would not improve the reader's understanding. Many of the equations are also required for establishing a model further in the article. The derivation of the Hata model takes half a page, but provides a thorough understanding of how propagation affects the power law. This includes the conclusion that frequency & receiver height do not affect the power law, while transmitter height does. This is not well known, and we believe this has not been derived in any publication before. We think that the mathematical approach is scientifically more convincing than skipping over the assumptions and derivations.
+(A) To shorten the discussion, we've removed the section on the spherical geometry. However, we disagree with the statement that the derivation of the histogram slope is unnecessary sprawling. We believe it is not common knowledge that RFI creates a power law with an exponent around -1.5, and haven't found papers stating this. Our derivation in Sect. 2 in which we show that free propagating RFI would show a -2 distribution takes one page and 5 steps (Eq 1-5), and builds a framework for the rest of the paper. Many non-trivial but relevant assumptions are mentioned here, including coherency properties and the I, g and rho parameters. While it might be possible to skip a step, we think it would not improve the reader's understanding. The derivation of the Hata model takes half a page, but provides a thorough understanding of how propagation affects the power law. This includes the conclusion that frequency & receiver height do not affect the power law, while transmitter height does. This is not well known, and we believe this has not been derived in any publication before. We think that the mathematical approach is scientifically more convincing than skipping over the assumptions and derivations.
 
 (R) One thing that strikes me from reading about RFI surveys and my own experience with radio astronomy is that there seems to be two distinct "populations" of RFI:  Sources which are strong and obvious (like TV transmitters, or mobile radio transmissions with transmit frequencies following a known spacing), and sources which are weak and mysterious (the splatter in figure 1 may be a good example).  Treating these all as one population seems weird to me, since the first category is so easily characterized and/or avoided, after which all that is left is the second category, which seems to be the *real* threat to 21 cm cosmology experiments. Perhaps this dichotomy can be addressed?  For example, with respect to the discussion of Sec 5.1 second paragraph.
 
-(A) We think the situation for LOFAR is not really like that: we see hundreds of unknown RFI sources with LOFAR, almost all of which are detected with our detector. These dominate the distribution. We do not try to classify a source into being of unknown origin or not, but we (briefly) describe what the distribution is at different frequencies. We've not noticed two classes of power laws on different frequencies, as the power-law becomes only sufficiently apparent when combining many frequencies (see sect 5.1, second paragraph). This implies that the few obvious transmitters we know of do not dominate the histogram, otherwise they would show up in the individual subbands.
+(A) We see many unknown RFI sources with LOFAR, almost all of which are detected with our detector. These dominate the distribution. We do not try to classify a source into being of unknown origin or not, but we (briefly) describe what the distribution is at different frequencies. We've not noticed two classes of power laws on different frequencies, as the power law becomes only sufficiently apparent when combining many frequencies (see sect 5.1, second paragraph). This implies that the few obvious transmitters we know of do not dominate the histogram, otherwise they would show up in the individual subbands. We've added a brief comment about this in sect 4:
+
+"With the help of the spectrum allocation registry, the most-obvious transmitters can easily be identified and ignored in LOFAR data (Offringa et al., 2013). However, many interfering sources have an unknown origin."
+and in Sect 5.1 sec par:
+"By making distributions over different frequency ranges, we have verified that the power law is not dominated by a few obvious and known sources."
 
 (R) Reading this paper I was reminded of the following paper by A.E.E. Rogers of MIT/Haystack (also doing work on 21 cm cosmology at radio frequencies) on very sensitive "interference temperature" measurements from 70 MHz up in the US Northeast: 
 http://www.haystack.mit.edu/ast/arrays/deut/pdf/dyspan_rogers_2005.pdf
@@ -34,7 +43,7 @@ I wonder: Are the findings of the Rogers paper consistent with those of this pap
 (A) This is indeed an interesting paper in this context and we have added a brief discussion to section 6 ("The apparent RFI flux densities can be converted to a RFI station temperature [..]")
 
 (R) The statistics pertain to amplitudes of the visibilities.  It is well-known that terrestrial propagation involving mobile transmitters in this frequency range is subject to both significant doppler shifting (due to relative motion) and orders-of-magnitude wavelength-scale "fast fading" (due to plurality of multipaths arriving at the receiver).  However the paper seems to ignore these instead focusses (with excessive detail, I would argue) on path loss on geographical scales (only).  I can't say for sure, but it seems possible that doppler and fast fading effects may significantly affect the distribution of the visibility amplitudes.  I think this should be addressed. 
-(A) Due to the velocity resolution of 1.5 km/s, we've not observed any Doppler shift with LOFAR except on very fast satellites. To actually decorrelate, a source should have a speed difference of 1.5 km/s between the antennas, which is nearly impossible. The same holds for fast fading, which also only occurs if moving sources are involved (or reflection on a turbulant ionosphere). Even if these effects were significant, they would be absorbed as a term in parameter 'g' (gain), and this term will be limited and distributed in such a way it won't affect the power-law in the histogram. E.g., ionospheric fading is sometimes modelled with a Rayleigh distribution (Rayleigh fading), and as described in Sect 2.4, such terms do not affect the power law. We've added some clarification on this, see the more specific comments below for our addition to the paper.
+(A) Due to the velocity resolution of 1.5 km/s, we've not observed any Doppler shift with LOFAR except on very fast satellites. To actually decorrelate, a source should have a speed difference of 1.5 km/s between the antennas, which is nearly impossible. The same holds for fast fading, which also only occurs if moving sources are involved (or reflection on a turbulant ionosphere). Even if these effects were significant, they would be absorbed as a term in parameter 'g' (gain), and this term will be limited and distributed in such a way it won't affect the power-law in the histogram. E.g., ionospheric fading is sometimes modelled with a Rayleigh distribution (Rayleigh fading), and as described in Sect 2.3, such terms do not affect the power law. We've added some clarification on this, see the more specific comments below for our addition to the paper.
 
 (R) LOFAR EoR observations are referred to, but not sufficiently well addressed.  To make the conclusion that RFI will not hurt this observing program, enough detail about the program should be clearly stated that the reader is able to make this assessment.  Similarly, there is reference to "AOFlagger" which is reasonably referenced/cited, but which nevertheless should be explained in sufficient detail to allow the reader of this paper to make the assessment as to whether RFI observed + AOFlagger is sufficient to allow the detection.  Alternatively, present results in manner which is independent of the specific instrument and RFI mitigation software employed.
 (A) We've added descriptions of the the EoR project (in Sect 1) and the AOFlagger (in Sect 4).
@@ -43,7 +52,7 @@ I wonder: Are the findings of the Rogers paper consistent with those of this pap
 (A) We've changed the paper to use these terms consistently.
 
 (R) I don't see that the possibility that some fraction of clutter in the dynamic spectrum which is detected as RFI might actually be intermodulation distortion generated within the receivers.  Has this been considered and determined (how?) to be negligible?   
-(A) We are aware of the occurance of some non-linearity in the receiver, as briefly mentioned in Sect 5.1. If intermodulation or other non-linearity occurs, it is as if a transmitter is spread over a larger bandwidth. This can be absorbed in the "rho" (density) parameter, but won't affect the accuracy of our analysis.
+(A) We are aware of the occurance of some non-linearity in the receiver, as briefly mentioned in Sect 5.1. If intermodulation or other non-linearity occurs, it is as if a transmitter is spread over a larger bandwidth. This can e.g. be absorbed in the "rho" (density) parameter, but won't affect the accuracy of our analysis.
 
 Specific comments:
 ==================
@@ -61,7 +70,7 @@ Specific comments:
 (A) Changed
 
 (R) Abstract: "imply that the current LOFAR EoR observations should be severely RFI limited if these sources add up consistently" -- not clear specifically what "add up consistently" means.
-(A) explained with: "...if the strength of RFI sources remain strong after integration"
+(A) explained with: "...if the strength of RFI sources remains strong after time integration"
 
 (R) Abstract: "most RFI sources do not linearly increase the noise" -- I could not decipher this comment, even after multiple readings of the relevant section of the paper.
 (A) Changed to "it is unlikely that there are undetected RFI sources that will become visible after long integration"
@@ -152,13 +161,13 @@ to Eq 7 and "as seen in Eq. (7)" below below Eq. 9.
 (A) We've removed the paragraph and replaced it with the following sentence: "The frequency dependency of the gains due to the band-pass will consequently smooth the data in the brightness histogram in horizontal direction by one order of magnitude or less."
 
 (R) Sec 3.2 Page 8 Col 1 Line 9-10:  "slope estimated using linear regression over a visually-selected interval": OK, but then is it really reasonable to imply that the slope exponent can be determined with more than one signficant figure following the decimal point? 
-(A) Yes, we think so. Uncertainty in selecting the range does not affect the certainty in the slope estimate significantly. For example, in simulations with 10^6 samples, changing the fitting range for the HBA an order of magnitude (i.e., one tick on the x-axis) to the right affects the slope estimate by only 0.002. Since the LBA/HBA histograms have many more samples, the uncertainty because of the visually selected interval can be neglected. We've also verified that changing the range slightly does not affect our estimates. Uncertainty because of variation in the curve is captured in our estimates of the standard error. Even our most pessimistic standard error of the slope estimate (epsilon_alpha in Table 2) says that we can estimate the slope more accurate than 0.1, so the second digit has value. Arguments could be given for how to select the interval based on where the Rayleigh distribution becomes insignificant, but this would make the discussion even more rigorous and add little value.
+(A) Yes, we think so. We've added: "We have validated that the slope does not significantly change by using a slightly different interval." Uncertainty in selecting the range does not affect the certainty in the slope estimate significantly. For example, in simulations with 10^6 samples, changing the fitting range for the HBA an order of magnitude (i.e., one tick on the x-axis) to the right affects the slope estimate by only 0.002. Since the LBA/HBA histograms have many more samples, the uncertainty because of the visually selected interval can be neglected. We've also verified that changing the range slightly does not affect our estimates. Uncertainty because of variation in the curve is captured in our estimates of the standard error. Even our most pessimistic standard error of the slope estimate (epsilon_alpha in Table 2) says that we can estimate the slope more accurate than 0.1, so the second digit has value. Arguments could be given for how to select the interval based on where the Rayleigh distribution becomes insignificant, but this would make the discussion even more rigorous and add little value.
 
 (R) Sec 3.2-3.3:  I don't specifically object, but I find this to be excessively rigorous for something that is ultimately limited by relatively bold assumptions and still requires a some "eyeballing" to set parameters.
 (A) We have slightly shortened both sections. Sect 3.2 is brief, and since we use a method that is discouraged in science (fitting straight lines to a power-law distribution) it is good to mention why we do this and that we confirmed it. Section 3.3 is extensive, but introduces estimators that we think are very interesting. Without most of these estimators we do not have a full parameterization of the RFI distribution, and thus the distribution can not be simulated. The other estimators help to understand the effectivity of flagging, and the resulting measures provide an argument in the "LOFAR RFI is manageable" discussion. As said above, the uncertainty of roughly estimating the interval is negligable, thus our results are not depending on eyeballing.
 
 (R) Sec 3.3 Page 9 Col 2 Line 6-7: "AOFlagger" suddenly comes into play.  Presumably this work is intended to be more broadly applicable than just to LOFAR using this RFI mitigation scheme?
-(A) Added: "We use the AOFlagger for RFI detection, which will be described in Sect. 4. " before "In Offringa et al. (2013), the false-positives rate for the AOFlagger is estimated to be 0.5%."
+(A) Added: "We use the AOFlagger for RFI detection, which will be described in Sect. 4." before "In Offringa et al. (2013), the false-positives rate for the AOFlagger is estimated to be 0.5%."
 and changed "which equals the [..] minus the 0.5% false positives." to "which equals the [..] minus the false positives."
 
 We've extended the description of the AOFlagger in Sect. 4.
@@ -187,7 +196,5 @@ In the reference "Haarlem et al., submitted 2013" (see final comment for obtaini
 (A) Added: "where N_feed=2 is the number of feeds per antenna and N_interferometers=1/2 60 x 59 is the number of interferometers."
 
 (R) References identified as "submitted" do not appear in the reference list.  Also, it always strikes me as unreasonable to cite a "submitted" paper without somehow indicating how to get hold of a preprint.
-(A) We agree, our apologees for this. We have asked the principal author of "van Haarlem et al., submitted 2013" to put the paper on Arxiv, but that might still take some time. We've requested permission to send the referee a draft of this paper. We have uploaded a draft version to: 
-http://www.astro.rug.nl/~offringa/LOFAR_Overview_draft_1.9.pdf
-It is not yet finalized.
+(A) We agree, our apologees for this. The "van Haarlem et al., submitted 2013" paper is now available on Arxiv (http://arxiv.org/abs/1305.3550).
 

@@ -203,7 +203,7 @@ Hoe RFI zich bij de pool manifesteerd.
 
 6.1 Voeg beschrijving toe van stationare bron.
 
-With consistent we mean that the geometrical phase will be the same every day/time.
+X With consistent we mean that the geometrical phase will be the same every day/time.
 
 populatie
 
@@ -215,20 +215,20 @@ recht evenredig met pi r^2 rho.
 S = i/pi r^2
 
 Abstract:
-There is no indication that a LOFAR detection will be prevented by RFI.
+X There is no indication that a LOFAR detection will be prevented by RFI.
 
 Pagina2: 
-"We think the situation for LOFAR is not really like that:" 
+X "We think the situation for LOFAR is not really like that:" 
 geef aan "wat we gezien hebben" vliegtuigen, modelbouw vliegtuigjes, aantal voorbeelden? Sectie 2. Cosmologische bron relatie S/1.5-2.5, platte aarde. Ger zegt, inclusef "Wat zullen we verwachten??" 118--138 MHz 
 
-Dingen opnemen die ik tegen de referee zeg ook opnemen in paper.
+X Dingen opnemen die ik tegen de referee zeg ook opnemen in paper.
 
-section 2.4 moet 2.3 zijn (veranderd)
+X section 2.4 moet 2.3 zijn (veranderd)
 
 8 KHz Doppler shift: 8 km/s (nauwbandige satelliten op 153 MHz 147 137 MHz).
 
 Noem population density van Nederland.
 
-opmerking over 100 kW: 10-100 kW EIRP equivalent isotropic radiated power. 
+X opmerking over 100 kW: 10-100 kW EIRP equivalent isotropic radiated power. 
 
 minder EoR discussie in abstract. Abstract wat langer -> beschrijf de belangrijkste resultaten van het paper. 
