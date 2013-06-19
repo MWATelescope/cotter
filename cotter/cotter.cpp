@@ -90,6 +90,8 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	}
 	_mwaConfig.CheckSetup();
 	
+	_quackSampleCount = round(4.0 / _mwaConfig.Header().integrationTime);
+	
 	_channelFrequenciesHz.resize(_mwaConfig.Header().nChannels);
 	for(size_t ch=0; ch!=_mwaConfig.Header().nChannels; ++ch)
 		_channelFrequenciesHz[ch] = _mwaConfig.ChannelFrequencyHz(ch);
@@ -656,7 +658,7 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 	}
 	
 	// Perform RFI detection, if baseline is not flagged.
-	bool skipFlagging = input1X.isFlagged || input1Y.isFlagged || input2X.isFlagged || input2Y.isFlagged;
+	bool skipFlagging = input1X.isFlagged || input1Y.isFlagged || input2X.isFlagged || input2Y.isFlagged || _isAntennaFlaggedMap[antenna1] || _isAntennaFlaggedMap[antenna2];
 
 	FlagMask *flagMask, *correlatorMask;
 	if(skipFlagging)
@@ -742,8 +744,15 @@ void Cotter::writeAntennae()
 	
 	delete[] _isAntennaFlaggedMap;
 	_isAntennaFlaggedMap = new bool[antennae.size()];
-	_unflaggedAntennaCount = 0;
 	
+	for(size_t i=0; i!=antennae.size(); ++i)
+		_isAntennaFlaggedMap[i] = false;
+	
+	for(std::vector<size_t>::const_iterator userFlagIter=_userFlaggedAntennae.begin();
+			userFlagIter!=_userFlaggedAntennae.end(); ++userFlagIter)
+		_isAntennaFlaggedMap[*userFlagIter] = true;
+	
+	_unflaggedAntennaCount = 0;
 	for(size_t i=0; i!=_mwaConfig.NAntennae(); ++i)
 	{
 		const MWAAntenna &mwaAnt = _mwaConfig.Antenna(i);
@@ -771,7 +780,7 @@ void Cotter::writeAntennae()
 		antennaInfo.z = z;
 		antennaInfo.diameter = 4; /** TODO can probably give more exact size! */
 		bool isFlagged =
-			_mwaConfig.AntennaXInput(i).isFlagged || _mwaConfig.AntennaYInput(i).isFlagged;
+			_mwaConfig.AntennaXInput(i).isFlagged || _mwaConfig.AntennaYInput(i).isFlagged || _isAntennaFlaggedMap[i];
 		antennaInfo.flag = isFlagged;
 		_isAntennaFlaggedMap[i] = isFlagged;
 		if(!isFlagged)

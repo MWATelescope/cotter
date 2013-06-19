@@ -76,6 +76,7 @@ void usage()
 	"  -sbcount <count>   Read/processes the first given number of subbands\n"
 	"  -sbpassband <file> Read the sub-band passband from given file instead of using default passband\n"
 	"                     (default passband does a reasonably good job)\n"
+	"  -flagantenna <lst> Mark the command-separated list of zero-indexed antennae as flagged antennae\n"
 	"\n"
 	"The filenames of the input gpu files should end in '...nn_mm.fits', where nn >= 1 is the\n"
 	"gpu box number and mm >= 0 is the time step number.\n";
@@ -177,6 +178,24 @@ int cotterMain(int argc, const char* const* argv)
 		{
 			++argi;
 			cotter.SetReadSubbandPassbandFile(argv[argi]);
+		}
+		else if(strcmp(argv[argi], "-flagantenna") == 0)
+		{
+			++argi;
+			std::string list = argv[argi];
+			size_t pos = list.find(",");
+			while(pos != std::string::npos)
+			{
+				std::string idStr = list.substr(0, pos);
+				list = list.substr(pos+1);
+				int id = atoi(idStr.c_str());
+				std::cout << "Flagging antenna " << id << ".\n";
+				cotter.FlagAntenna(id);
+				pos = list.find(",");
+			}
+			int id = atoi(list.c_str());
+			std::cout << "Flagging antenna " << id << ".\n";
+			cotter.FlagAntenna(id);
 		}
 		else if(argv[argi][0] == '-')
 		{

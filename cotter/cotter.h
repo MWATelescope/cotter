@@ -56,6 +56,7 @@ class Cotter : private UVWCalculater
 		{
 			_subbandPassbandFilename = subbandPassbandFilename;
 		}
+		void FlagAntenna(size_t antIndex) { _userFlaggedAntennae.push_back(antIndex); }
 	private:
 		MWAConfig _mwaConfig;
 		Writer *_writer;
@@ -82,6 +83,7 @@ class Cotter : private UVWCalculater
 		std::string _commandLine;
 		std::string _metaFilename;
 		std::string _subbandPassbandFilename;
+		std::vector<size_t> _userFlaggedAntennae;
 		
 		std::map<std::pair<size_t, size_t>, aoflagger::ImageSet*> _imageSetBuffers;
 		std::map<std::pair<size_t, size_t>, aoflagger::FlagMask*> _flagBuffers;
