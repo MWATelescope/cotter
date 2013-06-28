@@ -101,6 +101,11 @@ void MWAConfig::ReadMetaFits(const char* filename, bool lockPointing)
 void MWAConfig::ReadHeader(const char *filename, bool lockPointing)
 {
 	std::ifstream file(filename);
+	if(!file.good()) {
+		std::ostringstream str;
+		str << "Could not open header file ('" << filename << "')\n";
+		throw std::runtime_error(str.str());
+	}
 	
 	std::string line;
 	
