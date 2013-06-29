@@ -194,7 +194,6 @@ void FitsWriter::AddRows(size_t count)
 void FitsWriter::WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights)
 {
 	const size_t nGroupParameters = 5;
-	double frequencyOffset = (_bandInfo.channels.begin()->chanFreq + _bandInfo.channels.rbegin()->chanFreq) * 0.5;
 	
 	// 3 dimensions (real,imag,weight), 4 pol, nch
 	const size_t nElements = 3 * 4 * _bandInfo.channels.size();
@@ -202,9 +201,9 @@ void FitsWriter::WriteRow(double time, double timeCentroid, size_t antenna1, siz
 	// TODO might be efficient to declare this outside function
 	std::vector<float> rowData(nElements + nGroupParameters); 
 
-	rowData[0] = u / frequencyOffset;
-	rowData[1] = v / frequencyOffset;
-	rowData[2] = w / frequencyOffset;
+	rowData[0] = u / VLIGHT;
+	rowData[1] = v / VLIGHT;
+	rowData[2] = w / VLIGHT;
 	rowData[3] = baselineIndex(antenna1+1, antenna2+1);
 	double zeroTimeLevel = floor(_startTime / (60.0*60.0*24.0) + 2400000.5) + 0.5;
 	rowData[4] = time / (60.0*60.0*24.0) + 2400000.5 - zeroTimeLevel;
