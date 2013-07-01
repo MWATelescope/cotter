@@ -127,7 +127,7 @@ bool GPUFileReader::Read(size_t &bufferPos, size_t count) {
 					int nfound = 0;
 					long naxes[2];
 
-					fits_read_keys_lng(fptr, "NAXIS", 1, 2, naxes, &nfound, &status);
+					fits_get_img_size(fptr, 2, naxes, &status);
 					checkStatus(status);
 
 					size_t channelsInFile = naxes[1];
