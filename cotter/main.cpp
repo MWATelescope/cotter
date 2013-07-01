@@ -68,10 +68,11 @@ void usage()
 	"                     When averaging: flagging, collecting statistics and cable length fixes will be done\n"
 	"                     at highest resolution. UVW positions will be recalculated for new timesteps.\n"
 	"  -norfi             Disable RFI detection\n"
-	"  -nostats           Disable collecting statistics\n"
+	"  -nostats           Disable collecting statistics (default for fits file output).\n"
 	"  -nogeom            Disable geometric corrections\n"
 	"  -noantennapruning  Do not remove the flagged antennae.\n"
 	"  -noautos           Do not output auto-correlations.\n"
+	"  -noflagautos       Do not flag auto-correlations (default for fits file output).\n"
 	"  -centre <ra> <dec> Set alternative phase centre, e.g. -centre 00h00m00.0s 00d00m00.0s\n"
 	"  -sbcount <count>   Read/processes the first given number of subbands\n"
 	"  -sbpassband <file> Read the sub-band passband from given file instead of using default passband\n"
@@ -113,6 +114,7 @@ int cotterMain(int argc, const char* const* argv)
 			if(isFitsFile(outputFilename))
 			{
 				cotter.SetCollectStatistics(false);
+				cotter.SetFlagAutoCorrelations(false);
 				cotter.SetOutputFormat(Cotter::FitsOutputFormat);
 			}
 			else if(isMWAFlagFile(outputFilename))
@@ -130,6 +132,10 @@ int cotterMain(int argc, const char* const* argv)
 		{
 			++argi;
 			memPercentage = atof(argv[argi]);
+		}
+		else if(strcmp(argv[argi], "-noflagautos") == 0)
+		{
+			cotter.SetFlagAutoCorrelations(false);
 		}
 		else if(strcmp(argv[argi], "-norfi") == 0)
 		{

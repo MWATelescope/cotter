@@ -50,6 +50,7 @@ Cotter::Cotter() :
 	_disableGeometricCorrections(false),
 	_removeFlaggedAntennae(true),
 	_removeAutoCorrelations(false),
+	_flagAutos(true),
 	_overridePhaseCentre(false),
 	_customRARad(0.0),
 	_customDecRad(0.0)
@@ -683,7 +684,7 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 	
 	// If this is an auto-correlation, it wouldn't have been flagged yet
 	// to allow collecting its statistics. But we want to flag it...
-	if(antenna1 == antenna2)
+	if(antenna1 == antenna2 && _flagAutos)
 	{
 		delete flagMask;
 		flagMask = new FlagMask(*_fullysetMask);
