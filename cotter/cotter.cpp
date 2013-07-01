@@ -53,7 +53,8 @@ Cotter::Cotter() :
 	_flagAutos(true),
 	_overridePhaseCentre(false),
 	_customRARad(0.0),
-	_customDecRad(0.0)
+	_customDecRad(0.0),
+	_initDurationToFlag(4.0)
 {
 }
 
@@ -91,7 +92,8 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	}
 	_mwaConfig.CheckSetup();
 	
-	_quackSampleCount = round(4.0 / _mwaConfig.Header().integrationTime);
+	_quackSampleCount = round(_initDurationToFlag / _mwaConfig.Header().integrationTime);
+	std::cout << "The first " << _quackSampleCount << " samples (" << round(10.0 * _quackSampleCount * _mwaConfig.Header().integrationTime)/10.0 << " s) will be flagged.\n";
 	
 	_channelFrequenciesHz.resize(_mwaConfig.Header().nChannels);
 	for(size_t ch=0; ch!=_mwaConfig.Header().nChannels; ++ch)

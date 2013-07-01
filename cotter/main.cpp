@@ -78,6 +78,7 @@ void usage()
 	"  -sbpassband <file> Read the sub-band passband from given file instead of using default passband\n"
 	"                     (default passband does a reasonably good job)\n"
 	"  -flagantenna <lst> Mark the comma-separated list of zero-indexed antennae as flagged antennae\n"
+	"  -initflag <sec>    Specify number of seconds to flag at beginning of observation (default: 4s)\n"
 	"\n"
 	"The filenames of the input gpu files should end in '...nn_mm.fits', where nn >= 1 is the\n"
 	"gpu box number and mm >= 0 is the time step number.\n";
@@ -184,6 +185,11 @@ int cotterMain(int argc, const char* const* argv)
 		{
 			++argi;
 			cotter.SetReadSubbandPassbandFile(argv[argi]);
+		}
+		else if(strcmp(argv[argi], "-initflag") == 0)
+		{
+			++argi;
+			cotter.SetInitDurationToFlag(atof(argv[argi]));
 		}
 		else if(strcmp(argv[argi], "-flagantenna") == 0)
 		{

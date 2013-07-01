@@ -57,6 +57,7 @@ class Cotter : private UVWCalculater
 			_subbandPassbandFilename = subbandPassbandFilename;
 		}
 		void SetFlagAutoCorrelations(bool flagAutoCorrelations) { _flagAutos = flagAutoCorrelations; }
+		void SetInitDurationToFlag(double initDuration) { _initDurationToFlag = initDuration; }
 		void FlagAntenna(size_t antIndex) { _userFlaggedAntennae.push_back(antIndex); }
 	private:
 		MWAConfig _mwaConfig;
@@ -105,6 +106,7 @@ class Cotter : private UVWCalculater
 		bool _disableGeometricCorrections, _removeFlaggedAntennae, _removeAutoCorrelations, _flagAutos;
 		bool _overridePhaseCentre;
 		long double _customRARad, _customDecRad;
+		double _initDurationToFlag;
 		
 		void createReader(const std::vector<std::string> &curFileset);
 		void initializeReader();
