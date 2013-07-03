@@ -11,11 +11,11 @@
 void GPUFileReader::openFiles()
 {
 	int status = 0;
+	bool hasStartTime = false;
 	for(size_t i=0; i!=_filenames.size(); ++i)
 	{
 		const std::string &curFilename = _filenames[i];
 		fitsfile *fptr = 0;
-		bool hasStartTime = false;
 		if(curFilename.empty())
 		{
 			std::cout << "(Skipping unavailable file)\n";
@@ -275,12 +275,6 @@ void GPUFileReader::initMapping()
 					size_t actA2 = actualOut2/2;
 					size_t actP1 = actualOut1%2;
 					size_t actP2 = actualOut2%2;
-					
-					
-					//std::cout
-					//<< a1 << 'x' << a2 << ':' << p1 << 'x' << p2 << " -> "
-					//<< (pfbInp1/2) << 'x' << (pfbInp2/2) << ':' << (pfbInp1%2) << 'x' << (pfbInp2%2) << " -> " 
-					//<< actA1 << 'x' << actA2 << ':' << actP1 << 'x' << actP2 << '\n';
 					
 					// Note that while reading, the antenna indices are reversed
 					// again. Therefore, if the antenna indices are in the right

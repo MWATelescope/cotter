@@ -240,9 +240,6 @@ void MWAConfig::ReadInputConfig(const char *filename)
 			input.polarizationIndex = polCharToIndex(polChar);
 			input.inputIndex = _inputs.size();
 			
-			//std::cout << "input: " << input.inputIndex << " is antenna " << antennaIndex << " with pol " << input.polarizationIndex <<
-			//	". Length delta: " << input.cableLenDelta << '\n';
-				
 			_inputs.push_back(input);
 			if(input.polarizationIndex == 0)
 				_antennaXInputs.insert(std::pair<size_t, MWAInput>(input.antennaIndex, input));
