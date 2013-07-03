@@ -72,6 +72,10 @@ void GPUFileReader::closeFiles()
 }
 
 bool GPUFileReader::Read(size_t &bufferPos, size_t count) {
+	// If we are already past the end of the files, stop immediately
+	if(_currentHDU > _stopHDU)
+		return false;
+	
 	const size_t nPol = 4;
 	const size_t nBaselines = (_nAntenna + 1) * _nAntenna / 2;
 	const size_t gpuMatrixSizePerFile = _nChannelsInTotal * nBaselines * nPol / _filenames.size(); // cuda matrix length per file
@@ -124,7 +128,6 @@ bool GPUFileReader::Read(size_t &bufferPos, size_t count) {
 					long fpixel = 1;
 					float nullval = 0;
 					int anynull = 0x0;
-					int nfound = 0;
 					long naxes[2];
 
 					fits_get_img_size(fptr, 2, naxes, &status);

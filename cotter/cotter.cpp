@@ -247,11 +247,16 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 			
 			if(!moreAvailableInCurrentFile && bufferPos < (_curChunkEnd-_curChunkStart))
 			{
-				// Go to the next set of GPU files and add them to the buffer
-				++currentFileSetPtr;
-				continueWithNextFile = (currentFileSetPtr!=_fileSets.end());
-				if(continueWithNextFile)
-					createReader(*currentFileSetPtr);
+				if(currentFileSetPtr != _fileSets.end())
+				{
+					// Go to the next set of GPU files and add them to the buffer
+					++currentFileSetPtr;
+					continueWithNextFile = (currentFileSetPtr!=_fileSets.end());
+					if(continueWithNextFile)
+						createReader(*currentFileSetPtr);
+				} else {
+					continueWithNextFile = false;
+				}
 			} else {
 				continueWithNextFile = false;
 			}
