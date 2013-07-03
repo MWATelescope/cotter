@@ -186,8 +186,8 @@ class AveragingMSWriter : public Writer
 				if(buffer._rowCounts[ch]==0)
 				{
 					buffer._rowData[ch] = std::complex<float>(
-						buffer._flaggedAndUnflaggedData[ch].real() / buffer._rowTimestepCount,
-						buffer._flaggedAndUnflaggedData[ch].imag() / buffer._rowTimestepCount);
+						buffer._flaggedAndUnflaggedData[ch].real() / (buffer._rowTimestepCount*_freqAvgFactor),
+						buffer._flaggedAndUnflaggedData[ch].imag() / (buffer._rowTimestepCount*_freqAvgFactor));
 					buffer._rowFlags[ch] = true;
 				} else {
 					buffer._rowData[ch] = std::complex<float>(

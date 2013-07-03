@@ -48,9 +48,11 @@ Cotter::Cotter() :
 	_disableGeometricCorrections(false),
 	_removeFlaggedAntennae(true),
 	_removeAutoCorrelations(false),
+	_flagAutos(true),
 	_overridePhaseCentre(false),
 	_customRARad(0.0),
-	_customDecRad(0.0)
+	_customDecRad(0.0),
+	_initDurationToFlag(4.0)
 {
 }
 
@@ -88,7 +90,8 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	}
 	_mwaConfig.CheckSetup();
 	
-	_quackSampleCount = round(4.0 / _mwaConfig.Header().integrationTime);
+	_quackSampleCount = round(_initDurationToFlag / _mwaConfig.Header().integrationTime);
+	std::cout << "The first " << _quackSampleCount << " samples (" << round(10.0 * _quackSampleCount * _mwaConfig.Header().integrationTime)/10.0 << " s) will be flagged.\n";
 	
 	_channelFrequenciesHz.resize(_mwaConfig.Header().nChannels);
 	for(size_t ch=0; ch!=_mwaConfig.Header().nChannels; ++ch)
@@ -242,11 +245,16 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 			
 			if(!moreAvailableInCurrentFile && bufferPos < (_curChunkEnd-_curChunkStart))
 			{
-				// Go to the next set of GPU files and add them to the buffer
-				++currentFileSetPtr;
-				continueWithNextFile = (currentFileSetPtr!=_fileSets.end());
-				if(continueWithNextFile)
-					createReader(*currentFileSetPtr);
+				if(currentFileSetPtr != _fileSets.end())
+				{
+					// Go to the next set of GPU files and add them to the buffer
+					++currentFileSetPtr;
+					continueWithNextFile = (currentFileSetPtr!=_fileSets.end());
+					if(continueWithNextFile)
+						createReader(*currentFileSetPtr);
+				} else {
+					continueWithNextFile = false;
+				}
 			} else {
 				continueWithNextFile = false;
 			}
@@ -681,7 +689,7 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 	
 	// If this is an auto-correlation, it wouldn't have been flagged yet
 	// to allow collecting its statistics. But we want to flag it...
-	if(antenna1 == antenna2)
+	if(antenna1 == antenna2 && _flagAutos)
 	{
 		delete flagMask;
 		flagMask = new FlagMask(*_fullysetMask);

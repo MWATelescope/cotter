@@ -42,6 +42,8 @@ class GPUFileReader : private FitsUser
 			_nAntenna(nAntenna),
 			_nChannelsInTotal(nChannelsInTotal),
 			_bufferSize(0),
+			_currentHDU(0),
+			_stopHDU(0),
 			_threadCount(threadCount)
 		{ }
 		~GPUFileReader() { closeFiles(); }

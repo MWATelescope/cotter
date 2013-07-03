@@ -65,18 +65,20 @@ void usage()
 	"  -mem <percentage>  Use at most the given percentage of memory.\n"
 	"  -timeavg <factor>  Average 'factor' timesteps together before writing to measurement set.\n"
 	"  -freqavg <factor>  Average 'factor' channels together before writing to measurement set.\n"
-	"                     When averaging: flagging, collecting statistics and cable length fixes will be done\n"
-	"                     at highest resolution. UVW positions will be recalculated for new timesteps.\n"
+	"                     When averaging: flagging, collecting statistics and cable length fixes are done\n"
+	"                     at highest resolution. UVW positions are recalculated for new timesteps.\n"
 	"  -norfi             Disable RFI detection\n"
-	"  -nostats           Disable collecting statistics\n"
+	"  -nostats           Disable collecting statistics (default for uvfits file output).\n"
 	"  -nogeom            Disable geometric corrections\n"
 	"  -noantennapruning  Do not remove the flagged antennae.\n"
 	"  -noautos           Do not output auto-correlations.\n"
+	"  -noflagautos       Do not flag auto-correlations (default for uvfits file output).\n"
 	"  -centre <ra> <dec> Set alternative phase centre, e.g. -centre 00h00m00.0s 00d00m00.0s\n"
 	"  -sbcount <count>   Read/processes the first given number of subbands\n"
 	"  -sbpassband <file> Read the sub-band passband from given file instead of using default passband\n"
 	"                     (default passband does a reasonably good job)\n"
-	"  -flagantenna <lst> Mark the command-separated list of zero-indexed antennae as flagged antennae\n"
+	"  -flagantenna <lst> Mark the comma-separated list of zero-indexed antennae as flagged antennae\n"
+	"  -initflag <sec>    Specify number of seconds to flag at beginning of observation (default: 4s)\n"
 	"\n"
 	"The filenames of the input gpu files should end in '...nn_mm.fits', where nn >= 1 is the\n"
 	"gpu box number and mm >= 0 is the time step number.\n";
@@ -113,6 +115,7 @@ int cotterMain(int argc, const char* const* argv)
 			if(isFitsFile(outputFilename))
 			{
 				cotter.SetCollectStatistics(false);
+				cotter.SetFlagAutoCorrelations(false);
 				cotter.SetOutputFormat(Cotter::FitsOutputFormat);
 			}
 			else if(isMWAFlagFile(outputFilename))
@@ -130,6 +133,10 @@ int cotterMain(int argc, const char* const* argv)
 		{
 			++argi;
 			memPercentage = atof(argv[argi]);
+		}
+		else if(strcmp(argv[argi], "-noflagautos") == 0)
+		{
+			cotter.SetFlagAutoCorrelations(false);
 		}
 		else if(strcmp(argv[argi], "-norfi") == 0)
 		{
@@ -178,6 +185,11 @@ int cotterMain(int argc, const char* const* argv)
 		{
 			++argi;
 			cotter.SetReadSubbandPassbandFile(argv[argi]);
+		}
+		else if(strcmp(argv[argi], "-initflag") == 0)
+		{
+			++argi;
+			cotter.SetInitDurationToFlag(atof(argv[argi]));
 		}
 		else if(strcmp(argv[argi], "-flagantenna") == 0)
 		{
