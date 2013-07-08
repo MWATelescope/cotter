@@ -30,6 +30,11 @@
 %\newcommand{\editmark}[1]{#1}
 \newcommand{\editmark}[1]{{\color{red}{\textbf{#1}}}}
 
+% To make Dutch ``tussenvoegsels'' work correctly in Latex such as ``de Bruyn'', we use this command
+% It fixes ordering and uppercases.
+% In text, it should be written with uppercase, as in ``De Bruyn''
+\DeclareRobustCommand{\TUSSEN}[3]{#2}
+
 \title[Brightness and spatial distributions of terrestrial radio sources]{The brightness and spatial distributions of terrestrial radio sources}
 
 \author[A.~R.~Offringa et al.]{A.~R.~Offringa$^{1,2,3}$\thanks{E-mail:
@@ -603,6 +608,10 @@ When integrating data, it is likely that the actual noise limit from low-level R
 
 \section*{Acknowledgments}
 LOFAR, the Low-Frequency Array designed and constructed by ASTRON, has facilities in several countries, that are owned by various parties (each with their own funding sources), and that are collectively operated by the International LOFAR Telescope (ILT) foundation under a joint scientific policy. Parts of this research were conducted by the Australian Research Council Centre of Excellence for All-sky Astrophysics (CAASTRO), through project number CE110001020. C. Ferrari and G. Macario acknowledge financial support by the ``Agence Nationale de la Recherche'' through grant ANR-09-JCJC-0001-01.
+
+% To make Dutch ``tussenvoegsels'' work correctly in Latex such as ``de Bruyn'', we use this command
+% In bibliography, it should be written with lowercase, as in ``de Bruyn''
+\DeclareRobustCommand{\TUSSEN}[3]{#3}
 
 \bibliographystyle{mn2e}
 \bibliography{references}
