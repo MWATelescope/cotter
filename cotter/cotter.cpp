@@ -401,7 +401,7 @@ void Cotter::createReader(const std::vector< std::string >& curFileset)
 	for(std::vector<std::string>::const_iterator i=curFileset.begin(); i!=curFileset.end(); ++i)
 		_reader->AddFile(i->c_str());
 	
-	_reader->Initialize();
+	_reader->Initialize(_mwaConfig.Header().integrationTime);
 }
 
 void Cotter::initializeReader()

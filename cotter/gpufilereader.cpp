@@ -11,15 +11,17 @@
 void GPUFileReader::openFiles()
 {
 	int status = 0;
+	bool hasStartTime = false, hasWarnedAboutDifferentTimes = false;
+	std::vector<long> startTimePerFile(_filenames.size());
 	for(size_t i=0; i!=_filenames.size(); ++i)
 	{
 		const std::string &curFilename = _filenames[i];
 		fitsfile *fptr = 0;
-		bool hasStartTime = false;
 		if(curFilename.empty())
 		{
 			std::cout << "(Skipping unavailable file)\n";
 			_fitsFiles.push_back(0);
+			_fitsHDUCounts.push_back(0);
 		}
 		else if(!fits_open_file(&fptr, curFilename.c_str(), READONLY, &status))
 		{
@@ -41,10 +43,20 @@ void GPUFileReader::openFiles()
 				_startTime = thisFileTime;
 				hasStartTime = true;
 			}
+			startTimePerFile[i] = thisFileTime;
 			if(_startTime != thisFileTime)
 			{
-				std::cout << "WARNING: file number " << (i+1) << " of current time range has different start time!\n"
-					"Current file start time: " << thisFileTime << " previous file had: " << _startTime << ".\n";
+				if(!hasWarnedAboutDifferentTimes || thisFileTime > _startTime)
+				{
+					std::cout << "WARNING: file number " << (i+1) << " of current time range has different start time!\n"
+						"Current file start time: " << thisFileTime << " previous file had: " << _startTime << ".\n";
+				}
+				if(thisFileTime > _startTime)
+				{
+					_startTime = thisFileTime;
+					std::cout << "Using start time of " << _startTime << " and aligning other files accordingly.\n";
+				}
+				hasWarnedAboutDifferentTimes = true;
 			}
 		}
 		else {
@@ -53,6 +65,23 @@ void GPUFileReader::openFiles()
 		}
 	}
 	_isOpen = true;
+	_hduOffsetsPerFile.resize(_filenames.size());
+	for(size_t i=0; i!=_filenames.size(); ++i)
+	{
+		if(_filenames[i].empty())
+			_hduOffsetsPerFile[i] = 0;
+		else
+			_hduOffsetsPerFile[i] = (int) round(double((long) _startTime - startTimePerFile[i]) / _integrationTime);
+		if(hasWarnedAboutDifferentTimes)
+		{
+			if(i == 0)
+				std::cout << "HDU offsets per file: [" << _hduOffsetsPerFile[i];
+			else
+				std::cout << ',' << _hduOffsetsPerFile[i];
+		}
+	}
+	if(hasWarnedAboutDifferentTimes)
+		std::cout << "]\n";
 }
 
 void GPUFileReader::closeFiles()
@@ -71,7 +100,7 @@ void GPUFileReader::closeFiles()
 	_isOpen = false;
 }
 
-bool GPUFileReader::Read(size_t &bufferPos, size_t count) {
+bool GPUFileReader::Read(size_t &bufferPos, size_t bufferLength) {
 	// If we are already past the end of the files, stop immediately
 	if(_currentHDU > _stopHDU)
 		return false;
@@ -95,9 +124,7 @@ bool GPUFileReader::Read(size_t &bufferPos, size_t count) {
 	{
 		openFiles();
 		
-		size_t primary = 1; //(mode == 0) ? 0 : 1; // header to start reading
-		_currentHDU = 1 + primary;
-		
+		_currentHDU = 2; // header to start reading
 		findStopHDU();
 	}
 	
@@ -105,18 +132,31 @@ bool GPUFileReader::Read(size_t &bufferPos, size_t count) {
 
 	ProgressBar progressBar("Reading GPU files");
 	
-	size_t fileHDU = _currentHDU, fileBufferPos = bufferPos;
+	size_t endingBufferPos = bufferLength;
+	bool moreAvailable = false;
 	for (size_t iFile = 0; iFile != _filenames.size(); ++iFile) {
-		fileHDU = _currentHDU;
-		fileBufferPos = bufferPos;
-		while (fileHDU <= _stopHDU && fileBufferPos < count)
+		if(!_filenames[iFile].empty())
 		{
-			progressBar.SetProgress(fileHDU + iFile*_stopHDU, _stopHDU*_filenames.size());
-
-			fitsfile *fptr = _fitsFiles[iFile];
-
-			if(fptr != 0)
+			size_t
+				fileBufferPos = bufferPos,
+				fileHDU = _currentHDU;
+			//if(_hduOffsetsPerFile[iFile] <= (int) bufferPos)
+			//	fileBufferPos = bufferPos - _hduOffsetsPerFile[iFile];
+			//else {
+			//	fileHDU += _hduOffsetsPerFile[iFile] - bufferPos;
+			//	fileBufferPos = bufferPos;
+			//	std::cout << "Skipping into file " << iFile+1 << " by " << _hduOffsetsPerFile[iFile] - bufferPos << '\n';
+			//}
+			size_t fileStopHDU = _fitsHDUCounts[iFile];
+			size_t hdusAvailable = fileStopHDU - fileHDU + 1;
+			if(endingBufferPos > bufferPos + hdusAvailable) endingBufferPos = bufferPos + hdusAvailable;
+			
+			while (fileHDU <= fileStopHDU && fileBufferPos < bufferLength)
 			{
+				progressBar.SetProgress(fileHDU + iFile*fileStopHDU, fileStopHDU*_filenames.size());
+
+				fitsfile *fptr = _fitsFiles[iFile];
+
 				int status = 0, hduType = 0;
 				fits_movabs_hdu(fptr, fileHDU, &hduType, &status);
 				checkStatus(status);
@@ -161,22 +201,21 @@ bool GPUFileReader::Read(size_t &bufferPos, size_t count) {
 					shuffleTask.gpuMatrix = matrixPtr;
 					_shuffleTasks.write(shuffleTask);
 				}
-			} else {
-				// this file is not available
+				++fileHDU;
+				++fileBufferPos;
 			}
-			
-			++fileHDU;
-			++fileBufferPos;
+			if(fileHDU <= fileStopHDU)
+				moreAvailable = true;
 		}
 	}
 	
 	_shuffleTasks.write_end();
 	threadGroup.join_all();
 	
-	_currentHDU = fileHDU;
-	bufferPos = fileBufferPos;
+	_currentHDU += endingBufferPos - bufferPos;
+	bufferPos = endingBufferPos;
+	std::cout << "Ended on buffer position " << bufferPos << " in HDU " << _currentHDU << ".\n";
 	
-	bool moreAvailable = _currentHDU <= _stopHDU;
 	if(!moreAvailable)
 		closeFiles();
 	return moreAvailable;
@@ -239,24 +278,35 @@ void GPUFileReader::shuffleBuffer(size_t iFile, size_t channelsInFile, size_t fi
 	}
 }
 
-	// Check the number of HDUs in each file. Only extract the amount of time
-	// that there is actually data for in all files.
+// Check the number of HDUs in each file. Only extract the amount of time
+// that there is actually data for in all files.
 void GPUFileReader::findStopHDU()
 {
 	if(!_fitsHDUCounts.empty())
 	{
-		std::vector<size_t>::const_iterator iter = _fitsHDUCounts.begin();
-		_stopHDU = *iter;
-		++iter;
-		while(iter != _fitsHDUCounts.end())
+		bool haveUnequalHDUCount = false;
+		_stopHDU = std::numeric_limits<size_t>::max();
+		for(size_t index = 0; index != _fitsHDUCounts.size(); ++index)
 		{
-			if(*iter != _stopHDU)
+			if(!_filenames[index].empty())
 			{
-				if(*iter < _stopHDU)
-					_stopHDU = *iter;
-				std::cout << "Warning: GPU files with same observation time range have unequal amount of HDU's.\n";
+				size_t thisStopHDU = _fitsHDUCounts[index];
+				// If this file has different number of HDUs compared to previous, generate warning later
+				if(_stopHDU != std::numeric_limits<size_t>::max() && _stopHDU != thisStopHDU)
+					haveUnequalHDUCount = true;
+				if(thisStopHDU < _stopHDU)
+					_stopHDU = thisStopHDU;
 			}
-			++iter;
+		}
+		if(haveUnequalHDUCount)
+			std::cout << "WARNING: Files had not the same amount of HDUs.\n";
+		if(_stopHDU == std::numeric_limits<size_t>::max() || _stopHDU == 0)
+		{
+			std::cout << "ERROR: Stopping HDU equals zero, something is wrong with the input data.\n";
+			_stopHDU = 0;
+		}
+		else {
+			std::cout << "Will stop on HDU " << _stopHDU << ".\n";
 		}
 	}
 }
