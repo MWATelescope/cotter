@@ -5,6 +5,8 @@
 
 #include "slalib.h"
 
+#define SPEED_OF_LIGHT 299792458.0        // speed of light in m/s
+
 /**
  * These functions come from corr2uvfits written by Randall Wayth.
  */

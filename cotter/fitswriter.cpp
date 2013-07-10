@@ -39,7 +39,7 @@ void FitsWriter::initGroupHeader()
 	 * baseline. Within a group, the visibilities are sorted as 
 	 * (real, imag, weight) x nrpolarizations (XX,XY,..) x frequency channel
 	 * The preamble consists of:
-	 * - U, V, W in nanoseconds
+	 * - U, V, W in seconds
 	 * - baseline
 	 * - time offset in days
 	 * This call will set the keywords

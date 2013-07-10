@@ -329,12 +329,6 @@ void GPUFileReader::initMapping()
 					size_t actP1 = actualOut1%2;
 					size_t actP2 = actualOut2%2;
 					
-					
-					//std::cout
-					//<< a1 << 'x' << a2 << ':' << p1 << 'x' << p2 << " -> "
-					//<< (pfbInp1/2) << 'x' << (pfbInp2/2) << ':' << (pfbInp1%2) << 'x' << (pfbInp2%2) << " -> " 
-					//<< actA1 << 'x' << actA2 << ':' << actP1 << 'x' << actP2 << '\n';
-					
 					// Note that while reading, the antenna indices are reversed
 					// again. Therefore, if the antenna indices are in the right
 					// order here, we need to conjugate the visibility.
