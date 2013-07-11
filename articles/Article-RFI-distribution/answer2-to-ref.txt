@@ -1,0 +1,42 @@
+Dear editor and referee,
+
+Thank you for your comments and suggestions. We have applied changes that accommodate all the comments. The changed text has been marked with bold and red, or if text was removed, by bold/red markings near the removed text.
+
+Scientific Editor's Comments:
+
+E: I feel that the paper would be improved if, as the referee suggests, you could shorten the manuscript and present your arguments more concisely.
+
+A: We have shortened the article by two pages, see our comments below for specifics.
+
+Assistant Editor's Comments:
+
+E: It's nice that you informed the referee about the arxiv copy of the van Haarlem et al paper, but it would be much better if that information was contained in the reference itself.
+
+A: We have added the Arxiv number to the bibliography.
+
+Reviewer's Comments
+
+General comments:
+
+R: I find the paper rather too long and a somewhat “tentative” in its conclusions and explanation of the interference reducing effects given in 6.2.  While the paper does show the brightness distributions of terrestrial radio sources vs rate density it doesn't present much evidence on the spatial distribution. For example are these sources primarily low power sources within the horizon or scattered signals from over the horizon? I am not sure that the analysis can distinguish between these 2 cases.
+
+A: We indeed can only show at this point that the distribution is uniform. We cannot determine source-intrinsic parameters. To accentuate this, we've added to sect. 2.3: "From Eq. (11) it can be seen that the rho, I and g parameters have the same effect of scaling the power-law distribution, and do not change its shape or slope. Therefore, with distribution analyses one can e.g. not determine whether the distribution is dominated by low-power sources within the horizon or by scattered signals from over the horizon. The horizon of an antenna is estimated with sqrt(2hr) (Bullington 1977), with r the radius of the Earth and h the height of the antenna. For LOFAR, the horizon is at about 5 km."
+
+R: I see paper showing that low level RFI which cannot be easily excised behaves randomly and may not prevent aperture synthesis images from being limited only by thermal noise for long integrations. I think this point could be made in a shorter more concise paper – but I don't feel strongly about this.
+
+A: We have shortened the paper by two pages by rewording some of the sections and removing comments that added indirectly to the main conclusions. We've specifically shortened section 6.2 as suggested. Also, the second plot of Figure 5 was removed.
+
+Specific comments:
+
+1] Expected dependence of RFI on distance
+
+R: The authors select the HATA propagation law which to first order like other propagation laws (CCIR,Longley-Rice,Bullington,Okumura etc.) in a multipath dominated environment tend to approximately follow distance to the inverse fourth power law. For the lower level RFI one might expect that the RFI comes from meteor and aircaft scatter which also approximately follow the inverse fourth power law of the radar equation and consequently a slope of -1.5 in the log-log histogram
+
+A: We agree with this, we have added to the end of Sect 2.1: "We note that a uniform distribution of meteors or aircrafts which reflect free-space propagating RFI can create a power-law distribution with a similar slope: a uniform two-dimensional distribution of reflecting sources will create a -1.5 slope, while a uniform three-dimensional distribution will create a -1.75 slope. With brightness-distribution analyses one can therefore not distinguish between transmitters affected by Hata's propagation model and reflectors affected by free-space propagation. Reflected RFI might become relevant at lower amplitude levels."
+
+2]  Auto vs cross-correlation
+
+R: The authors limit their analysis to the cross-correlations for which one might expect the low level RFI to have a random phase as discussed in section 6.3. If the authors had examined the auto-correlation they might have seen the continuation of the power law of about -1.5 to lower flux density. Basically it is the power of interferometry which limits the effects of RFI on LOFAR. Global experiments to detect EOR, like Bowman & Rogers 2010 which use a single antenna, will still be limited by the low level RFI.
+
+A: Agree, we have added to Sect 6.2: "These arguments are valid only for interferometric arrays. Global EoR experiments that use a single antenna will not benefit from these effects, and will still be limited by low-level RFI."
+
