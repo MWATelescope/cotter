@@ -1,0 +1,35 @@
+Comments SIRO
+
+Equation 1: wouldn't requiring a < b be better? Otherwise always mu(empty set) >= mu(empty set), even though "a=b" adds only an empty interval so doesn't change the operator. Might make it a bit more explicit that we are not interested in the case of a=b.
+
+You might want to note somewhere that the definition of 's' is the inverse (higher s means less strong) of as it is defined in our 2012 paper (higher s => stronger), and give a short motivation for this.
+
+You say: "[[TODO (?) I want some condition that essentially says that the only sets with non-zero measure are intervals and their (countable) unions and intersections.]]
+I do not quite understand this remark. 
+
+I think if you want to make a case that mu can be more generic than working as count on integers, you'll have to give a bit more detail here.
+
+Wrt: "TODO I'm not sure going directly to a hyperconnection makes sense, but I might be able to construct a (hyper)connection using a closing(/opening) by reconstruction, using the SIR operator to compute the marker."
+This is interesting but I indeed would do it later in the article.
+
+In Lemma 1:
+"Here h applied to a set is to be interpreted as being applied to all members of the set." -> I don't understand this. For integers, if e.g. f = {-1, 0, 1}, let's have d=2, would "applying h on each member" mean h(f) = {-2, 0, 2} ? That seems not to be what we want... Maybe the comment "Here h ... set." is not necessary at all, since h has been defined with mu(h(S))=d mu(S).
+
+First row in proof of lemma 1: should this be h(h^-1(a)) in E ?
+
+Lemma 2: After "Since g superset of f", mu(..) >= mu(..), "s" is missing before second mu.
+
+Lemma 3: I would use more intermediate steps here (as you suggest in your todo's)
+
+Lemma 4: Shouldn't this be s<=t implies rho_s(f) *superset of* rho_t(f) (instead of '>=')
+
+wrt: "Finally, note that the dual of a traditional rank operator is again a rank operator. This is not true for the SIR operator, as it is always extensive, and the dual of an extensive operator has to be anti-extensive."
+-> But isn't there a dual of a scale-invariant rank operator which could be anti-extensive, but still has rank operator like properties? I.e., one which removes intervals based on the amount of elements in the interval.
+
+(small things)
+
+scale invariant rank operator -> scale-invariant (hyphen)
+The SIR operator is interesting option -> missing "an"
+below Eq 1 -> define mu and s directly (before explaning properties of E), e.g. "where mu represent a count and s is the operator strength.
+lemma 3: "This leads to a contradiction" -> "This contradicts with the definition."
+
