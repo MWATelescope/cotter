@@ -140,13 +140,15 @@ bool GPUFileReader::Read(size_t &bufferPos, size_t bufferLength) {
 			size_t
 				fileBufferPos = bufferPos,
 				fileHDU = _currentHDU;
-			//if(_hduOffsetsPerFile[iFile] <= (int) bufferPos)
-			//	fileBufferPos = bufferPos - _hduOffsetsPerFile[iFile];
-			//else {
-			//	fileHDU += _hduOffsetsPerFile[iFile] - bufferPos;
-			//	fileBufferPos = bufferPos;
-			//	std::cout << "Skipping into file " << iFile+1 << " by " << _hduOffsetsPerFile[iFile] - bufferPos << '\n';
-			//}
+			
+			// These statements will align a file with the times given in the individual gpubox fits files.
+			/*if(_hduOffsetsPerFile[iFile] <= (int) bufferPos)
+				fileBufferPos = bufferPos - _hduOffsetsPerFile[iFile];
+			else {
+				fileHDU += _hduOffsetsPerFile[iFile] - bufferPos;
+				fileBufferPos = bufferPos;
+				std::cout << "Skipping into file " << iFile+1 << " by " << _hduOffsetsPerFile[iFile] - bufferPos << '\n';
+			}*/ // end of align statements
 			size_t fileStopHDU = _fitsHDUCounts[iFile];
 			size_t hdusAvailable = fileStopHDU - fileHDU + 1;
 			if(endingBufferPos > bufferPos + hdusAvailable) endingBufferPos = bufferPos + hdusAvailable;
