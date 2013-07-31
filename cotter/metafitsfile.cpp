@@ -17,8 +17,6 @@ MetaFitsFile::MetaFitsFile(const char* filename)
 	fits_get_num_hdus(_fptr, &hduCount, &status);
 	checkStatus(status);
 	
-	std::cout << "There are " << hduCount << " HDUs in file " << filename << '\n';
-	
 	if(hduCount < 2)
 		throw std::runtime_error("At least two HDUs are expected to be in the meta fitsfile");
 }
