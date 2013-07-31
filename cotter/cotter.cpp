@@ -50,6 +50,7 @@ Cotter::Cotter() :
 	_removeAutoCorrelations(false),
 	_flagAutos(true),
 	_overridePhaseCentre(false),
+	_doAlign(true),
 	_customRARad(0.0),
 	_customDecRad(0.0),
 	_initDurationToFlag(4.0)
@@ -399,7 +400,7 @@ void Cotter::createReader(const std::vector< std::string >& curFileset)
 	for(std::vector<std::string>::const_iterator i=curFileset.begin(); i!=curFileset.end(); ++i)
 		_reader->AddFile(i->c_str());
 	
-	_reader->Initialize(_mwaConfig.Header().integrationTime);
+	_reader->Initialize(_mwaConfig.Header().integrationTime, _doAlign);
 }
 
 void Cotter::initializeReader()

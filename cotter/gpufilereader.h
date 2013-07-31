@@ -45,17 +45,19 @@ class GPUFileReader : private FitsUser
 			_currentHDU(0),
 			_stopHDU(0),
 			_threadCount(threadCount),
-			_integrationTime(0.0)
+			_integrationTime(0.0),
+			_doAlign(true)
 		{ }
 		~GPUFileReader() { closeFiles(); }
 		
 		void AddFile(const char *filename) { _filenames.push_back(std::string(filename)); }
 		
-		void Initialize(double integrationTime) {
+		void Initialize(double integrationTime, bool doAlign) {
 			_buffers.resize(_nAntenna * _nAntenna);
 			_mappedBuffers.resize(_nAntenna * _nAntenna);
 			_corrInputToOutput.resize(_nAntenna*2);
 			_integrationTime = integrationTime;
+			_doAlign = doAlign;
 		}
 		
 		size_t AntennaCount() { return _nAntenna; }
@@ -130,4 +132,5 @@ class GPUFileReader : private FitsUser
 		size_t _threadCount;
 		std::vector<int> _hduOffsetsPerFile;
 		double _integrationTime;
+		bool _doAlign;
 };

@@ -70,6 +70,7 @@ void usage()
 	"  -norfi             Disable RFI detection\n"
 	"  -nostats           Disable collecting statistics (default for uvfits file output).\n"
 	"  -nogeom            Disable geometric corrections\n"
+	"  -noalign           Do not align GPU boxes according to the time in their header.\n"
 	"  -noantennapruning  Do not remove the flagged antennae.\n"
 	"  -noautos           Do not output auto-correlations.\n"
 	"  -noflagautos       Do not flag auto-correlations (default for uvfits file output).\n"
@@ -149,6 +150,10 @@ int cotterMain(int argc, const char* const* argv)
 		else if(strcmp(argv[argi], "-nogeom") == 0)
 		{
 			cotter.SetDisableGeometricCorrections(true);
+		}
+		else if(strcmp(argv[argi], "-noalign") == 0)
+		{
+			cotter.SetDoAlign(false);
 		}
 		else if(strcmp(argv[argi], "-noantennapruning") == 0)
 		{
