@@ -121,7 +121,11 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 			std::cout << "Only flags will be outputted.\n";
 			if(freqAvgFactor != 1 || timeAvgFactor != 1)
 				throw std::runtime_error("You have specified time or frequency averaging and outputting only flags: this is incompatible");
-			_writer = new FlagWriter(outputFilename, _mwaConfig.HeaderExt().gpsTime);
+			if(_doAlign)
+				throw std::runtime_error("Aligning was specified, which is incompatible with flag files");
+			if(_removeFlaggedAntennae || _removeAutoCorrelations)
+				throw std::runtime_error("Can't prune flagged/auto-correlated antennas when writing flag file");
+			_writer = new FlagWriter(outputFilename, _mwaConfig.HeaderExt().gpsTime, _mwaConfig.Header().nScans, _subbandCount);
 			break;
 		case FitsOutputFormat:
 			_writer = new FitsWriter(outputFilename);

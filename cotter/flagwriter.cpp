@@ -1,45 +1,102 @@
 #include "flagwriter.h"
+#include <stdexcept>
 
 const uint16_t
 	FlagWriter::VERSION_MINOR = 0,
 	FlagWriter::VERSION_MAJOR = 1;
 
+FlagWriter::FlagWriter(const std::string &filename, int gpsTime, size_t timestepCount, size_t gpuBoxCount) :
+	_timestepCount(timestepCount),
+	_antennaCount(0),
+	_channelCount(0),
+	_channelsPerGPUBox(0),
+	_polarizationCount(0),
+	_rowStride(0),
+	_rowCount(0),
+	_gpuBoxCount(gpuBoxCount),
+	_gpsTime(gpsTime),
+	_files(gpuBoxCount)
+{
+	if(gpuBoxCount == 0)
+		throw std::runtime_error("Flagwriter was initialized with zero gpuboxes");
+		
+	size_t numberPos = filename.find("%%");
+	if(numberPos == std::string::npos)
+		throw std::runtime_error("When writing flag files, multiple files will be written. Therefore, the name of the flagfile should contain two percent symbols (\"%%\"), e.g. \"Flagfile%%.mwaf\". These will be replaced by the gpubox(/subband) number.");
+	std::string name(filename);
+	for(size_t i=0; i!=gpuBoxCount; ++i)
+	{
+		name[numberPos] = (char) ('0' + (i/10));
+		name[numberPos+1] = (char) ('0' + (i%10));
+		_files[i] = new std::ofstream(name.c_str(), std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+		if(!_files[i]->good())
+			throw std::runtime_error(std::string("Could not open flag file \"") + name + "\" for writing.");
+	}
+}
+
+FlagWriter::~FlagWriter()
+{
+	for(std::vector<std::ofstream*>::iterator i=_files.begin(); i!=_files.end(); ++i)
+		delete *i;
+}
+
 void FlagWriter::writeHeader()
 {
 	struct Header header;
+	header.fileIdentifier[0] = 'M';
+	header.fileIdentifier[1] = 'W';
+	header.fileIdentifier[2] = 'A';
+	header.fileIdentifier[3] = 'F';
 	header.versionMajor = VERSION_MAJOR;
 	header.versionMinor = VERSION_MINOR;
+	header.timestepCount = _timestepCount;
 	header.antennaCount = _antennaCount;
-	header.channelCount = _channelCount;
+	header.channelCount = _channelsPerGPUBox;
 	header.polarizationCount = 1;
 	header.baselineSelection = 'B'; // both
 	header.gpsTime = _gpsTime;
-	_file.write(reinterpret_cast<char*>(&header), sizeof(Header));
+	for(size_t i=0; i!=_gpuBoxCount; ++i)
+	{
+		header.gpuBoxIndex = i;
+		_files[i]->write(reinterpret_cast<char*>(&header), sizeof(Header));
+	}
+}
+
+void FlagWriter::setStride()
+{
+	if(_channelCount % _gpuBoxCount != 0)
+		throw std::runtime_error("Something is wrong: number of channels requested to be written by the flagwriter is not divisable by the gpubox count");
+	_channelsPerGPUBox = _channelCount / _gpuBoxCount;
+	
+	// we assume we write only one polarization here
+	_rowStride = (_channelsPerGPUBox + 7) / 8;
+	
+	_singlePolBuffer.resize(_channelsPerGPUBox);
+	_packBuffer.resize(_rowStride);
 }
 
 void FlagWriter::writeRow(size_t antenna1, size_t antenna2, const bool* flags)
 {
-	for(std::vector<unsigned char>::iterator i=_singlePolBuffer.begin();
-			i!=_singlePolBuffer.end(); ++i)
-		*i = 0;
-	
-	std::vector<unsigned char>::iterator singlePolIter = _singlePolBuffer.begin();
-	for(size_t i=0; i!=_channelCount; ++i)
+	for(size_t gpuBox=0; gpuBox != _gpuBoxCount; ++gpuBox)
 	{
-		*singlePolIter = flags[i] ? 1 : 0;
-		++flags;
-		
-		for(size_t p=0; p!=_polarizationCount; ++p)
+		std::vector<unsigned char>::iterator singlePolIter = _singlePolBuffer.begin();
+		for(size_t i=0; i!=_channelsPerGPUBox; ++i)
 		{
-			*singlePolIter |= flags[i] ? 1 : 0;
+			*singlePolIter = *flags ? 1 : 0;
 			++flags;
+			
+			for(size_t p=1; p!=_polarizationCount; ++p)
+			{
+				*singlePolIter |= *flags ? 1 : 0;
+				++flags;
+			}
+			++singlePolIter;
 		}
-		++singlePolIter;
+		
+		pack(&_packBuffer[0], &_singlePolBuffer[0], _channelsPerGPUBox);
+		
+		_files[gpuBox]->write(reinterpret_cast<char*>(&_packBuffer[0]), _rowStride);
 	}
-	
-	pack(&_packBuffer[0], &_singlePolBuffer[0], _channelCount);
-	
-	_file.write(reinterpret_cast<char*>(&_packBuffer[0]), _rowStride);
 }
 
 void FlagWriter::pack(unsigned char* output, const unsigned char* input, size_t count)
