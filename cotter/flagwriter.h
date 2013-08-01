@@ -11,20 +11,9 @@
 class FlagWriter : public Writer
 {
 	public:
-		FlagWriter(const std::string &filename, int gpsTime) :
-		_channelCount(0),
-		_antennaCount(0),
-		_polarizationCount(0),
-		_rowStride(0),
-		_rowCount(0),
-		_gpsTime(0),
-		_file(filename.c_str(), std::ios_base::out | std::ios_base::binary | std::ios_base::trunc)
-		{
-		}
+		FlagWriter(const std::string &filename, int gpsTime, size_t timestepCount, size_t gpuBoxCount);
 		
-		~FlagWriter()
-		{
-		}
+		~FlagWriter();
 		
 		void WriteBandInfo(const std::string &name, const std::vector<Writer::ChannelInfo> &channels, double refFreq, double totalBandwidth, bool flagRow)
 		{
@@ -79,27 +68,21 @@ class FlagWriter : public Writer
 	private:
 		void writeHeader();
 		void writeRow(size_t antenna1, size_t antenna2, const bool* flags);
-		void setStride()
-		{
-			// we assume we write only one polarization here
-			_rowStride = (_channelCount + 7) / 8;
-			
-			_singlePolBuffer.resize(_channelCount);
-			_packBuffer.resize(_rowStride);
-		}
+		void setStride();
 		static void pack(unsigned char *output, const unsigned char *input, size_t count);
 		struct Header
 		{
+			char fileIdentifier[4];
 			uint16_t versionMinor, versionMajor;
-			uint32_t antennaCount, channelCount, polarizationCount;
+			uint32_t timestepCount, antennaCount, channelCount, polarizationCount, gpuBoxIndex;
 			uint64_t gpsTime;
 			char baselineSelection;
 		};
 		
-		size_t _channelCount, _antennaCount, _polarizationCount;
-		size_t _rowStride, _rowCount;
+		size_t _timestepCount, _antennaCount, _channelCount, _channelsPerGPUBox, _polarizationCount;
+		size_t _rowStride, _rowCount, _gpuBoxCount;
 		int _gpsTime;
-		std::ofstream _file;
+		std::vector<std::ofstream*> _files;
 		
 		const static uint16_t VERSION_MINOR, VERSION_MAJOR;
 		

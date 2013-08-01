@@ -123,6 +123,8 @@ int cotterMain(int argc, const char* const* argv)
 			{
 				cotter.SetCollectStatistics(false);
 				cotter.SetOutputFormat(Cotter::FlagsOutputFormat);
+				cotter.SetDoAlign(false);
+				cotter.SetRemoveFlaggedAntennae(false);
 			}
 		}
 		else if(strcmp(argv[argi], "-m") == 0)
