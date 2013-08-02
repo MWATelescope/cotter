@@ -107,10 +107,10 @@ struct MWAAntenna
 class MWAConfig
 {
 	public:
-		void ReadHeader(const char *filename, bool lockPointing);
-		void ReadInputConfig(const char *filename);
-		void ReadAntennaPositions(const char *filename);
-		void ReadMetaFits(const char *filename, bool lockPointing);
+		void ReadHeader(const std::string& filename, bool lockPointing);
+		void ReadInputConfig(const std::string& filename);
+		void ReadAntennaPositions(const std::string& filename);
+		void ReadMetaFits(const std::string& filename, bool lockPointing);
 		
 		void CheckSetup();
 		

@@ -60,26 +60,28 @@ void usage()
 	"Options:\n"
 	"  -o <filename>      Save output to given filename. Default is 'preprocessed.ms'.\n"
 	"                     If the files' extension is .uvfits, it will be outputted in uvfits format.\n"
-	"  -m <filename>      Read meta data from given fits filename (if not specified, cotter will\n"
-	"                     look for the txt metafiles with default names)\n"
+	"  -m <filename>      Read meta data from given fits filename..\n"
+	"  -a <filename>      Read antenna locations from given text file (overrides the metadata).\n"
+	"  -h <filename>      Read header data from given text file (overrides the metadata.)\n"
+	"  -i <filename>      Read meta data from given fits filename (overrides the metadata).\n"
 	"  -mem <percentage>  Use at most the given percentage of memory.\n"
 	"  -timeavg <factor>  Average 'factor' timesteps together before writing to measurement set.\n"
 	"  -freqavg <factor>  Average 'factor' channels together before writing to measurement set.\n"
 	"                     When averaging: flagging, collecting statistics and cable length fixes are done\n"
 	"                     at highest resolution. UVW positions are recalculated for new timesteps.\n"
-	"  -norfi             Disable RFI detection\n"
+	"  -norfi             Disable RFI detection.\n"
 	"  -nostats           Disable collecting statistics (default for uvfits file output).\n"
-	"  -nogeom            Disable geometric corrections\n"
+	"  -nogeom            Disable geometric corrections.\n"
 	"  -noalign           Do not align GPU boxes according to the time in their header.\n"
 	"  -noantennapruning  Do not remove the flagged antennae.\n"
 	"  -noautos           Do not output auto-correlations.\n"
 	"  -noflagautos       Do not flag auto-correlations (default for uvfits file output).\n"
-	"  -centre <ra> <dec> Set alternative phase centre, e.g. -centre 00h00m00.0s 00d00m00.0s\n"
-	"  -sbcount <count>   Read/processes the first given number of subbands\n"
-	"  -sbpassband <file> Read the sub-band passband from given file instead of using default passband\n"
+	"  -centre <ra> <dec> Set alternative phase centre, e.g. -centre 00h00m00.0s 00d00m00.0s.\n"
+	"  -sbcount <count>   Read/processes the first given number of subbands.\n"
+	"  -sbpassband <file> Read the sub-band passband from given file instead of using default passband.\n"
 	"                     (default passband does a reasonably good job)\n"
-	"  -flagantenna <lst> Mark the comma-separated list of zero-indexed antennae as flagged antennae\n"
-	"  -initflag <sec>    Specify number of seconds to flag at beginning of observation (default: 4s)\n"
+	"  -flagantenna <lst> Mark the comma-separated list of zero-indexed antennae as flagged antennae.\n"
+	"  -initflag <sec>    Specify number of seconds to flag at beginning of observation (default: 4s).\n"
 	"\n"
 	"The filenames of the input gpu files should end in '...nn_mm.fits', where nn >= 1 is the\n"
 	"gpu box number and mm >= 0 is the time step number.\n";
@@ -131,6 +133,21 @@ int cotterMain(int argc, const char* const* argv)
 		{
 			++argi;
 			cotter.SetMetaFilename(argv[argi]);
+		}
+		else if(strcmp(argv[argi], "-a") == 0)
+		{
+			++argi;
+			cotter.SetAntennaLocationsFilename(argv[argi]);
+		}
+		else if(strcmp(argv[argi], "-h") == 0)
+		{
+			++argi;
+			cotter.SetHeaderFilename(argv[argi]);
+		}
+		else if(strcmp(argv[argi], "-i") == 0)
+		{
+			++argi;
+			cotter.SetInstrConfigFilename(argv[argi]);
 		}
 		else if(strcmp(argv[argi], "-mem") == 0)
 		{

@@ -41,6 +41,9 @@ class Cotter : private UVWCalculater
 		void SetCollectStatistics(bool collectStatistics) { _collectStatistics = collectStatistics; }
 		void SetHistoryInfo(const std::string &commandLine) { _commandLine = commandLine; }
 		void SetMetaFilename(const char *metaFilename) { _metaFilename = metaFilename; }
+		void SetAntennaLocationsFilename(const char *filename) { _antennaLocationsFilename = filename; }
+		void SetHeaderFilename(const char *filename) { _headerFilename = filename; }
+		void SetInstrConfigFilename(const char *filename) { _instrConfigFilename = filename; }
 		void SetMaxBufferSize(const size_t bufferSizeInSamples) { _maxBufferSize = bufferSizeInSamples; }
 		void SetDisableGeometricCorrections(bool disableCorrections) { _disableGeometricCorrections = disableCorrections; }
 		void SetOverridePhaseCentre(long double newRARad, long double newDecRad)
@@ -87,7 +90,7 @@ class Cotter : private UVWCalculater
 		bool _rfiDetection, _collectStatistics;
 		enum OutputFormat _outputFormat;
 		std::string _commandLine;
-		std::string _metaFilename;
+		std::string _metaFilename, _antennaLocationsFilename, _headerFilename, _instrConfigFilename;
 		std::string _subbandPassbandFilename;
 		std::vector<size_t> _userFlaggedAntennae;
 		

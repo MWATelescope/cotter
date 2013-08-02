@@ -75,13 +75,24 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	bool lockPointing = false;
 	
 	if(_metaFilename.empty())
+		throw std::runtime_error("No metafits file specified! This is required since 2013-08-02, because the text files (header/instr_config/antenna_location) are missing some of the information (e.g. digital gains). You can still override the information in the metafits file with a text file (see the -a-, -h and -i options)");
+	_mwaConfig.ReadMetaFits(_metaFilename.c_str(), lockPointing);
+	if(!_headerFilename.empty())
 	{
-		_mwaConfig.ReadHeader("header.txt", lockPointing);
-		_mwaConfig.ReadInputConfig("instr_config.txt");
-		_mwaConfig.ReadAntennaPositions("antenna_locations.txt");
-	} else {
-		_mwaConfig.ReadMetaFits(_metaFilename.c_str(), lockPointing);
+		std::cout << "Overriding header values in metafits file with " << _headerFilename << "\n";
+		_mwaConfig.ReadHeader(_headerFilename, lockPointing);
 	}
+	if(!_instrConfigFilename.empty())
+	{
+		std::cout << "Overriding instrumental configuration values in metafits file with " << _instrConfigFilename << "\n";
+		_mwaConfig.ReadInputConfig(_instrConfigFilename);
+	}
+	if(!_antennaLocationsFilename.empty())
+	{
+		std::cout << "Overriding antenna locations in metafits file with " << _antennaLocationsFilename << "\n";
+		_mwaConfig.ReadAntennaPositions(_antennaLocationsFilename);
+	}
+	
 	if(_disableGeometricCorrections)
 		_mwaConfig.HeaderRW().geomCorrection = false;
 	if(_overridePhaseCentre)

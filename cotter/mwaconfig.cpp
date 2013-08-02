@@ -70,9 +70,9 @@ double MWAHeader::GetStartDateMJD() const
 	return Geometry::GetMJD(year, month, day, refHour, refMinute, refSecond);
 }
 
-void MWAConfig::ReadMetaFits(const char* filename, bool lockPointing)
+void MWAConfig::ReadMetaFits(const std::string& filename, bool lockPointing)
 {
-	MetaFitsFile metaFile(filename);
+	MetaFitsFile metaFile(filename.c_str());
 	
 	metaFile.ReadHeader(_header, _headerExt);
 	
@@ -98,9 +98,9 @@ void MWAConfig::ReadMetaFits(const char* filename, bool lockPointing)
 	}
 }
 
-void MWAConfig::ReadHeader(const char *filename, bool lockPointing)
+void MWAConfig::ReadHeader(const std::string& filename, bool lockPointing)
 {
-	std::ifstream file(filename);
+	std::ifstream file(filename.c_str());
 	if(!file.good()) {
 		std::ostringstream str;
 		str << "Could not open header file ('" << filename << "')\n";
@@ -201,9 +201,15 @@ double MWAHeader::GetDateFirstScanFromFields() const
 }
 
 /** Read the mapping between antennas and correlator inputs. */
-void MWAConfig::ReadInputConfig(const char *filename)
+void MWAConfig::ReadInputConfig(const std::string& filename)
 {
-	std::ifstream file(filename);
+	_inputs.clear();
+	_antennaXInputs.clear();
+	_antennaYInputs.clear();
+	
+	std::ifstream file(filename.c_str());
+	if(!file.good())
+		throw std::runtime_error(std::string("Could not open ") + filename);
  
 	std::string line;
 	size_t nFlaggedInput = 0;
@@ -250,8 +256,10 @@ void MWAConfig::ReadInputConfig(const char *filename)
   std::cout << "Read " << _inputs.size() << " inputs from " << filename << ", of which " << nFlaggedInput << " were flagged.\n";
 }
 
-void MWAConfig::ReadAntennaPositions(const char *filename) {
-	std::ifstream file(filename);
+void MWAConfig::ReadAntennaPositions(const std::string& filename) {
+	std::ifstream file(filename.c_str());
+	if(!file.good())
+		throw std::runtime_error(std::string("Could not open ") + filename);
 	const double arrayLattitudeRad = MWA_LATTITUDE*(M_PI/180.0);
 
   /* Scan through lines. Convert east, north, height units to XYZ units */
