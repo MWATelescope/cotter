@@ -37,6 +37,7 @@ Cotter::Cotter() :
 	_maxBufferSize(0),
 	_subbandCount(24),
 	_quackSampleCount(4),
+	_subbandEdgeFlagCount(1),
 	_rfiDetection(true),
 	_collectStatistics(true),
 	_outputFormat(MSOutputFormat),
@@ -103,7 +104,7 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	_mwaConfig.CheckSetup();
 	
 	_quackSampleCount = round(_initDurationToFlag / _mwaConfig.Header().integrationTime);
-	std::cout << "The first " << _quackSampleCount << " samples (" << round(10.0 * _quackSampleCount * _mwaConfig.Header().integrationTime)/10.0 << " s) will be flagged.\n";
+	std::cout << "The first " << _quackSampleCount << " samples (" << round(10.0 * _quackSampleCount * _mwaConfig.Header().integrationTime)/10.0 << " s) and " << _subbandEdgeFlagCount << " edge channels will be flagged.\n";
 	
 	_channelFrequenciesHz.resize(_mwaConfig.Header().nChannels);
 	for(size_t ch=0; ch!=_mwaConfig.Header().nChannels; ++ch)
@@ -119,6 +120,8 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	else
 		initSubbandGainsFromMeta();
 	initializeSbOrder(_mwaConfig.CentreSubbandNumber());
+	if(_subbandEdgeFlagCount > _mwaConfig.Header().nChannels / (_subbandCount*2))
+		throw std::runtime_error("Tried to flag more edge channels than available");
 	
 	_flagger = new AOFlagger();
 	
@@ -996,28 +999,48 @@ void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask) const
 {
 	// Flag MWA side and centre channels
 	size_t scanCount = _curChunkEnd - _curChunkStart;
+	size_t chPerSb = flagMask.Height()/_subbandCount;
 	for(size_t sb=0; sb!=_subbandCount; ++sb)
 	{
-		bool *sbStart = flagMask.Buffer() + (sb*flagMask.Height()/_subbandCount)*flagMask.HorizontalStride();
-		bool *channelPtr = sbStart;
-		bool *endPtr = sbStart + flagMask.HorizontalStride();
+		bool *sbStart = flagMask.Buffer() + (sb*chPerSb)*flagMask.HorizontalStride();
 		
-		// Flag first channel of sb
-		while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
+		// Flag first edges of sb
+		for(size_t ch=0; ch!=_subbandEdgeFlagCount; ++ch)
+		{
+			bool *channelPtr = sbStart + ch * flagMask.HorizontalStride();
+			bool *endPtr = sbStart + ch * flagMask.HorizontalStride() + scanCount;
+			while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
+		}
 		
 		// Flag centre channel of sb
-		size_t halfBand = flagMask.Height()/(_subbandCount*2);
-		channelPtr = sbStart + halfBand*flagMask.HorizontalStride();
-		endPtr = sbStart + halfBand*flagMask.HorizontalStride() + scanCount;
+		size_t halfBand = chPerSb/2;
+		bool *channelPtr = sbStart + halfBand*flagMask.HorizontalStride();
+		bool *endPtr = sbStart + halfBand*flagMask.HorizontalStride() + scanCount;
 		while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
 		
-		// Flag last channel of sb
-		channelPtr = sbStart + (flagMask.Height()/_subbandCount-1)*flagMask.HorizontalStride();
-		endPtr = sbStart + (flagMask.Height()/_subbandCount-1)*flagMask.HorizontalStride() + scanCount;
-		while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
+		// Flag last edge channels of sb
+		for(size_t ch=chPerSb-_subbandEdgeFlagCount; ch!=chPerSb; ++ch)
+		{
+			channelPtr = sbStart + ch * flagMask.HorizontalStride();
+			endPtr = sbStart + ch * flagMask.HorizontalStride() + scanCount;
+			while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
+		}
 	}
 	
-	// Drop first samples
+	// Flag subbands that have been requested to be flagged
+	for(std::vector<size_t>::const_iterator sbIter=_userFlaggedSubbands.begin();
+			sbIter!=_userFlaggedSubbands.end(); ++sbIter)
+	{
+		bool *sbStart = flagMask.Buffer() + (*sbIter*chPerSb)*flagMask.HorizontalStride();
+		for(size_t ch=0; ch!=chPerSb; ++ch)
+		{
+			bool *channelPtr = sbStart + ch*flagMask.HorizontalStride();
+			bool *endPtr = sbStart + ch*flagMask.HorizontalStride() + scanCount;
+			while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
+		}
+	}
+	
+	// Flag first samples
 	if(_quackSampleCount >= _curChunkStart)
 	{
 		for(size_t ch=0; ch!=flagMask.Height(); ++ch)

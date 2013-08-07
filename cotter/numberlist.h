@@ -20,7 +20,7 @@ public:
 			list.push_back(num);
 			pos = temp.find(",");
 		}
-		int id = atoi(temp.c_str());
+		int num = atoi(temp.c_str());
 		list.push_back(num);
 	}
 };

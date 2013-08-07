@@ -66,6 +66,8 @@ class Cotter : private UVWCalculater
 		void SetFlagAutoCorrelations(bool flagAutoCorrelations) { _flagAutos = flagAutoCorrelations; }
 		void SetInitDurationToFlag(double initDuration) { _initDurationToFlag = initDuration; }
 		void FlagAntenna(size_t antIndex) { _userFlaggedAntennae.push_back(antIndex); }
+		void FlagSubband(size_t sbIndex) { _userFlaggedSubbands.push_back(sbIndex); }
+		void FlagSubbandEdges(size_t edgeChannelCount) { _subbandEdgeFlagCount = edgeChannelCount; }
 	private:
 		MWAConfig _mwaConfig;
 		Writer *_writer;
@@ -85,6 +87,7 @@ class Cotter : private UVWCalculater
 		size_t _maxBufferSize;
 		size_t _subbandCount;
 		size_t _quackSampleCount;
+		size_t _subbandEdgeFlagCount;
 		size_t _missingEndScans;
 		size_t _curChunkStart, _curChunkEnd;
 		bool _rfiDetection, _collectStatistics;
@@ -92,7 +95,7 @@ class Cotter : private UVWCalculater
 		std::string _commandLine;
 		std::string _metaFilename, _antennaLocationsFilename, _headerFilename, _instrConfigFilename;
 		std::string _subbandPassbandFilename;
-		std::vector<size_t> _userFlaggedAntennae;
+		std::vector<size_t> _userFlaggedAntennae, _userFlaggedSubbands;
 		
 		std::map<std::pair<size_t, size_t>, aoflagger::ImageSet*> _imageSetBuffers;
 		std::map<std::pair<size_t, size_t>, aoflagger::FlagMask*> _flagBuffers;

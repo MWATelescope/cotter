@@ -78,10 +78,12 @@ void usage()
 	"  -noautos           Do not output auto-correlations.\n"
 	"  -noflagautos       Do not flag auto-correlations (default for uvfits file output).\n"
 	"  -centre <ra> <dec> Set alternative phase centre, e.g. -centre 00h00m00.0s 00d00m00.0s.\n"
-	"  -sbcount <count>   Read/processes the first given number of subbands.\n"
+	"  -sbcount <count>   Read/processes the first given number of sub-bands.\n"
 	"  -sbpassband <file> Read the sub-band passband from given file instead of using default passband.\n"
 	"                     (default passband does a reasonably good job)\n"
 	"  -flagantenna <lst> Mark the comma-separated list of zero-indexed antennae as flagged antennae.\n"
+	"  -flagsubband <lst> Flag the comma-separated list of zero-indexed sub-bands.\n"
+	"  -flagedges <count> Flag the given number of edge channels of each sub-band.\n"
 	"  -initflag <sec>    Specify number of seconds to flag at beginning of observation (default: 4s).\n"
 	"\n"
 	"The filenames of the input gpu files should end in '...nn_mm.fits', where nn >= 1 is the\n"
@@ -221,26 +223,31 @@ int cotterMain(int argc, const char* const* argv)
 			++argi;
 			std::vector<int> antennaList;
 			NumberList::ParseIntList(argv[argi], antennaList);
-				std::cout << "Flagging antennae: ";
+			std::cout << "Flagging antennae: ";
 			for(std::vector<int>::const_iterator i=antennaList.begin(); i!=antennaList.end(); ++i)
 			{
 				cotter.FlagAntenna(*i);
 				std::cout << *i << ' ';
 			}
-			std::cout << *i << ".\n";
+			std::cout << "\n";
 		}
 		else if(strcmp(argv[argi], "-flagsubband") == 0)
 		{
 			++argi;
 			std::vector<int> sbList;
 			NumberList::ParseIntList(argv[argi], sbList);
-				std::cout << "Flagging subbands: ";
+				std::cout << "Flagging sub-bands: ";
 			for(std::vector<int>::const_iterator i=sbList.begin(); i!=sbList.end(); ++i)
 			{
 				cotter.FlagSubband(*i);
 				std::cout << *i << ' ';
 			}
-			std::cout << *i << ".\n";
+			std::cout << "\n";
+		}
+		else if(strcmp(argv[argi], "-flagedges") == 0)
+		{
+			++argi;
+			cotter.FlagSubbandEdges(atoi(argv[argi]));
 		}
 		else if(argv[argi][0] == '-')
 		{
