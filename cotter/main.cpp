@@ -3,6 +3,7 @@
 
 #include "cotter.h"
 #include "radeccoord.h"
+#include "numberlist.h"
 
 #include <boost/algorithm/string.hpp>
 
@@ -218,20 +219,28 @@ int cotterMain(int argc, const char* const* argv)
 		else if(strcmp(argv[argi], "-flagantenna") == 0)
 		{
 			++argi;
-			std::string list = argv[argi];
-			size_t pos = list.find(",");
-			while(pos != std::string::npos)
+			std::vector<int> antennaList;
+			NumberList::ParseIntList(argv[argi], antennaList);
+				std::cout << "Flagging antennae: ";
+			for(std::vector<int>::const_iterator i=antennaList.begin(); i!=antennaList.end(); ++i)
 			{
-				std::string idStr = list.substr(0, pos);
-				list = list.substr(pos+1);
-				int id = atoi(idStr.c_str());
-				std::cout << "Flagging antenna " << id << ".\n";
-				cotter.FlagAntenna(id);
-				pos = list.find(",");
+				cotter.FlagAntenna(*i);
+				std::cout << *i << ' ';
 			}
-			int id = atoi(list.c_str());
-			std::cout << "Flagging antenna " << id << ".\n";
-			cotter.FlagAntenna(id);
+			std::cout << *i << ".\n";
+		}
+		else if(strcmp(argv[argi], "-flagsubband") == 0)
+		{
+			++argi;
+			std::vector<int> sbList;
+			NumberList::ParseIntList(argv[argi], sbList);
+				std::cout << "Flagging subbands: ";
+			for(std::vector<int>::const_iterator i=sbList.begin(); i!=sbList.end(); ++i)
+			{
+				cotter.FlagSubband(*i);
+				std::cout << *i << ' ';
+			}
+			std::cout << *i << ".\n";
 		}
 		else if(argv[argi][0] == '-')
 		{
