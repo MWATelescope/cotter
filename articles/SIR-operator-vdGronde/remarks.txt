@@ -1,6 +1,11 @@
-Comments SIRO
+Comments SIR operator article Jasper
+
+The introduction would be improved with some more motivation for why this paper is important.
 
 Equation 1: wouldn't requiring a < b be better? Otherwise always mu(empty set) >= mu(empty set), even though "a=b" adds only an empty interval so doesn't change the operator. Might make it a bit more explicit that we are not interested in the case of a=b.
+(oh I think this equation is now changed... that's ok too :))
+
+Since this is an operator that is related to filtering images etc., I think it might be good to have some example images to show what the algorithms do, especially around Eq 1 and Eq 4.
 
 You might want to note somewhere that the definition of 's' is the inverse (higher s means less strong) of as it is defined in our 2012 paper (higher s => stronger), and give a short motivation for this.
 
@@ -19,17 +24,33 @@ First row in proof of lemma 1: should this be h(h^-1(a)) in E ?
 
 Lemma 2: After "Since g superset of f", mu(..) >= mu(..), "s" is missing before second mu.
 
-Lemma 3: I would use more intermediate steps here (as you suggest in your todo's)
+[(old -- has been removed) Lemma 3: I would use more intermediate steps here (as you suggest in your todo's)]
 
-Lemma 4: Shouldn't this be s<=t implies rho_s(f) *superset of* rho_t(f) (instead of '>=')
+Lemma 3: Shouldn't this be s<=t implies rho_s(f) *superset of* rho_t(f) (instead of '>=')
+(I think this has been fixed in new paper; can't find it anymore)
 
 wrt: "Finally, note that the dual of a traditional rank operator is again a rank operator. This is not true for the SIR operator, as it is always extensive, and the dual of an extensive operator has to be anti-extensive."
--> But isn't there a dual of a scale-invariant rank operator which could be anti-extensive, but still has rank operator like properties? I.e., one which removes intervals based on the amount of elements in the interval.
+-> But might there be a dual of a scale-invariant rank operator which could be anti-extensive, but still has rank-operator alike properties? I.e., one which removes intervals based on the amount of elements in the interval.
+
+Section 3.1: From "The only down-side..." the algorithm is of interest pedagogically (and quite impressive), but I don't think it is a method that will be often preferred for cases like I have been using it, since it is not exact, and the errors that it makes are in fact unwanted. Therefore, I don't think that we should oversell this method, and I would put "the only down-side" in the first line of code, and also emphasise the pedagogical aspect of relating the method to the max cont subs sum.
+I would also give an example of an error to show the difference.
+
+Section on gray scale, page 7, 3rd par from top, "without sacrificing its performance (much)" -> wouldn't put much between braces. Maybe "without affecting its time complexity." ? I agree with almost all todo's here, but it's a bit hard to tell how this turns out once all there ;-).
+
+Sect 5, pag 8, first par: I think the trivial ways of limiting scale invariance are (a) to slide a window over the data and perform either the exact or estimation algorithm in each window without modification -- of course that is rather slow, but I would at least mention the option and explain why using another scheme is preferred -- and (b) to segment the data and perform the algorithm in each segment; faster but not exact, especially near borders (this is how it is now implemented for the MWA telescope I am working on now, because the full data stream is processed by one computer, and the data doesn't fit entirely in memory, hence it's split in chunks and each chunk is considered only once).
+
+Sect 5: This might be my inexperience with erosions/dilations, but from sec paragraph I don't understand how an erosion/dilation solves the problem... Maybe explain a bit more? (oh, third paragraph explains this; maybe add "we will show that both optimizations can be performed using...?" to sec par?). Hmm I find it still a bit hard to picture; maybe add some more explanation to par 3 (or a figure?)
+
+I assume Sect 6 is not yet finished (?)
+
+I'm not sure what the equations in Sect 7 are explaining; I think this needs more explanation.
 
 (small things)
 
 scale invariant rank operator -> scale-invariant (hyphen)
 The SIR operator is interesting option -> missing "an"
-below Eq 1 -> define mu and s directly (before explaning properties of E), e.g. "where mu represent a count and s is the operator strength.
-lemma 3: "This leads to a contradiction" -> "This contradicts with the definition."
-
+below Eq 1 -> I would define mu and s directly (before explaning properties of E), e.g. "where mu represent a count and s is the operator strength.
+3.1, first par, "As a bonus" is not very formal language
+(also emphasis on "very" not necessary)
+Why are you writing out "eta" in Theorem 2?
+At times you tend to use quite "descriptive", somewhat informal language ("The trick is", "we feel that", "we still want", "extremely easy", "we are not interested in", "perhaps it is possible", etc.). Also avoid saying that things are "easy" to see too often. Once there's a full paper I'll give more extensive textual feedback.
