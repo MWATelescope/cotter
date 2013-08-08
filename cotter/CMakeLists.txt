@@ -29,6 +29,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -DNDEBUG -msse2 -O3 -ggdb -march=n
 include_directories(${AOFLAGGER_INCLUDE_DIR})
 include_directories(${CASA_INCLUDE_DIR})
 include_directories(${FITSIO_INCLUDE_DIR})
+include_directories(${Boost_INCLUDE_DIR})
 
 # The following stuff will set the "rpath" correctly, so that
 # LD_LIBRARY_PATH doesn't have to be set.
