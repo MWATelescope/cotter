@@ -98,6 +98,7 @@ class lane : public boost::noncopyable
 		
 		void write_end()
 		{
+			boost::mutex::scoped_lock lock(_mutex);
 			_status = status_end;
 			_has_work_condition.notify_all();
 		}
