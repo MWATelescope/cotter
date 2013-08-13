@@ -1,0 +1,113 @@
+\documentclass[a4paper,11pt]{article} 
+%\usepackage[style=nature,backend=biber]{biblatex}
+\usepackage{graphicx}
+\usepackage[font={it},labelfont={bf}]{caption}
+\usepackage{times}
+\usepackage{color}
+%\usepackage{fixltx2e} % fixes placing of image positions
+\usepackage{authblk}
+\usepackage{amsmath}
+\usepackage{courier}
+
+\definecolor{customhdrcolor}{rgb}{0.0,0.0,0.0}
+%\definecolor{customcitecolor}{rgb}{0.0,0.25,0.25}
+\definecolor{customcitecolor}{rgb}{0.0,0.5,0.75}
+%\definecolor{customlinkcolor}{rgb}{0.0,0.0,1.0}
+\definecolor{customlinkcolor}{rgb}{0.0,0.5,0.75}
+
+\usepackage[colorlinks=true,linkcolor=customlinkcolor,urlcolor=customlinkcolor,citecolor=customcitecolor,pdftex]{hyperref}
+
+\ifpdf\pdfinfo{/Title      (Memo: MWA beam-correction formulae)
+               /Author     (A. R. Offringa et al.)
+               /Keywords   (MWA, beam)
+        }
+\else\usepackage{graphics}\fi
+
+\setlength{\pdfpageheight}{\paperheight}
+\setlength{\pdfpagewidth}{\paperwidth}
+
+\title{Memo: MWA beam-correction formulae}
+
+\author{A.~R.~Offringa}
+%\author[1,2]{A.~R.~Offringa}
+%\affil[1]{RSAA, Australian National University, Mt Stromlo Observatory, via Cotter Road, Weston, ACT 2611, Australia}
+%\affil[2]{ARC Centre of Excellence for All-Sky Astrophysics (CAASTRO)}
+\begin{document}
+
+\label{firstpage}
+\maketitle
+
+\section{Analytical calculation of voltage gain}
+The analytical gain of a tile is calculated from the analytical gain of a dipole with ground screen, multiplied by a factor $\eta$ that represents how coherent the dipoles add together. The (complex) tile factor $\eta$ is calculated with:\footnote{Taken from the RTS (2013-08-13), file \texttt{InstrumentalCalibration.c} written by D. Mitchell}
+\begin{equation}
+ \eta = \frac{1}{16}\sum\limits_{a=1}^{16} e^{\frac{-2 \pi i}{\lambda} \left(\Delta x_a \sin \mathcal{Z} \sin \chi + \Delta y_a \sin \mathcal{Z} \cos \chi + \Delta z_a \cos \mathcal{Z} - \Delta \tau_a \right) },
+\end{equation}
+where $\lambda$ is the wavelength, $\Delta x_a, \Delta y_a$ and $\Delta z_a$ are the relative positions of dipole $a$ in the tile, $\mathcal{Z}$ is zenith angle, $\chi$ is the azimuth and $\Delta \tau_a$ is the delay applied on dipole $a$ by the beam former. The $2 \times 2$ matrix $E$ describing the electrical gains of an individual dipole\footnote{Also described here: http://mwa-lfd.haystack.mit.edu/twiki/bin/view/Main/PrimaryBeamModels by D. Mitchell} is calculated with:
+\begin{equation}
+\mathbf{E} = \frac{2 \sin \left( \frac{2 \pi h}{\lambda} \cos \mathcal{Z}\right)}{2 \sin \left( \frac{2 \pi h}{\lambda}\right)}
+\left( \begin{array}{ccc}
+\cos l \cos \delta + \sin l \sin \delta \cos \textrm{ha} & ; & -\sin l \sin \textrm{ha} \\
+\sin \delta \sin \textrm{ha} & ; & \cos \textrm{ha}
+\end{array} \right).
+\end{equation}
+Here, $l$ is latitude, $\delta$ is declanation, $\textrm{ha}$ is hour angle and $h$ is the height of tile. The factors of two cancel out, but are left there because the denominator now forms the normalization towards zenith. Finally, the Jones gain matrix $B$ of the full tile is calculated by multiplying the dipole matrix with the tile factor,
+\begin{equation}
+\mathbf{B} = \eta \mathbf{E}.
+\end{equation}
+\section{Applying beam gains in image space}
+Given the $2\times 2$ complex Jones matrix $\mathbf{B}$ that represents the voltage gain of the beam in a certain direction, the RTS corrects a polarized pixel, given by the vector $\textbf{v} = \left(v_\textrm{xx}, v_\textrm{xy}, v_\textrm{yx}, v_\textrm{yy} \right)^T$, for that direction in the image plane to a beam-corrected vector containing the Stokes values with the following calculation:\footnote{Taken from the RTS (2013-08-13), file \texttt{pb\_correct.c} written by S. Ord}
+\begin{equation} \label{apply-beam-image-space}
+ \textbf{s} =
+\mathbf{T} \left[ \left(\mathbf{B} \otimes \mathbf{B}^* \right) \left(\mathbf{B} \otimes \mathbf{B}^* \right)^*\right]^{-1} \mathbf{Y} \textbf{v},
+\end{equation}
+with
+\begin{equation}
+\textbf{s} = \left( \begin{array}{c}
+s_\textrm{\tiny{I}} \\
+s_\textrm{\tiny{Q}} \\
+s_\textrm{\tiny{U}} \\
+s_\textrm{\tiny{V}} \end{array} \right),
+T = \left( \begin{array}{cccc}
+1 & 0 & 0 & 1 \\
+1 & 0 & 0 & -1 \\
+0 & 1 & 1 & 0 \\
+0 & -i & -i & 0 \end{array} \right), \mathbf{Y} = \left( \begin{array}{cccc}
+1 & 0 & 0 & 0 \\
+0 & 1 & i & 0 \\
+0 & 1 & -i & 0 \\
+0 & 0 & 0 & 1
+\end{array} \right),
+\end{equation}
+where $\otimes$ the Kronecker product and $\mathbf{A}^*$ the conjugate transpose of matrix $\mathbf{A}$. The output $\textbf{s}$ is a vector with the Stokes parameter. The matrix $\mathbf{T}$ converts from instrumental basis (xx, xy, yx, yy) to the Stokes parameter and hence is applied last.
+
+\textbf{Question:} I don't know why matrix $\mathbf{Y}$ (pronounced as ``why?!?'') is applied on vector $\textbf{v}$ first. $\mathbf{Y}$ has the following effect:
+\begin{equation}
+\mathbf{Y}\textbf{v} = \left( \begin{array}{c}
+ v_\textrm{xx} \\ v_\textrm{xy} + i v_\textrm{yx} \\
+ v_\textrm{xy} - i v_\textrm{yx} \\ v_\textrm{yy} \end{array}\right)
+\end{equation}
+Possible explanation could be that this is necessary because the beam is applied in image space, instead of on the visibilities. That would imply that $\mathbf{Y}$ can be left out if the beam is corrected in visibility space (e.g. on the model).
+
+\section{Applying the beam more efficiently}
+As a side note, Eq.~\eqref{apply-beam-image-space} involves a $4\times 4$ complex matrix inverse, which can be computationally done more efficiently by decomposing it in two $2\times 2$ complex matrix inversions:
+\begin{equation} \notag
+ \textbf{s} =
+\mathbf{T} \left[ \left(\mathbf{B} \otimes \mathbf{B}^* \right) \left(\mathbf{B} \otimes \mathbf{B}^* \right)^*\right]^{-1} \mathbf{Y} \textbf{v}
+\end{equation}
+\{ Conjugate transpose is distributive over the Kronecker product  \}
+\begin{equation} \notag
+ \textbf{s} =
+\mathbf{T} \left[ \left(\mathbf{B} \otimes \mathbf{B}^* \right) \left(\mathbf{B}^* \otimes \mathbf{B} \right)\right]^{-1} \mathbf{Y} \textbf{v}
+\end{equation}
+\{ Using associativity of K.p., i.e., $\left(\mathbf{A} \otimes \mathbf{B} \right) \left(\mathbf{C} \otimes \mathbf{D} \right) = (\mathbf{AC}) \otimes (\mathbf{BD})$ \}
+\begin{equation} \notag
+ \textbf{s} = \mathbf{T} \left[ (\mathbf{BB}^*) \otimes (\mathbf{B}^*\mathbf{B}) \right]^{-1} \mathbf{Y} \textbf{v}
+\end{equation}
+\{ Inverse is distributive over the Kronecker product \}
+\begin{equation}
+ \textbf{s} = \mathbf{T} \left[ (\mathbf{BB}^*)^{-1} \otimes (\mathbf{B}^*\mathbf{B})^{-1} \right] \mathbf{Y} \textbf{v}
+\end{equation}
+Note that $\mathbf{BB}^*$ and $\mathbf{B}^*\mathbf{B}$ are not equal (unless $\mathbf{B}$ is unitary, which it is not in general), but they are $2\times 2$ matrices, and their inverse thus has an analytical solution. This is much faster and easier than using a general library to do a $4 \times 4$ inversion.
+\label{lastpage}
+
+\end{document}
