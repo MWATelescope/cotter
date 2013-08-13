@@ -42,7 +42,7 @@ The analytical gain of a tile is calculated from the analytical gain of a dipole
 \begin{equation}
  \eta = \frac{1}{16}\sum\limits_{a=1}^{16} e^{\frac{-2 \pi i}{\lambda} \left(\Delta x_a \sin \mathcal{Z} \sin \chi + \Delta y_a \sin \mathcal{Z} \cos \chi + \Delta z_a \cos \mathcal{Z} - \Delta \tau_a \right) },
 \end{equation}
-where $\lambda$ is the wavelength, $\Delta x_a, \Delta y_a$ and $\Delta z_a$ are the relative positions of dipole $a$ in the tile, $\mathcal{Z}$ is zenith angle, $\chi$ is the azimuth and $\Delta \tau_a$ is the delay applied on dipole $a$ by the beam former. The $2 \times 2$ matrix $E$ describing the electrical gains of an individual dipole\footnote{Also described here: http://mwa-lfd.haystack.mit.edu/twiki/bin/view/Main/PrimaryBeamModels by D. Mitchell} is calculated with:
+where $\lambda$ is the wavelength, $\Delta x_a, \Delta y_a$ and $\Delta z_a$ are the relative positions of dipole $a$ in the tile, $\mathcal{Z}$ is zenith angle, $\chi$ is the azimuth and $\Delta \tau_a$ is the delay applied on dipole $a$ by the beam former. The $2 \times 2$ matrix $\textbf{E}$ describing the electrical gains of an individual dipole\footnote{Also described here: http://mwa-lfd.haystack.mit.edu/twiki/bin/view/Main/PrimaryBeamModels by D. Mitchell} is calculated with:
 \begin{equation}
 \mathbf{E} = \frac{2 \sin \left( \frac{2 \pi h}{\lambda} \cos \mathcal{Z}\right)}{2 \sin \left( \frac{2 \pi h}{\lambda}\right)}
 \left( \begin{array}{ccc}
@@ -55,7 +55,7 @@ Here, $l$ is latitude, $\delta$ is declanation, $\textrm{ha}$ is hour angle and 
 \mathbf{B} = \eta \mathbf{E}.
 \end{equation}
 \section{Applying beam gains in image space}
-Given the $2\times 2$ complex Jones matrix $\mathbf{B}$ that represents the voltage gain of the beam in a certain direction, the RTS corrects a polarized pixel, given by the vector $\textbf{v} = \left(v_\textrm{xx}, v_\textrm{xy}, v_\textrm{yx}, v_\textrm{yy} \right)^T$, for that direction in the image plane to a beam-corrected vector containing the Stokes values with the following calculation:\footnote{Taken from the RTS (2013-08-13), file \texttt{pb\_correct.c} written by S. Ord}
+Given the $2\times 2$ complex Jones matrix $\mathbf{B}$ that represents the voltage gain of the beam in a certain direction, the RTS corrects a polarized pixel, given by the vector $\textbf{v} = \left(v_\textrm{xx}, \textrm{real}(v_\textrm{xy}), \textrm{imag}(v_\textrm{xy}), v_\textrm{yy} \right)^T$, for that direction in the image plane to a beam-corrected vector containing the Stokes values with the following calculation:\footnote{Taken from the RTS (2013-08-13), file \texttt{pb\_correct.c} written by S. Ord}
 \begin{equation} \label{apply-beam-image-space}
  \textbf{s} =
 \mathbf{T} \left[ \left(\mathbf{B} \otimes \mathbf{B}^* \right) \left(\mathbf{B} \otimes \mathbf{B}^* \right)^*\right]^{-1} \mathbf{Y} \textbf{v},
@@ -80,13 +80,7 @@ T = \left( \begin{array}{cccc}
 \end{equation}
 where $\otimes$ the Kronecker product and $\mathbf{A}^*$ the conjugate transpose of matrix $\mathbf{A}$. The output $\textbf{s}$ is a vector with the Stokes parameter. The matrix $\mathbf{T}$ converts from instrumental basis (xx, xy, yx, yy) to the Stokes parameter and hence is applied last.
 
-\textbf{Question:} I don't know why matrix $\mathbf{Y}$ (pronounced as ``why?!?'') is applied on vector $\textbf{v}$ first. $\mathbf{Y}$ has the following effect:
-\begin{equation}
-\mathbf{Y}\textbf{v} = \left( \begin{array}{c}
- v_\textrm{xx} \\ v_\textrm{xy} + i v_\textrm{yx} \\
- v_\textrm{xy} - i v_\textrm{yx} \\ v_\textrm{yy} \end{array}\right)
-\end{equation}
-Possible explanation could be that this is necessary because the beam is applied in image space, instead of on the visibilities. That would imply that $\mathbf{Y}$ can be left out if the beam is corrected in visibility space (e.g. on the model).
+Matrix $\mathbf{Y}$ is applied because the RTS does not store both the xy and yx images, but instead stores one complex xy image. Its real values are stored in the 2nd index, and the imaginary values are stored in the 3rd index of vector $\textbf{v}$. Multiplying $\mathbf{v}$ with $\mathbf{Y}$ therefore has the following effect: $\mathbf{Y}\textbf{v} = \left(v_\textrm{xx},v_\textrm{xy}, \overline{v_\textrm{xy}},v_\textrm{yy}\right)^T$. $\mathbf{Y}$ can be left out if the input is alread xx, xy, yx, yy.
 
 \section{Applying the beam more efficiently}
 As a side note, Eq.~\eqref{apply-beam-image-space} involves a $4\times 4$ complex matrix inverse, which can be computationally done more efficiently by decomposing it in two $2\times 2$ complex matrix inversions:
