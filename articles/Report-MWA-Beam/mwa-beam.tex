@@ -50,15 +50,20 @@ where $\lambda$ is the wavelength, $\Delta x_a, \Delta y_a$ and $\Delta z_a$ are
 \sin \delta \sin \textrm{ha} & ; & \cos \textrm{ha}
 \end{array} \right).
 \end{equation}
-Here, $l$ is latitude, $\delta$ is declanation, $\textrm{ha}$ is hour angle and $h$ is the height of tile. The factors of two cancel out, but are left there because the denominator now forms the normalization towards zenith. Finally, the Jones gain matrix $B$ of the full tile is calculated by multiplying the dipole matrix with the tile factor,
+Here, $l$ is latitude, $\delta$ is declanation, $\textrm{ha}$ is hour angle and $h$ is the height of tile. The factors of two cancel out, but are left there because the denominator now forms the normalization towards zenith. Finally, the Jones gain matrix $\textbf{B}$ of the full tile is calculated by multiplying the dipole matrix with the tile factor,
 \begin{equation}
 \mathbf{B} = \eta \mathbf{E}.
 \end{equation}
 \section{Applying beam gains in image space}
-Given the $2\times 2$ complex Jones matrix $\mathbf{B}$ that represents the voltage gain of the beam in a certain direction, the RTS corrects a polarized pixel, given by the vector $\textbf{v} = \left(v_\textrm{xx}, \textrm{real}(v_\textrm{xy}), \textrm{imag}(v_\textrm{xy}), v_\textrm{yy} \right)^T$, for that direction in the image plane to a beam-corrected vector containing the Stokes values with the following calculation:\footnote{Taken from the RTS (2013-08-13), file \texttt{pb\_correct.c} written by S. Ord}
+Given the $2\times 2$ complex Jones matrix $\mathbf{B}$ that represents the voltage gain of the beam in a certain direction, the RTS corrects a polarized pixel, given by the vector $\textbf{v}' = \left(v_\textrm{xx}, \textrm{real}(v_\textrm{xy}), \textrm{imag}(v_\textrm{xy}), v_\textrm{yy} \right)^T$, for that direction in the image plane to a beam-corrected vector containing the Stokes values with the following calculation:\footnote{Taken from the RTS (2013-08-13), file \texttt{pb\_correct.c} written by S. Ord}
 \begin{equation} \label{apply-beam-image-space}
  \textbf{s} =
-\mathbf{T} \left[ \left(\mathbf{B} \otimes \mathbf{B}^* \right) \left(\mathbf{B} \otimes \mathbf{B}^* \right)^*\right]^{-1} \mathbf{Y} \textbf{v},
+\mathbf{T} \left[ \left(\mathbf{B} \otimes \mathbf{B}^{*T} \right)^* \left(\mathbf{B} \otimes \mathbf{B}^{*T} \right)\right]^{-1} \mathbf{Y} \mathbf{v}',
+\end{equation}
+\textbf{Note:} the formula above is how the RTS seems to do it, but it may not be correct. Mitch is going to check this, as it should be:
+\begin{equation}
+ \textbf{s} =
+\mathbf{T} \left(\mathbf{B} \otimes \mathbf{B}^{*T} \right)^{-1} \mathbf{Y} \mathbf{v}',
 \end{equation}
 with
 \begin{equation}
@@ -78,30 +83,70 @@ T = \left( \begin{array}{cccc}
 0 & 0 & 0 & 1
 \end{array} \right),
 \end{equation}
-where $\otimes$ the Kronecker product and $\mathbf{A}^*$ the conjugate transpose of matrix $\mathbf{A}$. The output $\textbf{s}$ is a vector with the Stokes parameter. The matrix $\mathbf{T}$ converts from instrumental basis (xx, xy, yx, yy) to the Stokes parameter and hence is applied last.
+where $\otimes$ the Kronecker product, $\mathbf{A}^*$ the conjugate transpose of matrix $\mathbf{A}$ and $\mathbf{A}^{*T}$ the matrix $\mathbf{A}$ where each element has been conjugated ($A_{ij}$ = $\overline{A^{*T}_{ij}}$). The output $\textbf{s}$ is a vector with the Stokes parameters. The matrix $\mathbf{T}$ converts from instrumental basis (xx, xy, yx, yy) to the Stokes parameter and hence is applied last.
 
-Matrix $\mathbf{Y}$ is applied because the RTS does not store both the xy and yx images, but instead stores one complex xy image. Its real values are stored in the 2nd index, and the imaginary values are stored in the 3rd index of vector $\textbf{v}$. Multiplying $\mathbf{v}$ with $\mathbf{Y}$ therefore has the following effect: $\mathbf{Y}\textbf{v} = \left(v_\textrm{xx},v_\textrm{xy}, \overline{v_\textrm{xy}},v_\textrm{yy}\right)^T$. $\mathbf{Y}$ can be left out if the input is alread xx, xy, yx, yy.
+Matrix $\mathbf{Y}$ is applied because the RTS does not store both the xy and yx images, but instead stores one complex xy image. Its real values are stored in the 2nd index, and the imaginary values are stored in the 3rd index of vector $\mathbf{v}'$. Multiplying $\mathbf{v}'$ with $\mathbf{Y}$ therefore has the following effect: $\mathbf{v}=\mathbf{Y}\mathbf{v}' = \left(v_\textrm{xx},v_\textrm{xy}, \overline{v_\textrm{xy}},v_\textrm{yy}\right)^T$. $\mathbf{Y}$ can be left out if the input is already in the form xx, xy, yx, yy.
+
+\section{Calculating weights}
+\textbf{Note:} the following still needs to be checked, as currently it seems the RTS is doing this differently.
+
+Eq.~\ref{apply-beam-image-space} describes how to apply the beam to a single measurement. The RTS integrates multiple snapshots with different beam values, which requires a weighted average of the measurements. A measurement is beam-corrected and weighted by the square of the beam value. These weighted measurements are summed together and finally the total weight is divided out. Therefore, the final pixel value $\mathbf{s'}$ is estimated from the individual measurements $\mathbf{v}_i$ and their corresponding beam values $\mathbf{B}_i$ as:
+\begin{equation}
+\mathbf{s'} = \left( \sum\limits_{i=1}^N \textbf{W}_i \mathbf{s}_i \right) \left( \sum\limits_{i=1}^N \textbf{W}_i \right)^{-1},
+\end{equation}
+with
+\begin{equation}
+\textbf{W}_i = \mathbf{T} \left[ \left(\mathbf{B}_i \otimes \mathbf{B}_i^{*T} \right)^* \left(\mathbf{B}_i \otimes \mathbf{B}_i^{*T} \right)\right].
+\end{equation}
+In this, $\mathbf{s}_i$ can be substituted with Eq.~\ref{apply-beam-image-space} to prevent having to invert the beam for every measurement:
+\begin{equation}
+\mathbf{s'} = 
+\left(
+  \sum\limits_{i=1}^N \mathbf{T} \left(\mathbf{B}_i \otimes \mathbf{B}_i^{*T} \right)^* \left(\mathbf{B}_i \otimes \mathbf{B}_i^{*T} \right) 
+  \mathbf{T} \left(\mathbf{B}_i \otimes \mathbf{B}_i^{*T} \right)^{-1} \mathbf{v}
+\right)
+\left( \sum\limits_{i=1}^N \textbf{W}_i \right)^{-1},
+\end{equation}
+\{ We can weight first and calculates Stokes parameters later \}
+\begin{eqnarray}
+\notag
+\mathbf{s'} & =  &
+\left(
+  \mathbf{T} \sum\limits_{i=1}^N \left(\mathbf{B}_i \otimes \mathbf{B}_i^{*T} \right)^* \left(\mathbf{B}_i \otimes \mathbf{B}_i^{*T} \right) 
+  \left(\mathbf{B}_i \otimes \mathbf{B}_i^{*T} \right)^{-1} \mathbf{v}
+\right)
+\left( \sum\limits_{i=1}^N \textbf{W}_i \right)^{-1} \\
+& = &
+\left(
+  \mathbf{T} \sum\limits_{i=1}^N \left(\mathbf{B}_i \otimes \mathbf{B}_i^{*T} \right)^* \mathbf{v}
+\right)
+\left( \sum\limits_{i=1}^N \textbf{W}_i \right)^{-1},
+\end{eqnarray}
 
 \section{Applying the beam more efficiently}
 As a side note, Eq.~\eqref{apply-beam-image-space} involves a $4\times 4$ complex matrix inverse, which can be computationally done more efficiently by decomposing it in two $2\times 2$ complex matrix inversions:
 \begin{equation} \notag
  \textbf{s} =
-\mathbf{T} \left[ \left(\mathbf{B} \otimes \mathbf{B}^* \right) \left(\mathbf{B} \otimes \mathbf{B}^* \right)^*\right]^{-1} \mathbf{Y} \textbf{v}
+\mathbf{T} \left[ \left(\mathbf{B} \otimes \mathbf{B}^{*T} \right) \left(\mathbf{B} \otimes \mathbf{B}^{*T} \right)^*\right]^{-1} \mathbf{Y} \textbf{v}
 \end{equation}
 \{ Conjugate transpose is distributive over the Kronecker product  \}
 \begin{equation} \notag
  \textbf{s} =
-\mathbf{T} \left[ \left(\mathbf{B} \otimes \mathbf{B}^* \right) \left(\mathbf{B}^* \otimes \mathbf{B} \right)\right]^{-1} \mathbf{Y} \textbf{v}
+\mathbf{T} \left[ \left(\mathbf{B} \otimes \mathbf{B}^{*T} \right) \left(\mathbf{B}^{*} \otimes \mathbf{B}^T \right)\right]^{-1} \mathbf{Y} \textbf{v}
 \end{equation}
 \{ Using associativity of K.p., i.e., $\left(\mathbf{A} \otimes \mathbf{B} \right) \left(\mathbf{C} \otimes \mathbf{D} \right) = (\mathbf{AC}) \otimes (\mathbf{BD})$ \}
 \begin{equation} \notag
- \textbf{s} = \mathbf{T} \left[ (\mathbf{BB}^*) \otimes (\mathbf{B}^*\mathbf{B}) \right]^{-1} \mathbf{Y} \textbf{v}
+ \textbf{s} = \mathbf{T} \left[ (\mathbf{BB}^*) \otimes (\mathbf{B}^{*T}\mathbf{B}^T) \right]^{-1} \mathbf{Y} \textbf{v}
 \end{equation}
 \{ Inverse is distributive over the Kronecker product \}
 \begin{equation}
- \textbf{s} = \mathbf{T} \left[ (\mathbf{BB}^*)^{-1} \otimes (\mathbf{B}^*\mathbf{B})^{-1} \right] \mathbf{Y} \textbf{v}
+ \textbf{s} = \mathbf{T} \left[ (\mathbf{BB}^*)^{-1} \otimes (\mathbf{B}^{*T}\mathbf{B}^T)^{-1} \right] \mathbf{Y} \textbf{v}
 \end{equation}
-Note that $\mathbf{BB}^*$ and $\mathbf{B}^*\mathbf{B}$ are not equal (unless $\mathbf{B}$ is unitary, which it is not in general), but they are $2\times 2$ matrices, and their inverse thus has an analytical solution. This is much faster and easier than using a general library to do a $4 \times 4$ inversion.
+\{ Using distributivity of inversion over transpose, and $\mathbf{A}^T \mathbf{B}^T=(\mathbf{BA})^T$ \}
+\begin{equation}
+ \textbf{s} = \mathbf{T} \left[ (\mathbf{BB}^*)^{-1} \otimes \left((\mathbf{B}\mathbf{B}^*)^{-1}\right)^T \right] \mathbf{Y} \textbf{v}
+\end{equation}
+$\mathbf{BB}^*$ is a $2\times 2$ matrix, and its inverse thus has an analytical solution. This is much faster and easier than using a general library to do a $4 \times 4$ inversion. (It is not completely clear Eq.~\ref{apply-beam-image-space} is correct, so this might change -- it is expected that the data should not have the square of the Mueller matrix $\mathbf{B}\otimes\mathbf{B}^{*T}$ matrix applied. Even then it is possible to use only 2x2 matrix inversions, because the inverse is distribute over the Kronecker product).
 \label{lastpage}
 
 \end{document}
