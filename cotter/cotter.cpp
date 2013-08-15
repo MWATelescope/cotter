@@ -52,6 +52,7 @@ Cotter::Cotter() :
 	_flagAutos(true),
 	_overridePhaseCentre(false),
 	_doAlign(true),
+	_doFlagMissingSubbands(true),
 	_customRARad(0.0),
 	_customDecRad(0.0),
 	_initDurationToFlag(4.0)
@@ -1028,8 +1029,8 @@ void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask) const
 	}
 	
 	// Flag subbands that have been requested to be flagged
-	for(std::vector<size_t>::const_iterator sbIter=_userFlaggedSubbands.begin();
-			sbIter!=_userFlaggedSubbands.end(); ++sbIter)
+	for(std::set<size_t>::const_iterator sbIter=_flaggedSubbands.begin();
+			sbIter!=_flaggedSubbands.end(); ++sbIter)
 	{
 		bool *sbStart = flagMask.Buffer() + (*sbIter*chPerSb)*flagMask.HorizontalStride();
 		for(size_t ch=0; ch!=chPerSb; ++ch)
@@ -1128,6 +1129,19 @@ void Cotter::initializeSbOrder(size_t centerSbNumber)
 	for(size_t i=1; i!=_subbandCount; ++i)
 		std::cout << ',' << _subbandOrder[i];
 	std::cout << '\n';
+	
+	if(_doFlagMissingSubbands)
+	{
+		for(size_t i=0; i!=_subbandCount; ++i)
+		{
+			if(isGPUBoxMissing(i))
+			{
+				size_t sb = _subbandOrder[i];
+				std::cout << "At least one file is missing from gpubox " << (i+1) << ": flagging subband " << sb << ".\n";
+				FlagSubband(sb);
+			}
+		}
+	}
 }
 
 void Cotter::writeAlignmentScans()

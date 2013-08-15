@@ -77,6 +77,7 @@ void usage()
 	"  -noantennapruning  Do not remove the flagged antennae.\n"
 	"  -noautos           Do not output auto-correlations.\n"
 	"  -noflagautos       Do not flag auto-correlations (default for uvfits file output).\n"
+	"  -noflagmissings    Do not flag missing gpu box files.\n"
 	"  -centre <ra> <dec> Set alternative phase centre, e.g. -centre 00h00m00.0s 00d00m00.0s.\n"
 	"  -sbcount <count>   Read/processes the first given number of sub-bands.\n"
 	"  -sbpassband <file> Read the sub-band passband from given file instead of using default passband.\n"
@@ -184,6 +185,10 @@ int cotterMain(int argc, const char* const* argv)
 		else if(strcmp(argv[argi], "-noautos") == 0)
 		{
 			cotter.SetRemoveAutoCorrelations(true);
+		}
+		else if(strcmp(argv[argi], "-noflagmissings") == 0)
+		{
+			cotter.SetDoFlagMissingSubbands(false);
 		}
 		else if(strcmp(argv[argi], "-timeavg") == 0)
 		{

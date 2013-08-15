@@ -11,6 +11,7 @@
 
 #include <vector>
 #include <queue>
+#include <set>
 #include <string>
 
 namespace aoflagger {
@@ -52,10 +53,8 @@ class Cotter : private UVWCalculater
 			_customRARad = newRARad;
 			_customDecRad = newDecRad;
 		}
-		void SetDoAlign(bool doAlign)
-		{
-			_doAlign = doAlign;
-		}
+		void SetDoAlign(bool doAlign) { _doAlign = doAlign; }
+		void SetDoFlagMissingSubbands(bool doFlagMissingSubbands) { _doFlagMissingSubbands = doFlagMissingSubbands; }
 		void SetSubbandCount(size_t subbandCount) { _subbandCount = subbandCount; }
 		void SetRemoveFlaggedAntennae(bool removeFlaggedAntennae) { _removeFlaggedAntennae = removeFlaggedAntennae; }
 		void SetRemoveAutoCorrelations(bool removeAutoCorrelations) { _removeAutoCorrelations = removeAutoCorrelations; }
@@ -66,7 +65,7 @@ class Cotter : private UVWCalculater
 		void SetFlagAutoCorrelations(bool flagAutoCorrelations) { _flagAutos = flagAutoCorrelations; }
 		void SetInitDurationToFlag(double initDuration) { _initDurationToFlag = initDuration; }
 		void FlagAntenna(size_t antIndex) { _userFlaggedAntennae.push_back(antIndex); }
-		void FlagSubband(size_t sbIndex) { _userFlaggedSubbands.push_back(sbIndex); }
+		void FlagSubband(size_t sbIndex) { _flaggedSubbands.insert(sbIndex); }
 		void FlagSubbandEdges(size_t edgeChannelCount) { _subbandEdgeFlagCount = edgeChannelCount; }
 	private:
 		MWAConfig _mwaConfig;
@@ -95,7 +94,8 @@ class Cotter : private UVWCalculater
 		std::string _commandLine;
 		std::string _metaFilename, _antennaLocationsFilename, _headerFilename, _instrConfigFilename;
 		std::string _subbandPassbandFilename;
-		std::vector<size_t> _userFlaggedAntennae, _userFlaggedSubbands;
+		std::vector<size_t> _userFlaggedAntennae;
+		std::set<size_t> _flaggedSubbands;
 		
 		std::map<std::pair<size_t, size_t>, aoflagger::ImageSet*> _imageSetBuffers;
 		std::map<std::pair<size_t, size_t>, aoflagger::FlagMask*> _flagBuffers;
@@ -114,7 +114,7 @@ class Cotter : private UVWCalculater
 		std::complex<float> *_outputData;
 		float *_outputWeights;
 		bool _disableGeometricCorrections, _removeFlaggedAntennae, _removeAutoCorrelations, _flagAutos;
-		bool _overridePhaseCentre, _doAlign;
+		bool _overridePhaseCentre, _doAlign, _doFlagMissingSubbands;
 		long double _customRARad, _customDecRad;
 		double _initDurationToFlag;
 		
@@ -159,6 +159,15 @@ class Cotter : private UVWCalculater
 			if(_removeAutoCorrelations)
 				output = output && (antenna1 != antenna2);
 			return output;
+		}
+		bool isGPUBoxMissing(size_t gpuBoxIndex) const
+		{
+			for(std::vector<std::vector<std::string> >::const_iterator i=_fileSets.begin(); i!=_fileSets.end(); ++i)
+			{
+				if((*i)[gpuBoxIndex].empty())
+					return true;
+			}
+			return false;
 		}
 		
 		// Implementing UVWCalculater
