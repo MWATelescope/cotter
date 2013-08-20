@@ -90,12 +90,12 @@ Matrix $\mathbf{Y}$ is applied because the RTS does not store both the xy and yx
 \section{Calculating weights}
 \textbf{Note:} the following still needs to be checked, as currently it seems the RTS is doing this differently.
 
-Eq.~\ref{apply-beam-image-space} describes how to apply the beam to a single measurement. The RTS integrates multiple snapshots with different beam values, which requires a weighted average of the measurements. A measurement is beam-corrected and weighted by the square of the beam value. These weighted measurements are summed together and finally the total weight is divided out. Therefore, the final pixel value $\mathbf{s'}$ is estimated from the individual measurements $\mathbf{v}_i$ and their corresponding beam values $\mathbf{B}_i$ as:
-\begin{equation}
+Eq.~\ref{apply-beam-image-space} describes how to apply the beam to a single measurement. The RTS integrates multiple snapshots with different beam values, which requires a weighted average of the measurements. A measurement is beam-corrected and weighted by the square of the beam value. These weighted measurements are summed together and finally the total weight is divided out. Therefore, the final pixel value $\mathbf{s'}$ is estimated from the individual measurements $\mathbf{s}_i$ and their corresponding beam values $\mathbf{B}_i$ as:
+\begin{equation} \label{eq:weighting}
 \mathbf{s'} = \left( \sum\limits_{i=1}^N \textbf{W}_i \mathbf{s}_i \right) \left( \sum\limits_{i=1}^N \textbf{W}_i \right)^{-1},
 \end{equation}
 with
-\begin{equation}
+\begin{equation} \label{eq:weight-per-value}
 \textbf{W}_i = \mathbf{T} \left[ \left(\mathbf{B}_i \otimes \mathbf{B}_i^{*T} \right)^* \left(\mathbf{B}_i \otimes \mathbf{B}_i^{*T} \right)\right].
 \end{equation}
 In this, $\mathbf{s}_i$ can be substituted with Eq.~\ref{apply-beam-image-space} to prevent having to invert the beam for every measurement:
@@ -103,7 +103,7 @@ In this, $\mathbf{s}_i$ can be substituted with Eq.~\ref{apply-beam-image-space}
 \mathbf{s'} = 
 \left(
   \sum\limits_{i=1}^N \mathbf{T} \left(\mathbf{B}_i \otimes \mathbf{B}_i^{*T} \right)^* \left(\mathbf{B}_i \otimes \mathbf{B}_i^{*T} \right) 
-  \mathbf{T} \left(\mathbf{B}_i \otimes \mathbf{B}_i^{*T} \right)^{-1} \mathbf{v}
+  \mathbf{T} \left(\mathbf{B}_i \otimes \mathbf{B}_i^{*T} \right)^{-1} \mathbf{v}_i
 \right)
 \left( \sum\limits_{i=1}^N \textbf{W}_i \right)^{-1},
 \end{equation}
@@ -113,15 +113,35 @@ In this, $\mathbf{s}_i$ can be substituted with Eq.~\ref{apply-beam-image-space}
 \mathbf{s'} & =  &
 \left(
   \mathbf{T} \sum\limits_{i=1}^N \left(\mathbf{B}_i \otimes \mathbf{B}_i^{*T} \right)^* \left(\mathbf{B}_i \otimes \mathbf{B}_i^{*T} \right) 
-  \left(\mathbf{B}_i \otimes \mathbf{B}_i^{*T} \right)^{-1} \mathbf{v}
+  \left(\mathbf{B}_i \otimes \mathbf{B}_i^{*T} \right)^{-1} \mathbf{v}_i
 \right)
 \left( \sum\limits_{i=1}^N \textbf{W}_i \right)^{-1} \\
+\label{eq:weighting-final}
 & = &
 \left(
-  \mathbf{T} \sum\limits_{i=1}^N \left(\mathbf{B}_i \otimes \mathbf{B}_i^{*T} \right)^* \mathbf{v}
+  \mathbf{T} \sum\limits_{i=1}^N \left(\mathbf{B}_i \otimes \mathbf{B}_i^{*T} \right)^* \mathbf{v}_i
 \right)
 \left( \sum\limits_{i=1}^N \textbf{W}_i \right)^{-1},
 \end{eqnarray}
+\section{Using Jones matrices}
+Because our optical system is 'pure', the Mueller $4\times 4$-matrix calcules can be avoided by using $2\times 2$ Jones matrices. The relationship between these two is:
+\begin{equation}
+\left(\mathbf{A} \otimes \mathbf{B}^{*T}\right) \mathbf{v} = \textbf{AVB}^*.
+\end{equation}
+The left hand side multiplies a $4\times 4$ matrix with a vector containing the visibilities ordered as $\mathbf{v}=[v_{xx}, v_{xy}, v_{yx}, v_{yy}]^T$, while the right hand side uses the $2\times 2$ matrix
+\begin{equation}
+\mathbf{V}=\left(\begin{array}{cc}
+v_{xx} & v_{xy}\\ v_{yx} & v_{yy}
+\end{array}\right).
+\end{equation}
+Using this relation, Eq.~\eqref{eq:weighting-final}, excluding conversion to Stokes, can be rewritten:
+\begin{eqnarray}
+\mathbf{R}=
+\left( \sum\limits_{i=1}^N \mathbf{B}^*\mathbf{B}\right)^{-1}
+\left( \sum\limits_{i=1}^N \mathbf{B}^*\mathbf{V}\mathbf{B} \right)
+\left( \sum\limits_{i=1}^N\mathbf{B}^*\mathbf{B}\right)^{-1}
+\end{eqnarray}
+
 
 \section{Applying the beam more efficiently}
 As a side note, Eq.~\eqref{apply-beam-image-space} involves a $4\times 4$ complex matrix inverse, which can be computationally done more efficiently by decomposing it in two $2\times 2$ complex matrix inversions:
