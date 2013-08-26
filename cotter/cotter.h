@@ -164,7 +164,8 @@ class Cotter : private UVWCalculater
 		{
 			for(std::vector<std::vector<std::string> >::const_iterator i=_fileSets.begin(); i!=_fileSets.end(); ++i)
 			{
-				if((*i)[gpuBoxIndex].empty())
+				const std::vector<std::string> &timeRangeSets = *i;
+				if(gpuBoxIndex < timeRangeSets.size() && timeRangeSets[gpuBoxIndex].empty())
 					return true;
 			}
 			return false;
