@@ -197,12 +197,26 @@ void printPhaseDir(const std::string &filename)
 	MeasurementSet set(filename);
 	MSField fieldTable = set.field();
 	MDirection::ROArrayColumn phaseDirCol(fieldTable, fieldTable.columnName(MSFieldEnums::PHASE_DIR));
+	std::cout << "Current phase direction:\n";
 	for(size_t i=0; i!=fieldTable.nrow(); ++i)
 	{
 		Vector<MDirection> phaseDirVector = phaseDirCol(i);
 		MDirection phaseDirection = phaseDirVector[0];
 		std::cout << dirToString(phaseDirection) << '\n';
 	}
+	
+	casa::MSAntenna aTable = set.antenna();
+	if(aTable.nrow() == 0) throw std::runtime_error("No antennae in set");
+	casa::MPosition::ROScalarColumn antPosColumn(aTable, aTable.columnName(casa::MSAntennaEnums::POSITION));
+	casa::MPosition arrayPos = antPosColumn(0);
+	casa::MEpoch::ROScalarColumn timeColumn(set, set.columnName(casa::MSMainEnums::TIME));
+	casa::MEpoch time = timeColumn(set.nrow()/2);
+	casa::MeasFrame frame(arrayPos, time);
+	const casa::MDirection::Ref azelgeoRef(casa::MDirection::AZELGEO, frame);
+	const casa::MDirection::Ref j2000Ref(casa::MDirection::J2000, frame);
+	casa::MDirection zenithAzEl(casa::MVDirection(0.0, 0.0, 1.0), azelgeoRef);
+	casa::MDirection zenith = casa::MDirection::Convert(zenithAzEl, j2000Ref)();
+	std::cout << "Zenith is at:\n" << dirToString(zenith) << '\n';
 }
 
 int main(int argc, char **argv)
