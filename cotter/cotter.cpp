@@ -53,6 +53,7 @@ Cotter::Cotter() :
 	_overridePhaseCentre(false),
 	_doAlign(true),
 	_doFlagMissingSubbands(true),
+	_applySBGains(true),
 	_customRARad(0.0),
 	_customDecRad(0.0),
 	_initDurationToFlag(4.0)
@@ -985,15 +986,23 @@ void Cotter::readSubbandGainsFile()
 void Cotter::initSubbandGainsFromMeta()
 {
 	_subbandGainCorrection.clear();
-	std::cout << "Using subband gains from meta-fits file: ";
-	for(size_t sb=0; sb!=_subbandCount; ++sb)
+	if(_applySBGains)
 	{
-		double gain = _mwaConfig.HeaderExt().subbandGains[sb];
-		if(sb != 0) std::cout << ',';
-		std::cout << gain;
-		_subbandGainCorrection.push_back(1.0/(gain*gain));
+		std::cout << "Using subband gains from meta-fits file: ";
+		for(size_t sb=0; sb!=_subbandCount; ++sb)
+		{
+			double gain = _mwaConfig.HeaderExt().subbandGains[sb];
+			if(sb != 0) std::cout << ',';
+			std::cout << gain;
+			_subbandGainCorrection.push_back(1.0/(gain*gain));
+		}
+		std::cout << '\n';
 	}
-	std::cout << '\n';
+	else {
+		std::cout << "Subband gains are disabled.\n";
+		for(size_t sb=0; sb!=_subbandCount; ++sb)
+			_subbandGainCorrection.push_back(1.0);
+	}
 }
 
 void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask) const
