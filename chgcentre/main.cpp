@@ -24,6 +24,18 @@ using namespace casa;
 
 std::vector<MPosition> antennas;
 
+//typedef long int integer;
+//typedef double doublereal;
+typedef int integer;
+typedef double doublereal;
+
+extern "C" {
+  extern void dgesvd_(const char* jobu, const char* jobvt, const integer* M, const integer* N,
+        doublereal* A, const integer* lda, doublereal* S, doublereal* U, const integer* ldu,
+        doublereal* VT, const integer* ldvt, doublereal* work,const integer* lwork, const
+        integer* info);
+}
+
 std::string dirToString(const MDirection &direction)
 {
 	double ra = direction.getAngle().getValue()[0];
@@ -197,12 +209,28 @@ void readAntennas(MeasurementSet &set, std::vector<MPosition> &antennas)
 	//std::cout << diff[0]/5000.0 << "\t" << diff[1]/5000.0 << "\t" << diff[2]/5000.0 << '\n';
 }
 
-MDirection ZenithDirection(MeasurementSet& set)
+casa::MPosition ArrayCentroid(MeasurementSet& set)
 {
 	casa::MSAntenna aTable = set.antenna();
 	if(aTable.nrow() == 0) throw std::runtime_error("No antennae in set");
 	casa::MPosition::ROScalarColumn antPosColumn(aTable, aTable.columnName(casa::MSAntennaEnums::POSITION));
+	double x = 0.0, y = 0.0, z = 0.0;
+	for(size_t row=0; row!=aTable.nrow(); ++row)
+	{
+		casa::MPosition antPos = antPosColumn(row);
+		casa::Vector<casa::Double> vec = antPos.getValue().getVector();
+		x += vec[0]; y += vec[1]; z += vec[2];
+	}
 	casa::MPosition arrayPos = antPosColumn(0);
+	double count = aTable.nrow();
+	arrayPos.set(casa::MVPosition(x/count, y/count, z/count), arrayPos.getRef());
+	std::cout << "First antenna: " << antPosColumn(0) << " Centroid: " << arrayPos << '\n';
+	return arrayPos;
+}
+
+MDirection ZenithDirection(MeasurementSet& set)
+{
+	casa::MPosition arrayPos = ArrayCentroid(set);
 	casa::MEpoch::ROScalarColumn timeColumn(set, set.columnName(casa::MSMainEnums::TIME));
 	casa::MEpoch time = timeColumn(set.nrow()/2);
 	casa::MeasFrame frame(arrayPos, time);
@@ -210,6 +238,56 @@ MDirection ZenithDirection(MeasurementSet& set)
 	const casa::MDirection::Ref j2000Ref(casa::MDirection::J2000, frame);
 	casa::MDirection zenithAzEl(casa::MVDirection(0.0, 0.0, 1.0), azelgeoRef);
 	return casa::MDirection::Convert(zenithAzEl, j2000Ref)();
+}
+
+MDirection MinWDirection(MeasurementSet& set)
+{
+	MPosition centroid = ArrayCentroid(set);
+	casa::Vector<casa::Double> cvec = centroid.getValue().getVector();
+	double cx = cvec[0], cy = cvec[1], cz = cvec[2];
+	
+	casa::MSAntenna aTable = set.antenna();
+	casa::MPosition::ROScalarColumn antPosColumn(aTable, aTable.columnName(casa::MSAntennaEnums::POSITION));
+	integer m = 3, n = aTable.nrow(), lda = m, ldu = m, ldvt = n, info, lwork;
+	std::vector<double> a(m*n);
+	
+	std::cout << "Filling matrix\n";
+	for(size_t row=0; row!=aTable.nrow(); ++row)
+	{
+		MPosition pos = antPosColumn(row);
+		casa::Vector<casa::Double> vec = pos.getValue().getVector();
+		a[row] = vec[0]-cx, a[row+n] = vec[1]-cy, a[row+2*n] = vec[2]-cz;
+	}
+	
+	/* Locals */
+	double wkopt;
+	double* work;
+	std::vector<double> s(n), u(ldu*m), vt(ldvt*n);
+	/* Query and allocate the optimal workspace */
+	lwork = -1;
+	std::cout << "Getting work size\n";
+	dgesvd_( "All", "All", &m, &n, &a[0], &lda, &s[0], &u[0], &ldu, &vt[0], &ldvt, &wkopt, &lwork, &info);
+	lwork = (int) wkopt;
+	std::cout << "Work size: " << lwork << "\n";
+	work = (double*) malloc( lwork*sizeof(double) );
+	/* Compute SVD */
+	dgesvd_( "All", "All", &m, &n, &a[0], &lda, &s[0], &u[0], &ldu, &vt[0], &ldvt, work, &lwork, &info );
+	free((void*) work);
+	/* Check for convergence */
+	if(info > 0)
+		throw std::runtime_error("The algorithm computing SVD failed to converge");
+	else {
+		// Get the right singular vector belonging to the smallest SV
+		double x = vt[(m-1)*3], y = vt[(m-1)*3+1], z = vt[(m-1)*3+2];
+		
+		casa::MEpoch::ROScalarColumn timeColumn(set, set.columnName(casa::MSMainEnums::TIME));
+		casa::MEpoch time = timeColumn(set.nrow()/2);
+		casa::MeasFrame frame(centroid, time);
+		MDirection::Ref ref(casa::MDirection::ITRF, frame);
+		casa::MDirection direction(casa::MVDirection(x, y, z), ref);
+		const casa::MDirection::Ref j2000Ref(casa::MDirection::J2000, frame);
+		return casa::MDirection::Convert(direction, j2000Ref)();
+	}
 }
 
 void printPhaseDir(const std::string &filename)
@@ -228,6 +306,7 @@ void printPhaseDir(const std::string &filename)
 	}
 	
 	std::cout << "Zenith is at:\n" << dirToString(zenith) << '\n';
+	std::cout << "Min-w direction is at:\n" << dirToString(MinWDirection(set)) << '\n';
 }
 
 int main(int argc, char **argv)
