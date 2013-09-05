@@ -7,6 +7,7 @@ find_library(CASA_TABLES_LIB casa_tables REQUIRED)
 find_library(CASA_CASA_LIB casa_casa REQUIRED)
 find_library(CASA_MEASURES_LIB casa_measures REQUIRED)
 find_library(GSL_LIB gsl REQUIRED)
+enable_language(Fortran OPTIONAL)
 find_package(BLAS REQUIRED)
 find_package(LAPACK REQUIRED)
 
