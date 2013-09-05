@@ -224,7 +224,6 @@ casa::MPosition ArrayCentroid(MeasurementSet& set)
 	casa::MPosition arrayPos = antPosColumn(0);
 	double count = aTable.nrow();
 	arrayPos.set(casa::MVPosition(x/count, y/count, z/count), arrayPos.getRef());
-	std::cout << "First antenna: " << antPosColumn(0) << " Centroid: " << arrayPos << '\n';
 	return arrayPos;
 }
 
@@ -248,10 +247,9 @@ MDirection MinWDirection(MeasurementSet& set)
 	
 	casa::MSAntenna aTable = set.antenna();
 	casa::MPosition::ROScalarColumn antPosColumn(aTable, aTable.columnName(casa::MSAntennaEnums::POSITION));
-	integer m = 3, n = aTable.nrow(), lda = m, ldu = m, ldvt = n, info, lwork;
+	integer m = 3, n = aTable.nrow(), lda = m, ldu = m, ldvt = n;
 	std::vector<double> a(m*n);
 	
-	std::cout << "Filling matrix\n";
 	for(size_t row=0; row!=aTable.nrow(); ++row)
 	{
 		MPosition pos = antPosColumn(row);
@@ -259,26 +257,29 @@ MDirection MinWDirection(MeasurementSet& set)
 		a[row] = vec[0]-cx, a[row+n] = vec[1]-cy, a[row+2*n] = vec[2]-cz;
 	}
 	
-	/* Locals */
 	double wkopt;
-	double* work;
 	std::vector<double> s(n), u(ldu*m), vt(ldvt*n);
-	/* Query and allocate the optimal workspace */
-	lwork = -1;
-	std::cout << "Getting work size\n";
+	integer lwork = -1, info;
 	dgesvd_( "All", "All", &m, &n, &a[0], &lda, &s[0], &u[0], &ldu, &vt[0], &ldvt, &wkopt, &lwork, &info);
 	lwork = (int) wkopt;
-	std::cout << "Work size: " << lwork << "\n";
-	work = (double*) malloc( lwork*sizeof(double) );
+	double* work = (double*) malloc( lwork*sizeof(double) );
 	/* Compute SVD */
 	dgesvd_( "All", "All", &m, &n, &a[0], &lda, &s[0], &u[0], &ldu, &vt[0], &ldvt, work, &lwork, &info );
 	free((void*) work);
-	/* Check for convergence */
+	
 	if(info > 0)
 		throw std::runtime_error("The algorithm computing SVD failed to converge");
 	else {
 		// Get the right singular vector belonging to the smallest SV
-		double x = vt[(m-1)*3], y = vt[(m-1)*3+1], z = vt[(m-1)*3+2];
+		double x = u[(m-1)*ldu], y = u[(m-1)*ldu+1], z = u[(m-1)*ldu+2];
+		//double x = vt[n-1+0*ldvt], y = vt[n-1+1*ldvt], z = vt[n-1+2*ldvt];
+		//double l = sqrt(x*x + y*y + z*z), cl = sqrt(cx*cx + cy*cy + cz*cz);
+		//std::cout << (cx/cl) << ',' << (cy/cl) << ',' << (cz/cl) << " -> " << x/l <<','<< y/l<< ',' << z/l << '\n';
+		// Get the hemisphere right
+		if((z < 0.0 && cz > 0.0) || (z > 0.0 && cz < 0.0))
+		{
+			x = -x; y =-y; z = -z;
+		}
 		
 		casa::MEpoch::ROScalarColumn timeColumn(set, set.columnName(casa::MSMainEnums::TIME));
 		casa::MEpoch time = timeColumn(set.nrow()/2);
@@ -297,7 +298,7 @@ void printPhaseDir(const std::string &filename)
 	MDirection::ROArrayColumn phaseDirCol(fieldTable, fieldTable.columnName(MSFieldEnums::PHASE_DIR));
 	MDirection zenith = ZenithDirection(set);
 	
-	std::cout << "Current phase direction:\n";
+	std::cout << "Current phase direction:\n  ";
 	for(size_t i=0; i!=fieldTable.nrow(); ++i)
 	{
 		Vector<MDirection> phaseDirVector = phaseDirCol(i);
@@ -305,8 +306,8 @@ void printPhaseDir(const std::string &filename)
 		std::cout << dirToString(phaseDirection) << '\n';
 	}
 	
-	std::cout << "Zenith is at:\n" << dirToString(zenith) << '\n';
-	std::cout << "Min-w direction is at:\n" << dirToString(MinWDirection(set)) << '\n';
+	std::cout << "Zenith is at:\n  " << dirToString(zenith) << '\n';
+	std::cout << "Min-w direction is at:\n  " << dirToString(MinWDirection(set)) << '\n';
 }
 
 int main(int argc, char **argv)
@@ -324,7 +325,7 @@ int main(int argc, char **argv)
 			"\tchgcentre myset.ms 09h18m05.8s -12d05m44s\n\n";
 	} else {
 		int argi=1;
-		bool toZenith = false;
+		bool toZenith = false, toMinW = false;
 		while(argv[argi][0] == '-')
 		{
 			std::string param(&argv[argi][1]);
@@ -332,12 +333,16 @@ int main(int argc, char **argv)
 			{
 				toZenith = true;
 			}
+			else if(param == "minw")
+			{
+				toMinW = true;
+			}
 			else throw std::runtime_error("Invalid parameter");
 			++argi;
 		}
 		if(argi == argc)
 			std::cout << "Missing parameter.\n";
-		else if(argi+1 == argc && !toZenith)
+		else if(argi+1 == argc && !toZenith && !toMinW)
 		{
 			printPhaseDir(argv[argi]);
 		}
@@ -347,6 +352,10 @@ int main(int argc, char **argv)
 			if(toZenith)
 			{
 				newDirection = ZenithDirection(set);
+			}
+			else if(toMinW)
+			{
+				newDirection = MinWDirection(set);
 			}
 			else {
 				double newRA = RaDecCoord::ParseRA(argv[argi+1]);
