@@ -247,14 +247,14 @@ MDirection MinWDirection(MeasurementSet& set)
 	
 	casa::MSAntenna aTable = set.antenna();
 	casa::MPosition::ROScalarColumn antPosColumn(aTable, aTable.columnName(casa::MSAntennaEnums::POSITION));
-	integer m = 3, n = aTable.nrow(), lda = m, ldu = m, ldvt = n;
+	integer n = 3, m = aTable.nrow(), lda = m, ldu = m, ldvt = n;
 	std::vector<double> a(m*n);
 	
 	for(size_t row=0; row!=aTable.nrow(); ++row)
 	{
 		MPosition pos = antPosColumn(row);
 		casa::Vector<casa::Double> vec = pos.getValue().getVector();
-		a[row] = vec[0]-cx, a[row+n] = vec[1]-cy, a[row+2*n] = vec[2]-cz;
+		a[row] = vec[0]-cx, a[row+m] = vec[1]-cy, a[row+2*m] = vec[2]-cz;
 	}
 	
 	double wkopt;
@@ -271,10 +271,7 @@ MDirection MinWDirection(MeasurementSet& set)
 		throw std::runtime_error("The algorithm computing SVD failed to converge");
 	else {
 		// Get the right singular vector belonging to the smallest SV
-		double x = u[(m-1)*ldu], y = u[(m-1)*ldu+1], z = u[(m-1)*ldu+2];
-		//double x = vt[n-1+0*ldvt], y = vt[n-1+1*ldvt], z = vt[n-1+2*ldvt];
-		//double l = sqrt(x*x + y*y + z*z), cl = sqrt(cx*cx + cy*cy + cz*cz);
-		//std::cout << (cx/cl) << ',' << (cy/cl) << ',' << (cz/cl) << " -> " << x/l <<','<< y/l<< ',' << z/l << '\n';
+		double x = vt[n*0 + n-1], y = vt[n*1 + n-1], z = vt[n*2 + n-1];
 		// Get the hemisphere right
 		if((z < 0.0 && cz > 0.0) || (z > 0.0 && cz < 0.0))
 		{
