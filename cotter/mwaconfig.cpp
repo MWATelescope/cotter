@@ -204,22 +204,21 @@ double MWAHeader::GetDateFirstScanFromFields() const
 /** Read the mapping between antennas and correlator inputs. */
 void MWAConfig::ReadInputConfig(const std::string& filename)
 {
-	_inputs.clear();
-	_antennaXInputs.clear();
-	_antennaYInputs.clear();
-	
 	std::ifstream file(filename.c_str());
 	if(!file.good())
 		throw std::runtime_error(std::string("Could not open ") + filename);
  
 	std::string line;
 	size_t nFlaggedInput = 0;
+	size_t inputIndex = 0;
   while(file.good())
 	{
 		std::getline(file, line);
     if(!line.empty() && line[0]!='#')
 		{
-			MWAInput input;
+			if(inputIndex >= _inputs.size())
+				throw std::runtime_error("Too many entries in " + filename + ": does not match with given meta fits file.");
+			MWAInput& input = _inputs[inputIndex];
 			std::istringstream str(line);
 			
 			std::string cableLen;
@@ -245,16 +244,14 @@ void MWAConfig::ReadInputConfig(const std::string& filename)
 				input.cableLenDelta = std::atof(cableLen.c_str()) * VEL_FACTOR;
 
 			input.polarizationIndex = polCharToIndex(polChar);
-			input.inputIndex = _inputs.size();
+			input.inputIndex = inputIndex;
 			
-			_inputs.push_back(input);
-			if(input.polarizationIndex == 0)
-				_antennaXInputs.insert(std::pair<size_t, MWAInput*>(input.antennaIndex, &_inputs[input.inputIndex]));
-			else
-				_antennaYInputs.insert(std::pair<size_t, MWAInput*>(input.antennaIndex, &_inputs[input.inputIndex]));
+			++inputIndex;
 		}
   }
-  std::cout << "Read " << _inputs.size() << " inputs from " << filename << ", of which " << nFlaggedInput << " were flagged.\n";
+  std::cout << "Read " << inputIndex << " inputs from " << filename << ", of which " << nFlaggedInput << " were flagged.\n";
+	if(inputIndex != _inputs.size())
+		throw std::runtime_error("Too few entries in " + filename + ": did not match with meta fits file.");
 }
 
 void MWAConfig::ReadAntennaPositions(const std::string& filename) {
