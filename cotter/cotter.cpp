@@ -119,8 +119,9 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	
 	if(_metaFilename.empty())
 		readSubbandGainsFile();
-	else
-		initSubbandGainsFromMeta();
+	
+	initPerInputSubbandGains();
+	
 	initializeSbOrder(_mwaConfig.CentreSubbandNumber());
 	if(_subbandEdgeFlagCount > _mwaConfig.Header().nChannels / (_subbandCount*2))
 		throw std::runtime_error("Tried to flag more edge channels than available");
@@ -668,13 +669,18 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 	// Correct passband
 	for(size_t i=0; i!=8; ++i)
 	{
+		const int* subbandGains1Ptr = (i<4) ? input1X.pfbGains : input1Y.pfbGains;
+		const int* subbandGains2Ptr = (i==0 || i==1 || i==4 || i==5) ? input2X.pfbGains : input2Y.pfbGains;
+		
 		const size_t channelsPerSubband = imageSet->Height()/_subbandCount;
 		for(size_t sb=0; sb!=_subbandCount; ++sb)
 		{
+			double subbandGainCorrection = 1.0 / (subbandGains1Ptr[sb] * subbandGains2Ptr[sb]);
+			
 			for(size_t ch=0; ch!=channelsPerSubband; ++ch)
 			{
 				float *channelPtr = imageSet->ImageBuffer(i) + (ch+sb*channelsPerSubband) * imageSet->HorizontalStride();
-				const float correctionFactor = _subbandCorrectionFactors[i/2][ch] * _subbandGainCorrection[sb];
+				const float correctionFactor = _subbandCorrectionFactors[i/2][ch] * subbandGainCorrection;
 				for(size_t x=0; x!=imageSet->Width(); ++x)
 				{
 					*channelPtr *= correctionFactor;
@@ -972,36 +978,49 @@ void Cotter::readSubbandGainsFile()
 		if(i == subbandGainCorrection.end())
 		{
 			std::cout << '1';
-			_subbandGainCorrection.push_back(1.0);
+			_mwaConfig.HeaderExtRW().subbandGains[sb] = 1.0;
 		}
 		else
 		{
 			std::cout << i->second;
-			_subbandGainCorrection.push_back(1.0/i->second);
+			_mwaConfig.HeaderExtRW().subbandGains[sb] = i->second;
 		}
 	}
+	_mwaConfig.HeaderExtRW().hasGlobalSubbandGains = true;
 	std::cout << '\n';
 }
 
-void Cotter::initSubbandGainsFromMeta()
+void Cotter::initPerInputSubbandGains()
 {
-	_subbandGainCorrection.clear();
 	if(_applySBGains)
 	{
-		std::cout << "Using subband gains from meta-fits file: ";
-		for(size_t sb=0; sb!=_subbandCount; ++sb)
+		if(_mwaConfig.HeaderExt().hasGlobalSubbandGains)
 		{
-			double gain = _mwaConfig.HeaderExt().subbandGains[sb];
-			if(sb != 0) std::cout << ',';
-			std::cout << gain;
-			_subbandGainCorrection.push_back(1.0/(gain*gain));
+			std::cout << "Using global subband gains from meta-fits file: ";
+			for(size_t sb=0; sb!=_subbandCount; ++sb)
+			{
+				double gain = _mwaConfig.HeaderExt().subbandGains[sb];
+				if(sb != 0) std::cout << ',';
+				std::cout << gain;
+				for(size_t inpIndex=0; inpIndex!=_mwaConfig.NAntennae()*2; ++inpIndex)
+				{
+					MWAInput& input = _mwaConfig.InputRW(inpIndex);
+					input.pfbGains[sb] = gain;
+				}
+			}
+			std::cout << '\n';
 		}
-		std::cout << '\n';
 	}
 	else {
 		std::cout << "Subband gains are disabled.\n";
-		for(size_t sb=0; sb!=_subbandCount; ++sb)
-			_subbandGainCorrection.push_back(1.0);
+		for(size_t inpIndex=0; inpIndex!=_mwaConfig.NAntennae()*2; ++inpIndex)
+		{
+			MWAInput& input = _mwaConfig.InputRW(inpIndex);
+			for(size_t sb=0; sb!=_subbandCount; ++sb)
+			{
+				input.pfbGains[sb] = 1.0;
+			}
+		}
 	}
 }
 
@@ -1238,7 +1257,7 @@ void Cotter::writeMWAFields(const char *outputFilename, size_t flagWindowSize)
 		_mwaConfig.HeaderExt().tilePointingRARad, _mwaConfig.HeaderExt().tilePointingDecRad);
 	
 	for(int i=0; i!=24; ++i)
-		mwaMs.WriteMWASubbandInfo(i, sqrt(1.0/_subbandGainCorrection[i]), false);
+		mwaMs.WriteMWASubbandInfo(i, _mwaConfig.HeaderExt().subbandGains[i], false);
 	
 	mwaMs.WriteMWAKeywords(_mwaConfig.HeaderExt().fiberFactor, 0);
 }

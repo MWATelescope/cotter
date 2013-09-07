@@ -76,7 +76,6 @@ class Cotter : private UVWCalculater
 		aoflagger::Strategy *_strategy;
 		
 		std::vector<double> _subbandCorrectionFactors[4];
-		std::vector<double> _subbandGainCorrection;
 		bool *_isAntennaFlaggedMap;
 		size_t _unflaggedAntennaCount;
 		
@@ -131,7 +130,7 @@ class Cotter : private UVWCalculater
 		void writeSource();
 		void writeField();
 		void writeObservation();
-		void initSubbandGainsFromMeta();
+		void initPerInputSubbandGains();
 		void readSubbandGainsFile();
 		void readSubbandPassbandFile();
 		void initializeSubbandPassband();

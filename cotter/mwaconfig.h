@@ -6,19 +6,7 @@
 #include <string>
 #include <map>
 
-struct MWAInput
-{
-	MWAInput() :
-	inputIndex(0), antennaIndex(0), cableLenDelta(0.0), polarizationIndex(0), isFlagged(false), slot(0)
-	{ }
-	
-	size_t inputIndex;
-	size_t antennaIndex;
-	double cableLenDelta;
-	unsigned polarizationIndex;
-	bool isFlagged;
-	size_t slot;
-};
+#include "mwainput.h"
 
 struct MWAHeader
 {
@@ -66,7 +54,7 @@ struct MWAHeaderExt
 	int gpsTime;
 	std::string observerName, projectName, gridName, mode, filename;
 	int delays[16], subbandGains[24];
-	bool hasCalibrator;
+	bool hasCalibrator, hasGlobalSubbandGains;
 	int centreSBNumber;
 	double fiberFactor;
 	double tilePointingRARad, tilePointingDecRad;
@@ -125,6 +113,10 @@ class MWAConfig
 		const MWAHeader &Header() const { return _header; }
 		const MWAHeaderExt &HeaderExt() const { return _headerExt; }
 		
+		MWAInput &InputRW(const size_t index) { return _inputs[index]; }
+		MWAHeader &HeaderRW() { return _header; }
+		MWAHeaderExt &HeaderExtRW() { return _headerExt; }
+		
 		double ChannelFrequencyHz(size_t channelIndex) const
 		{
 			const double invertFactor = _header.invertFrequency ? -1.0 : 1.0;
@@ -139,7 +131,6 @@ class MWAConfig
 		static double ArrayHeightMeters();
 		static double VelocityFactor();
 		
-		MWAHeader &HeaderRW() { return _header; }
 	private:
 		std::vector<MWAInput> _inputs;
 		std::vector<MWAAntenna> _antennae;

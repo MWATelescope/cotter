@@ -81,8 +81,9 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput> &inputs, std::vector<MWAAnten
 		lengthColName[] = "Length",
 		eastColName[] = "East",
 		northColName[] = "North",
-		heightColName[] = "Height";
-	int inputCol, antennaCol, tileCol, polCol, rxCol, slotCol, flagCol, lengthCol, northCol, eastCol, heightCol;
+		heightColName[] = "Height",
+		gainsColName[] = "Gains";
+	int inputCol, antennaCol, tileCol, polCol, rxCol, slotCol, flagCol, lengthCol, northCol, eastCol, heightCol, gainsCol;
 		
 	fits_get_colnum(_fptr, CASESEN, inputColName, &inputCol, &status);
 	fits_get_colnum(_fptr, CASESEN, antennaColName, &antennaCol, &status);
@@ -96,6 +97,16 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput> &inputs, std::vector<MWAAnten
 	fits_get_colnum(_fptr, CASESEN, northColName, &northCol, &status);
 	fits_get_colnum(_fptr, CASESEN, heightColName, &heightCol, &status);
 	checkStatus(status);
+	// The gains col is not present in older metafits files
+	fits_get_colnum(_fptr, CASESEN, gainsColName, &gainsCol, &status);
+	if(status != 0)
+	{
+		gainsCol = -1;
+		status = 0;
+	}
+	else {
+		std::cout << "Meta fits file contains per-input pfb digital subband gains.\n";
+	}
 	
 	long int nrow;
 	fits_get_num_rows(_fptr, &nrow, &status);
@@ -105,7 +116,7 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput> &inputs, std::vector<MWAAnten
 	
 	for(long int i=0; i!=nrow; ++i)
 	{
-		int input, antenna, tile, rx, slot, flag;
+		int input, antenna, tile, rx, slot, flag, gainValues[24];
 		double north, east, height;
 		char pol;
 		char length[81] = "";
@@ -122,6 +133,8 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput> &inputs, std::vector<MWAAnten
 		fits_read_col(_fptr, TDOUBLE, eastCol, i+1, 1, 1, 0, &east, 0, &status);
 		fits_read_col(_fptr, TDOUBLE, northCol, i+1, 1, 1, 0, &north, 0, &status);
 		fits_read_col(_fptr, TDOUBLE, heightCol, i+1, 1, 1, 0, &height, 0, &status);
+		if(gainsCol != -1)
+			fits_read_col(_fptr, TINT, gainsCol, i+1, 1, 24, 0, gainValues, 0, &status);
 		checkStatus(status);
 		
 		if(pol == 'X')
@@ -151,6 +164,13 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput> &inputs, std::vector<MWAAnten
 			inputs[input].cableLenDelta = atof(lengthStr.c_str()) * MWAConfig::VelocityFactor();
 		inputs[input].polarizationIndex = (pol=='X') ? 0 : 1;
 		inputs[input].isFlagged = (flag!=0);
+		if(gainsCol != -1) {
+			for(size_t sb=0; sb!=24; ++sb) {
+				inputs[input].pfbGains[sb] = gainValues[sb];
+				std::cout << gainValues[sb] << ' ';
+			}
+			std::cout << '\n';
+		}
 	}
 }
 
@@ -194,8 +214,10 @@ void MetaFitsFile::parseKeyword(MWAHeader &header, MWAHeaderExt &headerExt, cons
 		headerExt.hasCalibrator = parseBool(keyValue);
 	else if(name == "CENTCHAN")
 		headerExt.centreSBNumber = atoi(keyValue);
-	else if(name == "CHANGAIN")
+	else if(name == "CHANGAIN") {
 		parseIntArray(keyValue, headerExt.subbandGains, 24);
+		headerExt.hasGlobalSubbandGains = true;
+	}
 	else if(name == "FIBRFACT")
 		headerExt.fiberFactor = atof(keyValue);
 	else if(name == "INTTIME")
@@ -223,10 +245,10 @@ void MetaFitsFile::parseKeyword(MWAHeader &header, MWAHeaderExt &headerExt, cons
 std::string MetaFitsFile::parseFitsString(const char* valueStr)
 {
 	if(valueStr[0] != '\'')
-		throw std::runtime_error("Error parsing fits string");
+		throw std::runtime_error(std::string("Error parsing fits string: ") + valueStr);
 	std::string value(valueStr+1);
 	if((*value.rbegin())!='\'')
-		throw std::runtime_error("Error parsing fits string");
+		throw std::runtime_error(std::string("Error parsing fits string: ") + valueStr);
 	int s = value.size() - 1;
 	while(s > 0 && value[s-1]==' ') --s;
 	return value.substr(0, s);
@@ -255,7 +277,7 @@ double MetaFitsFile::parseFitsDateToMJD(const char* valueStr)
 	return Geometry::GetMJD(year, month, day, hour, min, sec);
 }
 
-void MetaFitsFile::parseIntArray(const char* valueStr, int *delays, size_t count)
+void MetaFitsFile::parseIntArray(const char* valueStr, int* values, size_t count)
 {
 	std::string str = parseFitsString(valueStr);
 	size_t pos = 0;
@@ -263,12 +285,12 @@ void MetaFitsFile::parseIntArray(const char* valueStr, int *delays, size_t count
 	{
 		size_t next = str.find(',', pos);
 		if(next == str.npos)
-			throw std::runtime_error("Error parsing delays in fits file");
-		*delays = atoi(str.substr(pos, next-pos).c_str());
-		++delays;
+			throw std::runtime_error("Error parsing integer list in metafits file");
+		*values = atoi(str.substr(pos, next-pos).c_str());
+		++values;
 		pos = next+1;
 	}
-	*delays = atoi(str.substr(pos).c_str());
+	*values = atoi(str.substr(pos).c_str());
 }
 
 bool MetaFitsFile::parseBool(const char* valueStr)
