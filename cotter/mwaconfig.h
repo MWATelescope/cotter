@@ -103,8 +103,8 @@ class MWAConfig
 		void CheckSetup();
 		
 		const MWAInput &Input(const size_t index) const { return _inputs[index]; }
-		const MWAInput &AntennaXInput(const size_t antennaIndex) const { return _antennaXInputs.find(antennaIndex)->second; }
-		const MWAInput &AntennaYInput(const size_t antennaIndex) const { return _antennaYInputs.find(antennaIndex)->second; }
+		const MWAInput &AntennaXInput(const size_t antennaIndex) const { return *_antennaXInputs.find(antennaIndex)->second; }
+		const MWAInput &AntennaYInput(const size_t antennaIndex) const { return *_antennaYInputs.find(antennaIndex)->second; }
 		const MWAAntenna &Antenna(const size_t antennaIndex) const {
 			return _antennae[antennaIndex];
 		}
@@ -134,7 +134,7 @@ class MWAConfig
 	private:
 		std::vector<MWAInput> _inputs;
 		std::vector<MWAAntenna> _antennae;
-		std::map<size_t, MWAInput> _antennaXInputs, _antennaYInputs;
+		std::map<size_t, MWAInput*> _antennaXInputs, _antennaYInputs;
 		MWAHeader _header;
 		MWAHeaderExt _headerExt;
 		

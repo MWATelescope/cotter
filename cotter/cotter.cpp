@@ -669,8 +669,8 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 	// Correct passband
 	for(size_t i=0; i!=8; ++i)
 	{
-		const int* subbandGains1Ptr = (i<4) ? input1X.pfbGains : input1Y.pfbGains;
-		const int* subbandGains2Ptr = (i==0 || i==1 || i==4 || i==5) ? input2X.pfbGains : input2Y.pfbGains;
+		const double* subbandGains1Ptr = (i<4) ? input1X.pfbGains : input1Y.pfbGains;
+		const double* subbandGains2Ptr = (i==0 || i==1 || i==4 || i==5) ? input2X.pfbGains : input2Y.pfbGains;
 		
 		const size_t channelsPerSubband = imageSet->Height()/_subbandCount;
 		for(size_t sb=0; sb!=_subbandCount; ++sb)
@@ -935,18 +935,14 @@ void Cotter::initializeSubbandPassband()
 	for(size_t p=0; p!=4; ++p)
 		_subbandCorrectionFactors[p].resize(nChannelsPerSubband);
 	
-	std::cout << "Using a-priori subband passband with " << nChannelsPerSubband << " channels:\n[";
+	std::cout << "Using a-priori subband passband with " << nChannelsPerSubband << " channels.\n";
 	for(size_t ch=0; ch!=nChannelsPerSubband; ++ch)
 	{
-		if(ch != 0) std::cout << ',';
-		std::cout << round(passband[ch]*100.0)/100.0;
-		
 		double correctionFactor = 1.0 / passband[ch];
 		for(size_t p=0; p!=4; ++p) {
 			_subbandCorrectionFactors[p][ch] = correctionFactor;
 		}
 	}
-	std::cout << "]\n";
 }
 
 void Cotter::readSubbandGainsFile()

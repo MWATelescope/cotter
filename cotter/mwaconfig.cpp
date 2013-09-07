@@ -88,14 +88,14 @@ void MWAConfig::ReadMetaFits(const std::string& filename, bool lockPointing)
 	}
 	
 	metaFile.ReadTiles(_inputs, _antennae);
-	for(std::vector<MWAInput>::const_iterator i=_inputs.begin();
+	for(std::vector<MWAInput>::iterator i=_inputs.begin();
 			i!=_inputs.end(); ++i)
 	{
-		const MWAInput &input = *i;
+		MWAInput &input = *i;
 		if(input.polarizationIndex == 0)
-			_antennaXInputs.insert(std::pair<size_t, MWAInput>(input.antennaIndex, input));
+			_antennaXInputs.insert(std::pair<size_t, MWAInput*>(input.antennaIndex, &input));
 		else
-			_antennaYInputs.insert(std::pair<size_t, MWAInput>(input.antennaIndex, input));
+			_antennaYInputs.insert(std::pair<size_t, MWAInput*>(input.antennaIndex, &input));
 	}
 }
 
@@ -249,9 +249,9 @@ void MWAConfig::ReadInputConfig(const std::string& filename)
 			
 			_inputs.push_back(input);
 			if(input.polarizationIndex == 0)
-				_antennaXInputs.insert(std::pair<size_t, MWAInput>(input.antennaIndex, input));
+				_antennaXInputs.insert(std::pair<size_t, MWAInput*>(input.antennaIndex, &_inputs[input.inputIndex]));
 			else
-				_antennaYInputs.insert(std::pair<size_t, MWAInput>(input.antennaIndex, input));
+				_antennaYInputs.insert(std::pair<size_t, MWAInput*>(input.antennaIndex, &_inputs[input.inputIndex]));
 		}
   }
   std::cout << "Read " << _inputs.size() << " inputs from " << filename << ", of which " << nFlaggedInput << " were flagged.\n";

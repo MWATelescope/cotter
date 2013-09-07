@@ -62,7 +62,7 @@ void MetaFitsFile::ReadHeader(MWAHeader& header, MWAHeaderExt &headerExt)
 	}
 }
 
-void MetaFitsFile::ReadTiles(std::vector<MWAInput> &inputs, std::vector<MWAAntenna> &antennae)
+void MetaFitsFile::ReadTiles(std::vector<MWAInput>& inputs, std::vector<MWAAntenna>& antennae)
 {
 	int status = 0;
 	
@@ -121,7 +121,6 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput> &inputs, std::vector<MWAAnten
 		char pol;
 		char length[81] = "";
 		char *lengthPtr[1] = { length };
-		std::string lengthStr;
 		fits_read_col(_fptr, TINT, inputCol, i+1, 1, 1, 0, &input, 0, &status);
 		fits_read_col(_fptr, TINT, antennaCol, i+1, 1, 1, 0, &antenna, 0, &status);
 		fits_read_col(_fptr, TINT, tileCol, i+1, 1, 1, 0, &tile, 0, &status);
@@ -155,7 +154,7 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput> &inputs, std::vector<MWAAnten
 			throw std::runtime_error("Error parsing polarization");
 		
 		length[80] = 0;
-		lengthStr = length;
+		std::string lengthStr = length;
 		inputs[input].inputIndex = input;
 		inputs[input].antennaIndex = antenna;
 		if(lengthStr.substr(0, 3) == "EL_")
@@ -166,8 +165,10 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput> &inputs, std::vector<MWAAnten
 		inputs[input].isFlagged = (flag!=0);
 		if(gainsCol != -1) {
 			for(size_t sb=0; sb!=24; ++sb) {
-				inputs[input].pfbGains[sb] = gainValues[sb];
-				std::cout << gainValues[sb] << ' ';
+				// The digital pfb gains are multiplied with 64 to allow more careful
+				// fine tuning of the gains.
+				inputs[input].pfbGains[sb] = (double) gainValues[sb] / 64.0;
+				std::cout << inputs[input].pfbGains[sb] << ' ';
 			}
 			std::cout << '\n';
 		}
