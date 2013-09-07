@@ -9,7 +9,7 @@ struct MWAInput
 	inputIndex(0), antennaIndex(0), cableLenDelta(0.0), polarizationIndex(0), isFlagged(false), slot(0)
 	{
 		for(size_t pfbBank=0; pfbBank!=24; ++pfbBank)
-			pfbGains[pfbBank] = 0.0;
+			pfbGains[pfbBank] = 1.0;
 	}
 	
 	MWAInput(const MWAInput& source) :

@@ -168,9 +168,7 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput>& inputs, std::vector<MWAAnten
 				// The digital pfb gains are multiplied with 64 to allow more careful
 				// fine tuning of the gains.
 				inputs[input].pfbGains[sb] = (double) gainValues[sb] / 64.0;
-				std::cout << inputs[input].pfbGains[sb] << ' ';
 			}
-			std::cout << '\n';
 		}
 	}
 }
