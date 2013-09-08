@@ -159,7 +159,7 @@ void Cotter::processAllContiguousBands(const char* outputFilename, size_t timeAv
 		processOneContiguousBand(outputFilename, timeAvgFactor, freqAvgFactor);
 	}
 	else {
-		std::cout << "This observation has been made in non-contiguous bandwidth mode.\n";
+		std::cout << "Observation's bandwidth is non-contiguous.\n";
 		std::string bandFilename = outputFilename;
 		size_t numberPos = bandFilename.find("%b");
 		if(numberPos == std::string::npos)
