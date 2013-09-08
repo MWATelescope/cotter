@@ -170,10 +170,10 @@ void Cotter::processAllContiguousBands(const char* outputFilename, size_t timeAv
 			int sbStart = contiguousSBRanges[bandIndex].first, sbEnd = contiguousSBRanges[bandIndex].second;
 			bandFilename[numberPos] = (char) ('0' + (sbStart/100));
 			bandFilename[numberPos+1] = (char) ('0' + ((sbStart/10)%10));
-			bandFilename[numberPos+2] = (char) ('0' + (sbStart%100));
+			bandFilename[numberPos+2] = (char) ('0' + (sbStart%10));
 			bandFilename[numberPos+4] = (char) ('0' + (sbEnd/100));
 			bandFilename[numberPos+5] = (char) ('0' + ((sbEnd/10)%10));
-			bandFilename[numberPos+6] = (char) ('0' + (sbEnd%100));
+			bandFilename[numberPos+6] = (char) ('0' + (sbEnd%10));
 			std::cout << "Writing contiguous band " << (bandIndex) << " to " << bandFilename << ".\n";
 		}
 	}
