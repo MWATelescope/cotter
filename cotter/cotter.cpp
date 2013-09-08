@@ -128,10 +128,43 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	
 	_flagger = new AOFlagger();
 	
-	const size_t nChannels = _mwaConfig.Header().nChannels;
-	const size_t antennaCount = _mwaConfig.NAntennae();
-	size_t maxScansPerPart = _maxBufferSize / (nChannels*(antennaCount+1)*antennaCount*2);
+	processAllContiguousBands(outputFilename, timeAvgFactor, freqAvgFactor);
 	
+	std::cout
+		<< "Wall-clock time in reading: " << _readWatch.ToString()
+		<< " processing: " << _processWatch.ToString()
+		<< " writing: " << _writeWatch.ToString() << '\n';
+}
+
+void Cotter::processAllContiguousBands(const char* outputFilename, size_t timeAvgFactor, size_t freqAvgFactor)
+{
+	std::vector<std::pair<int, int> > contiguousSBRanges;
+	int subbandNumber = _mwaConfig.HeaderExt().subbandNumbers[0];
+	int rangeStartSB = 0;
+	for(size_t sb=1; sb!=_subbandCount; ++sb)
+	{
+		int curNumber = _mwaConfig.HeaderExt().subbandNumbers[sb];
+		if(curNumber != subbandNumber+1)
+		{
+			contiguousSBRanges.push_back(std::pair<int, int>(rangeStartSB, sb));
+			rangeStartSB = sb;
+		}
+		subbandNumber = curNumber;
+	}
+	contiguousSBRanges.push_back(std::pair<int, int>(rangeStartSB, _subbandCount));
+	
+	if(contiguousSBRanges.size() == 1)
+	{
+		std::cout << "Observation's bandwidth is contiguous.\n";
+		processOneContiguousBand(outputFilename, timeAvgFactor, freqAvgFactor);
+	}
+	else {
+		std::cout << "This observation has been made in non-contiguous bandwidth mode.\n";
+	}
+}
+
+void Cotter::processOneContiguousBand(const char* outputFilename, size_t timeAvgFactor, size_t freqAvgFactor)
+{
 	switch(_outputFormat)
 	{
 		case FlagsOutputFormat:
@@ -164,6 +197,10 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	_writer->WritePolarizationForLinearPols(false);
 	writeObservation();
 		
+	const size_t nChannels = _mwaConfig.Header().nChannels;
+	const size_t antennaCount = _mwaConfig.NAntennae();
+	size_t maxScansPerPart = _maxBufferSize / (nChannels*(antennaCount+1)*antennaCount*2);
+	
 	if(maxScansPerPart<1)
 	{
 		std::cout << "WARNING! The given amount of memory is not even enough for one scan and therefore below the minimum that Cotter will need; will use more memory. Expect swapping and very poor flagging accuracy.\nWARNING! This is a *VERY BAD* condition, so better make sure to resolve it!";
@@ -406,11 +443,6 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	}
 	
 	_writeWatch.Pause();
-	
-	std::cout
-		<< "Wall-clock time in reading: " << _readWatch.ToString()
-		<< " processing: " << _processWatch.ToString()
-		<< " writing: " << _writeWatch.ToString() << '\n';
 }
 
 void Cotter::createReader(const std::vector< std::string >& curFileset)

@@ -33,7 +33,7 @@ class Cotter : private UVWCalculater
 		Cotter();
 		~Cotter();
 		
-		void Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAvgFactor);
+		void Run(const char* outputFilename, size_t timeAvgFactor, size_t freqAvgFactor);
 		
 		void SetOutputFormat(enum OutputFormat format) { _outputFormat = format; }
 		void SetFileSets(const std::vector<std::vector<std::string> >& fileSets) { _fileSets = fileSets; }
@@ -118,6 +118,8 @@ class Cotter : private UVWCalculater
 		long double _customRARad, _customDecRad;
 		double _initDurationToFlag;
 		
+		void processAllContiguousBands(const char* outputFilename, size_t timeAvgFactor, size_t freqAvgFactor);
+		void processOneContiguousBand(const char* outputFilename, size_t timeAvgFactor, size_t freqAvgFactor);
 		void createReader(const std::vector<std::string> &curFileset);
 		void initializeReader();
 		void processAndWriteTimestep(size_t timeIndex);
