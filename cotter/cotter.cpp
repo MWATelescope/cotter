@@ -167,13 +167,15 @@ void Cotter::processAllContiguousBands(const char* outputFilename, size_t timeAv
 		bandFilename = bandFilename.substr(0, numberPos) + "\?\?\?-\?\?\?" + bandFilename.substr(numberPos+2);
 		for(size_t bandIndex = 0; bandIndex!=contiguousSBRanges.size(); ++bandIndex)
 		{
-			int sbStart = contiguousSBRanges[bandIndex].first, sbEnd = contiguousSBRanges[bandIndex].second;
-			bandFilename[numberPos] = (char) ('0' + (sbStart/100));
-			bandFilename[numberPos+1] = (char) ('0' + ((sbStart/10)%10));
-			bandFilename[numberPos+2] = (char) ('0' + (sbStart%10));
-			bandFilename[numberPos+4] = (char) ('0' + (sbEnd/100));
-			bandFilename[numberPos+5] = (char) ('0' + ((sbEnd/10)%10));
-			bandFilename[numberPos+6] = (char) ('0' + (sbEnd%10));
+			int sbStart = contiguousSBRanges[bandIndex].first, sbEnd = contiguousSBRanges[bandIndex].second,
+				chStartNo = _mwaConfig.HeaderExt().subbandNumbers[sbStart],
+				chEndNo =_mwaConfig.HeaderExt().subbandNumbers[sbEnd];
+			bandFilename[numberPos] = (char) ('0' + (chStartNo/100));
+			bandFilename[numberPos+1] = (char) ('0' + ((chStartNo/10)%10));
+			bandFilename[numberPos+2] = (char) ('0' + (chStartNo%10));
+			bandFilename[numberPos+4] = (char) ('0' + (chEndNo/100));
+			bandFilename[numberPos+5] = (char) ('0' + ((chEndNo/10)%10));
+			bandFilename[numberPos+6] = (char) ('0' + (chEndNo%10));
 			std::cout << "Writing contiguous band " << (bandIndex) << " to " << bandFilename << ".\n";
 		}
 	}
