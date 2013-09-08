@@ -53,7 +53,7 @@ struct MWAHeaderExt
 	
 	int gpsTime;
 	std::string observerName, projectName, gridName, mode, filename;
-	int delays[16], subbandGains[24];
+	int delays[16], subbandGains[24], subbandNumbers[24];
 	bool hasCalibrator, hasGlobalSubbandGains;
 	int centreSBNumber;
 	double fiberFactor;

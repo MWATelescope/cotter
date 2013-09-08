@@ -7,6 +7,19 @@
 #include <sstream>
 #include <cmath>
 
+// Bug in cfitsio < 3.31
+#ifndef __CINT__
+#ifdef __cplusplus
+extern "C" {
+#endif
+#endif
+int fffree(void *value, int *status); 
+#ifndef __CINT__
+#ifdef __cplusplus
+}
+#endif
+#endif
+
 MetaFitsFile::MetaFitsFile(const char* filename)
 {
 	int status = 0;
@@ -45,9 +58,25 @@ void MetaFitsFile::ReadHeader(MWAHeader& header, MWAHeaderExt &headerExt)
 	
 	for(int i=0; i!=keywordCount; ++i)
 	{
-		char keyName[80], keyValue[80];
+		char keyName[80], keyValue[80], *keyValueLong;
 		fits_read_keyn(_fptr, i+1, keyName, keyValue, 0, &status);
-		parseKeyword(header, headerExt, keyName, keyValue);
+		checkStatus(status);
+		
+		std::string keyValueStr = keyValue;
+		if(keyValueStr.size()>=3  && keyValueStr[0]=='\'' && keyValueStr[keyValueStr.size()-1]=='\'' && keyValueStr[keyValueStr.size()-2]=='&')
+		{
+			fits_read_key_longstr(_fptr, keyName, &keyValueLong, NULL, &status);
+			if(status == 0) keyValueStr = std::string("'") + keyValueLong;
+			if(keyValueStr[keyValueStr.size()-1] == '&')
+				keyValueStr[keyValueStr.size()-1] = '\'';
+			else
+				keyValueStr += '\'';
+			checkStatus(status);
+			fits_free_memory(keyValueLong, &status);
+			checkStatus(status);
+		}
+		
+		parseKeyword(header, headerExt, keyName, keyValueStr);
 	}
 	header.correlationType = MWAHeader::BothCorrelations;
 	
@@ -173,72 +202,72 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput>& inputs, std::vector<MWAAnten
 	}
 }
 
-void MetaFitsFile::parseKeyword(MWAHeader &header, MWAHeaderExt &headerExt, const char *keyName, const char *keyValue)
+void MetaFitsFile::parseKeyword(MWAHeader &header, MWAHeaderExt &headerExt, const std::string& keyName, const std::string& keyValue)
 {
-	std::string name(keyName);
-	
-	if(name == "SIMPLE" || name == "BITPIX" || name == "NAXIS" || name == "EXTEND" || name == "CONTINUE")
+	if(keyName == "SIMPLE" || keyName == "BITPIX" || keyName == "NAXIS" || keyName == "EXTEND" || keyName == "CONTINUE")
 		; //standard FITS headers; ignore.
-	else if(name == "GPSTIME")
-		headerExt.gpsTime = atoi(keyValue);
-	else if(name == "FILENAME")
+	else if(keyName == "GPSTIME")
+		headerExt.gpsTime = atoi(keyValue.c_str());
+	else if(keyName == "FILENAME")
 	{
-		headerExt.filename = parseFitsString(keyValue);
+		headerExt.filename = parseFitsString(keyValue.c_str());
 		header.fieldName = stripBand(headerExt.filename);
 	}
-	else if(name == "DATE-OBS")
+	else if(keyName == "DATE-OBS")
 	{
-		parseFitsDate(keyValue, header.year, header.month, header.day, header.refHour, header.refMinute, header.refSecond);
-		headerExt.dateRequestedMJD = parseFitsDateToMJD(keyValue);
+		parseFitsDate(keyValue.c_str(), header.year, header.month, header.day, header.refHour, header.refMinute, header.refSecond);
+		headerExt.dateRequestedMJD = parseFitsDateToMJD(keyValue.c_str());
 	}
-	else if(name == "RAPHASE")
-		header.raHrs = atof(keyValue) * (24.0 / 360.0);
-	else if(name == "DECPHASE")
-		header.decDegs = atof(keyValue);
-	else if(name == "RA")
-		headerExt.tilePointingRARad = atof(keyValue) * (M_PI / 180.0);
-	else if(name == "DEC")
-		headerExt.tilePointingDecRad = atof(keyValue) * (M_PI / 180.0);
-	else if(name == "GRIDNAME")
-		headerExt.gridName = parseFitsString(keyValue);
-	else if(name == "CREATOR")
-		headerExt.observerName = parseFitsString(keyValue);
-	else if(name == "PROJECT")
-		headerExt.projectName = parseFitsString(keyValue);
-	else if(name == "MODE")
-		headerExt.mode = parseFitsString(keyValue);
-	else if(name == "DELAYS")
-		parseIntArray(keyValue, headerExt.delays, 16);
-	else if(name == "CALIBRAT")
-		headerExt.hasCalibrator = parseBool(keyValue);
-	else if(name == "CENTCHAN")
-		headerExt.centreSBNumber = atoi(keyValue);
-	else if(name == "CHANGAIN") {
-		parseIntArray(keyValue, headerExt.subbandGains, 24);
+	else if(keyName == "RAPHASE")
+		header.raHrs = atof(keyValue.c_str()) * (24.0 / 360.0);
+	else if(keyName == "DECPHASE")
+		header.decDegs = atof(keyValue.c_str());
+	else if(keyName == "RA")
+		headerExt.tilePointingRARad = atof(keyValue.c_str()) * (M_PI / 180.0);
+	else if(keyName == "DEC")
+		headerExt.tilePointingDecRad = atof(keyValue.c_str()) * (M_PI / 180.0);
+	else if(keyName == "GRIDNAME")
+		headerExt.gridName = parseFitsString(keyValue.c_str());
+	else if(keyName == "CREATOR")
+		headerExt.observerName = parseFitsString(keyValue.c_str());
+	else if(keyName == "PROJECT")
+		headerExt.projectName = parseFitsString(keyValue.c_str());
+	else if(keyName == "MODE")
+		headerExt.mode = parseFitsString(keyValue.c_str());
+	else if(keyName == "DELAYS")
+		parseIntArray(keyValue.c_str(), headerExt.delays, 16);
+	else if(keyName == "CALIBRAT")
+		headerExt.hasCalibrator = parseBool(keyValue.c_str());
+	else if(keyName == "CENTCHAN")
+		headerExt.centreSBNumber = atoi(keyValue.c_str());
+	else if(keyName == "CHANGAIN") {
+		parseIntArray(keyValue.c_str(), headerExt.subbandGains, 24);
 		headerExt.hasGlobalSubbandGains = true;
 	}
-	else if(name == "FIBRFACT")
-		headerExt.fiberFactor = atof(keyValue);
-	else if(name == "INTTIME")
-		header.integrationTime = atof(keyValue);
-	else if(name == "NSCANS")
-		header.nScans = atoi(keyValue);
-	else if(name == "NINPUTS")
-		header.nInputs = atoi(keyValue);
-	else if(name == "NCHANS")
-		header.nChannels = atoi(keyValue);
-	else if(name == "BANDWDTH")
-		header.bandwidthMHz = atof(keyValue);
-	else if(name == "FREQCENT")
-		header.centralFrequencyMHz = atof(keyValue);
-	else if(name == "DATESTRT")
+	else if(keyName == "FIBRFACT")
+		headerExt.fiberFactor = atof(keyValue.c_str());
+	else if(keyName == "INTTIME")
+		header.integrationTime = atof(keyValue.c_str());
+	else if(keyName == "NSCANS")
+		header.nScans = atoi(keyValue.c_str());
+	else if(keyName == "NINPUTS")
+		header.nInputs = atoi(keyValue.c_str());
+	else if(keyName == "NCHANS")
+		header.nChannels = atoi(keyValue.c_str());
+	else if(keyName == "BANDWDTH")
+		header.bandwidthMHz = atof(keyValue.c_str());
+	else if(keyName == "FREQCENT")
+		header.centralFrequencyMHz = atof(keyValue.c_str());
+	else if(keyName == "CHANNELS")
+		parseIntArray(keyValue.c_str(), headerExt.subbandNumbers, 24);
+	else if(keyName == "DATESTRT")
 		; //parseFitsDate(keyValue, header.year, header.month, header.day, header.refHour, header.refMinute, header.refSecond);
-	else if(name == "DATE")
+	else if(keyName == "DATE")
 		; // Date that metafits was created; ignored.
-	else if(name == "EXPOSURE" || name == "MJD" || name == "LST" || name == "HA" || name == "AZIMUTH" || name == "ALTITUDE" || name == "SUN-DIST" || name == "MOONDIST" || name == "JUP-DIST" || name == "GRIDNUM" || name == "RECVRS" || name == "CHANNELS" || name == "SUN-ALT" || name == "TILEFLAG" || name == "NAV_FREQ" || name == "FINECHAN" || name == "TIMEOFF")
+	else if(keyName == "EXPOSURE" || keyName == "MJD" || keyName == "LST" || keyName == "HA" || keyName == "AZIMUTH" || keyName == "ALTITUDE" || keyName == "SUN-DIST" || keyName == "MOONDIST" || keyName == "JUP-DIST" || keyName == "GRIDNUM" || keyName == "RECVRS" || keyName == "CHANNELS" || keyName == "SUN-ALT" || keyName == "TILEFLAG" || keyName == "NAV_FREQ" || keyName == "FINECHAN" || keyName == "TIMEOFF")
 		; // Ignore these fields, they can be derived from others.
 	else
-		std::cout << "Ignored keyword: " << name << '\n';
+		std::cout << "Ignored keyword: " << keyName << '\n';
 }
 
 std::string MetaFitsFile::parseFitsString(const char* valueStr)
@@ -284,7 +313,7 @@ void MetaFitsFile::parseIntArray(const char* valueStr, int* values, size_t count
 	{
 		size_t next = str.find(',', pos);
 		if(next == str.npos)
-			throw std::runtime_error("Error parsing integer list in metafits file");
+			throw std::runtime_error(std::string("Error parsing integer list in metafits file: ") + valueStr);
 		*values = atoi(str.substr(pos, next-pos).c_str());
 		++values;
 		pos = next+1;

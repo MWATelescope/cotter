@@ -19,7 +19,7 @@ public:
 	void ReadHeader(MWAHeader &header, MWAHeaderExt &headerExt);
 	void ReadTiles(std::vector<class MWAInput> &inputs, std::vector<class MWAAntenna> &antennae);
 private:
-	void parseKeyword(MWAHeader &header, MWAHeaderExt &headerExt, const char *keyName, const char *keyValue);
+	void parseKeyword(MWAHeader &header, MWAHeaderExt &headerExt, const std::string& keyName, const std::string& keyValue);
 	std::string parseFitsString(const char *valueStr);
 	void parseFitsDate(const char *valueStr, int &year, int &month, int &day, int &hour, int &min, double &sec);
 	double parseFitsDateToMJD(const char *valueStr);

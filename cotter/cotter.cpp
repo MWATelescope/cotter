@@ -1132,7 +1132,7 @@ void Cotter::reorderSubbands(ImageSet& imageSet) const
 void Cotter::initializeSbOrder(size_t centerSbNumber)
 {
 	if(centerSbNumber<=12 || centerSbNumber > 243)
-		throw std::runtime_error("Center channel must be between 13 and 243");
+		throw std::runtime_error("Centre channel must be between 13 and 243");
 
 	_subbandOrder.resize(_subbandCount);
 	size_t firstSb = centerSbNumber-(_subbandCount/2);
