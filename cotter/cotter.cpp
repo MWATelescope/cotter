@@ -169,7 +169,7 @@ void Cotter::processAllContiguousBands(const char* outputFilename, size_t timeAv
 		{
 			int sbStart = contiguousSBRanges[bandIndex].first, sbEnd = contiguousSBRanges[bandIndex].second,
 				chStartNo = _mwaConfig.HeaderExt().subbandNumbers[sbStart],
-				chEndNo =_mwaConfig.HeaderExt().subbandNumbers[sbEnd];
+				chEndNo =_mwaConfig.HeaderExt().subbandNumbers[sbEnd-1];
 			bandFilename[numberPos] = (char) ('0' + (chStartNo/100));
 			bandFilename[numberPos+1] = (char) ('0' + ((chStartNo/10)%10));
 			bandFilename[numberPos+2] = (char) ('0' + (chStartNo%10));
