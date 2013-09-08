@@ -160,6 +160,22 @@ void Cotter::processAllContiguousBands(const char* outputFilename, size_t timeAv
 	}
 	else {
 		std::cout << "This observation has been made in non-contiguous bandwidth mode.\n";
+		std::string bandFilename = outputFilename;
+		size_t numberPos = bandFilename.find("%b");
+		if(numberPos == std::string::npos)
+			throw std::runtime_error("When processing observations with a non-contiguous bandwidth, multiple files will be written. Therefore, the output filename should contain a percent symbol followed by the letter b (\"%b\"), e.g. \"HydraObservation-%b.ms\". This will be replaced by the coarse channel numbers (e.g. \"HydraObservation-093-100.ms\".");
+		bandFilename = bandFilename.substr(0, numberPos) + "\?\?\?-\?\?\?" + bandFilename.substr(numberPos+2);
+		for(size_t bandIndex = 0; bandIndex!=contiguousSBRanges.size(); ++bandIndex)
+		{
+			int sbStart = contiguousSBRanges[bandIndex].first, sbEnd = contiguousSBRanges[bandIndex].second;
+			bandFilename[numberPos] = (char) ('0' + (sbStart/100));
+			bandFilename[numberPos+1] = (char) ('0' + ((sbStart/10)%10));
+			bandFilename[numberPos+2] = (char) ('0' + (sbStart%100));
+			bandFilename[numberPos+4] = (char) ('0' + (sbEnd/100));
+			bandFilename[numberPos+5] = (char) ('0' + ((sbEnd/10)%10));
+			bandFilename[numberPos+6] = (char) ('0' + (sbEnd%100));
+			std::cout << "Writing contiguous band " << (bandIndex) << " to " << bandFilename << ".\n";
+		}
 	}
 }
 
