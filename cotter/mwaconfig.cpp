@@ -45,7 +45,6 @@ MWAHeader::MWAHeader() :
 	refHour(0),
 	refMinute(0),
 	refSecond(0.0),
-	invertFrequency(false),    // correlators have now been fixed
 	conjugate(false),
 	geomCorrection(true),
 	fieldName(),
@@ -136,7 +135,7 @@ void MWAConfig::ReadHeader(const std::string& filename, bool lockPointing)
 			else if(keyStr == "INT_TIME") _header.integrationTime = atof(valueStr.c_str());
 			else if(keyStr == "FREQCENT") _header.centralFrequencyMHz = atof(valueStr.c_str());
 			else if(keyStr == "BANDWIDTH") _header.bandwidthMHz = atof(valueStr.c_str());
-			else if(keyStr == "INVERT_FREQ") _header.invertFrequency = atoi(valueStr.c_str());
+			else if(keyStr == "INVERT_FREQ") { } // not used anymore
 			else if(keyStr == "CONJUGATE") _header.conjugate = atoi(valueStr.c_str());
 			else if(keyStr == "GEOM_CORRECT") _header.geomCorrection = atoi(valueStr.c_str());
 			else if(keyStr == "REF_AZ") _header.refAz = atof(valueStr.c_str())*(M_PI/180.0);

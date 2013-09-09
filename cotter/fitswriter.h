@@ -13,7 +13,7 @@
 class FitsWriter : public Writer, private FitsUser
 {
 	public:
-		FitsWriter(const char *filename);
+		FitsWriter(const std::string& filename);
 		virtual ~FitsWriter();
 		
 		virtual void WriteBandInfo(const std::string& name, const std::vector<ChannelInfo>& channels, double refFreq, double totalBandwidth, bool flagRow);

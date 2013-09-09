@@ -88,7 +88,7 @@ class Cotter : private UVWCalculater
 		size_t _quackSampleCount;
 		size_t _subbandEdgeFlagCount;
 		size_t _missingEndScans;
-		size_t _curChunkStart, _curChunkEnd;
+		size_t _curChunkStart, _curChunkEnd, _curSbStart, _curSbEnd;
 		bool _rfiDetection, _collectStatistics;
 		enum OutputFormat _outputFormat;
 		std::string _commandLine;
@@ -119,7 +119,7 @@ class Cotter : private UVWCalculater
 		double _initDurationToFlag;
 		
 		void processAllContiguousBands(const char* outputFilename, size_t timeAvgFactor, size_t freqAvgFactor);
-		void processOneContiguousBand(const char* outputFilename, size_t timeAvgFactor, size_t freqAvgFactor);
+		void processOneContiguousBand(const std::string& outputFilename, size_t timeAvgFactor, size_t freqAvgFactor);
 		void createReader(const std::vector<std::string> &curFileset);
 		void initializeReader();
 		void processAndWriteTimestep(size_t timeIndex);
@@ -133,15 +133,14 @@ class Cotter : private UVWCalculater
 		void writeField();
 		void writeObservation();
 		void initPerInputSubbandGains();
-		void readSubbandGainsFile();
 		void readSubbandPassbandFile();
 		void initializeSubbandPassband();
 		void flagBadCorrelatorSamples(aoflagger::FlagMask &flagMask) const;
 		void initializeWeights(float *outputWeights);
 		void reorderSubbands(aoflagger::ImageSet& imageSet) const;
-		void initializeSbOrder(size_t centerSbNumber);
+		void initializeSbOrder(size_t centreSbNumber);
 		void writeAlignmentScans();
-		void writeMWAFields(const char *outputFilename, size_t flagWindowSize);
+		void writeMWAFields(const std::string& outputFilename, size_t flagWindowSize);
 		size_t rowsPerTimescan() const
 		{
 			if(_removeFlaggedAntennae && _removeAutoCorrelations)
@@ -171,6 +170,10 @@ class Cotter : private UVWCalculater
 					return true;
 			}
 			return false;
+		}
+		size_t nChannelsInCurSBRange() const
+		{
+			return _mwaConfig.Header().nChannels * (_curSbEnd - _curSbStart) / _subbandCount;
 		}
 		
 		// Implementing UVWCalculater

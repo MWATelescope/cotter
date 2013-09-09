@@ -26,7 +26,7 @@ struct MWAHeader
 		int    year, month, day;        // date/time in UTC.
 		int    refHour, refMinute;
 		double refSecond;
-		bool   invertFrequency;         // flag to indicate that freq decreases with increasing channel number.
+		//bool   invertFrequency;         // flag to indicate that freq decreases with increasing channel number.
 		bool   conjugate;               // conjugate the final vis to correct for any sign errors
 		bool   geomCorrection;          // apply geometric phase correction
 		std::string fieldName;
@@ -119,9 +119,14 @@ class MWAConfig
 		
 		double ChannelFrequencyHz(size_t channelIndex) const
 		{
-			const double invertFactor = _header.invertFrequency ? -1.0 : 1.0;
+			const double channelWidthMHz = _header.bandwidthMHz / _header.nChannels;
 			return (_header.centralFrequencyMHz +
-				invertFactor * (channelIndex - _header.nChannels*0.5) * _header.bandwidthMHz / _header.nChannels) * 1000000.0;
+				(channelIndex - _header.nChannels*0.5) * channelWidthMHz) * 1000000.0;
+		}
+		double ChannelFrequencyHz(size_t coarseChannelNr, size_t channelIndexInSubband) const
+		{
+			const double channelWidthHz = 1000000.0*_header.bandwidthMHz / _header.nChannels;
+			return (double(coarseChannelNr) - 0.5) * 1280000.0 + double(channelIndexInSubband)*channelWidthHz;
 		}
 		
 		size_t CentreSubbandNumber() const;
