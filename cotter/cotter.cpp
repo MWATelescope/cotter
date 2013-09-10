@@ -912,13 +912,14 @@ void Cotter::writeSPW()
 	std::ostringstream str;
 	double centreFrequencyMHz = 0.0000005 * (_channelFrequenciesHz[nChannels/2-1] + _channelFrequenciesHz[nChannels/2]);
 	str << "MWA_BAND_" << (round(centreFrequencyMHz*10.0)/10.0);
-	for(size_t ch=0;ch!=_mwaConfig.Header().nChannels;++ch)
+	const double chWidth = _mwaConfig.Header().bandwidthMHz * 1000000.0 / _mwaConfig.Header().nChannels;
+	for(size_t ch=0;ch!=nChannels;++ch)
 	{
 		MSWriter::ChannelInfo &channel = channels[ch];
 		channel.chanFreq = _channelFrequenciesHz[ch];
-		channel.chanWidth = _mwaConfig.Header().bandwidthMHz * 1000000.0 / _mwaConfig.Header().nChannels;
-		channel.effectiveBW = channel.chanWidth;
-		channel.resolution = channel.chanWidth;
+		channel.chanWidth = chWidth;
+		channel.effectiveBW = chWidth;
+		channel.resolution = chWidth;
 	}
 	_writer->WriteBandInfo(str.str(),
 		channels,
