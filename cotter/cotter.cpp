@@ -232,8 +232,9 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	_writer->WritePolarizationForLinearPols(false);
 	writeObservation();
 		
-	const size_t nChannels = _mwaConfig.Header().nChannels * (_curSbEnd - _curSbStart) / _subbandCount;
-	const size_t antennaCount = _mwaConfig.NAntennae();
+	const size_t
+		nChannels = nChannelsInCurSBRange(),
+		antennaCount = _mwaConfig.NAntennae();
 	size_t maxScansPerPart = _maxBufferSize / (nChannels*(antennaCount+1)*antennaCount*2);
 	
 	if(maxScansPerPart<1)
@@ -448,6 +449,7 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	{
 		delete imgBufIter->second;
 	}
+	_imageSetBuffers.clear();
 	
 	_writeWatch.Start();
 	
@@ -488,7 +490,7 @@ void Cotter::createReader(const std::vector<std::string>& curFileset)
 	// We need to make the distinction between non-contiguous and contiguous bandwidth mode, because
 	// in 32T data we cannot assume a gpubox file matches a coarse channel. However, 32T
 	// will always be contiguous.
-	if(_curChunkStart==0 && _curSbEnd == _subbandCount)
+	if(_curSbStart==0 && _curSbEnd == _subbandCount)
 	{
 		// We are in contiguous bandwidth mode: just add all files
 		for(std::vector<std::string>::const_iterator i=curFileset.begin(); i!=curFileset.end(); ++i)
@@ -755,8 +757,8 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 		const double* subbandGains1Ptr = (i<4) ? input1X.pfbGains : input1Y.pfbGains;
 		const double* subbandGains2Ptr = (i==0 || i==1 || i==4 || i==5) ? input2X.pfbGains : input2Y.pfbGains;
 		
-		const size_t channelsPerSubband = imageSet->Height()/_subbandCount;
-		for(size_t sb=0; sb!=_subbandCount; ++sb)
+		const size_t channelsPerSubband = imageSet->Height()/(_curSbEnd - _curSbStart);
+		for(size_t sb=0; sb!=_curSbEnd - _curSbStart; ++sb)
 		{
 			double subbandGainCorrection = 1.0 / (subbandGains1Ptr[sb+_curSbStart] * subbandGains2Ptr[sb+_curSbStart]);
 			
