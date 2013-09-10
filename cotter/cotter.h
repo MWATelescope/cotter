@@ -138,7 +138,7 @@ class Cotter : private UVWCalculater
 		void flagBadCorrelatorSamples(aoflagger::FlagMask &flagMask) const;
 		void initializeWeights(float *outputWeights);
 		void reorderSubbands(aoflagger::ImageSet& imageSet) const;
-		void initializeSbOrder(size_t centreSbNumber);
+		void initializeSbOrder();
 		void writeAlignmentScans();
 		void writeMWAFields(const std::string& outputFilename, size_t flagWindowSize);
 		size_t rowsPerTimescan() const

@@ -115,7 +115,7 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	
 	initPerInputSubbandGains();
 	
-	initializeSbOrder(_mwaConfig.CentreSubbandNumber());
+	initializeSbOrder();
 	if(_subbandEdgeFlagCount > _mwaConfig.Header().nChannels / (_subbandCount*2))
 		throw std::runtime_error("Tried to flag more edge channels than available");
 	
@@ -485,12 +485,23 @@ void Cotter::createReader(const std::vector<std::string>& curFileset)
 	delete _reader; // might be 0, but that's ok.
 	_reader = new GPUFileReader(_mwaConfig.NAntennae(), nChannelsInCurSBRange(), _threadCount);
 
-	size_t
-		startFile = std::min(curFileset.size(), _curSbStart),
-		endFile = std::min(curFileset.size(), _curSbEnd);
-	for(size_t sb=startFile; sb!=endFile; ++sb)
+	// We need to make the distinction between non-contiguous and contiguous bandwidth mode, because
+	// in 32T data we cannot assume a gpubox file matches a coarse channel. However, 32T
+	// will always be contiguous.
+	if(_curChunkStart==0 && _curSbEnd == _subbandCount)
 	{
-		_reader->AddFile(curFileset[sb].c_str());
+		// We are in contiguous bandwidth mode: just add all files
+		for(std::vector<std::string>::const_iterator i=curFileset.begin(); i!=curFileset.end(); ++i)
+			_reader->AddFile(i->c_str());
+	}
+	else {
+		// If we are in non-contiguous mode, add only those required in this freq range and add
+		// them in the right order
+		for(size_t sb=_curSbStart; sb!=_curSbEnd; ++sb)
+		{
+			size_t fileBelongingToSB = _subbandOrder[sb];
+			_reader->AddFile(curFileset[fileBelongingToSB].c_str());
+		}
 	}
 	
 	_reader->Initialize(_mwaConfig.Header().integrationTime, _doAlign);
@@ -1144,46 +1155,51 @@ void Cotter::initializeWeights(float* outputWeights)
 
 void Cotter::reorderSubbands(ImageSet& imageSet) const
 {
-	float *temp = new float[imageSet.HorizontalStride() * imageSet.Height()];
-	const size_t channelsPerSubband = imageSet.Height()/_subbandCount;
-	const size_t valuesPerSubband = imageSet.HorizontalStride()*channelsPerSubband;
-	for(size_t i=0;i!=8;++i)
+	// Reorder only in contiguous mode; in non-contiguous mode, coarse channels will be
+	// read in the right order by the reader.
+	if(_curChunkStart==0 && _curSbEnd == _subbandCount)
 	{
-		memcpy(temp, imageSet.ImageBuffer(i), imageSet.HorizontalStride()*imageSet.Height()*sizeof(float));
-		
-		float *tempBfr = temp;
-		for(size_t sb=0;sb!=_subbandCount;++sb)
+		float *temp = new float[imageSet.HorizontalStride() * imageSet.Height()];
+		const size_t channelsPerSubband = imageSet.Height()/_subbandCount;
+		const size_t valuesPerSubband = imageSet.HorizontalStride()*channelsPerSubband;
+		for(size_t i=0;i!=8;++i)
 		{
-			float *destBfr = imageSet.ImageBuffer(i) + valuesPerSubband * _subbandOrder[sb];
-			memcpy(destBfr, tempBfr, valuesPerSubband*sizeof(float));
-				
-			tempBfr += valuesPerSubband;
+			memcpy(temp, imageSet.ImageBuffer(i), imageSet.HorizontalStride()*imageSet.Height()*sizeof(float));
+			
+			float *tempBfr = temp;
+			for(size_t sb=0;sb!=_subbandCount;++sb)
+			{
+				float *destBfr = imageSet.ImageBuffer(i) + valuesPerSubband * _subbandOrder[sb];
+				memcpy(destBfr, tempBfr, valuesPerSubband*sizeof(float));
+					
+				tempBfr += valuesPerSubband;
+			}
 		}
+		delete[] temp;
 	}
-	delete[] temp;
 }
 
-void Cotter::initializeSbOrder(size_t centreSbNumber)
+void Cotter::initializeSbOrder()
 {
-	if(centreSbNumber<=12 || centreSbNumber > 243)
-		throw std::runtime_error("Centre channel must be between 13 and 243");
-
 	_subbandOrder.resize(_subbandCount);
-	size_t firstSb = centreSbNumber-(_subbandCount/2);
-	size_t nbank1 = 0, nbank2 = 0;
-	for(size_t i=firstSb; i!=firstSb+_subbandCount; ++i)
+	size_t sb = 0;
+	while(sb != _subbandCount)
 	{
-		if(i<=128)
-			++nbank1;
-		else
-			++nbank2;
+		size_t coarseCh = _mwaConfig.HeaderExt().subbandNumbers[sb];
+		if(coarseCh>128)
+			break;
+		_subbandOrder[sb] = sb;
+		++sb;
 	}
-	for(size_t i=0; i!=nbank1; ++i)
-		_subbandOrder[i]=i;
-	for(size_t i=0; i!=nbank2; ++i)
-		_subbandOrder[i+nbank1] = _subbandCount-1-i;
+	size_t rightSB = _subbandCount, stopPoint = sb;
+	while(rightSB != stopPoint)
+	{
+		--rightSB;
+		_subbandOrder[rightSB] = sb;
+		++sb;
+	}
 	
-	std::cout << "Subband order for centre subband " << centreSbNumber << ": " << _subbandOrder[0];
+	std::cout << "Subband order: " << _subbandOrder[0];
 	for(size_t i=1; i!=_subbandCount; ++i)
 		std::cout << ',' << _subbandOrder[i];
 	std::cout << '\n';
