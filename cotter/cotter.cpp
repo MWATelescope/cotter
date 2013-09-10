@@ -1067,9 +1067,11 @@ void Cotter::initPerInputSubbandGains()
 void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask) const
 {
 	// Flag MWA side and centre channels
-	size_t scanCount = _curChunkEnd - _curChunkStart;
-	size_t chPerSb = flagMask.Height()/_subbandCount;
-	for(size_t sb=0; sb!=_subbandCount; ++sb)
+	const size_t
+		scanCount = _curChunkEnd - _curChunkStart,
+		curSBCount = _curSbEnd - _curSbStart,
+		chPerSb = flagMask.Height() / curSBCount;
+	for(size_t sb=0; sb!=curSBCount; ++sb)
 	{
 		bool *sbStart = flagMask.Buffer() + (sb*chPerSb)*flagMask.HorizontalStride();
 		
@@ -1100,12 +1102,16 @@ void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask) const
 	for(std::set<size_t>::const_iterator sbIter=_flaggedSubbands.begin();
 			sbIter!=_flaggedSubbands.end(); ++sbIter)
 	{
-		bool *sbStart = flagMask.Buffer() + (*sbIter*chPerSb)*flagMask.HorizontalStride();
-		for(size_t ch=0; ch!=chPerSb; ++ch)
+		if(*sbIter >= _curSbStart && *sbIter < _curSbEnd)
 		{
-			bool *channelPtr = sbStart + ch*flagMask.HorizontalStride();
-			bool *endPtr = sbStart + ch*flagMask.HorizontalStride() + scanCount;
-			while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
+			size_t sb = *sbIter - _curSbStart;
+			bool *sbStart = flagMask.Buffer() + (sb*chPerSb)*flagMask.HorizontalStride();
+			for(size_t ch=0; ch!=chPerSb; ++ch)
+			{
+				bool *channelPtr = sbStart + ch*flagMask.HorizontalStride();
+				bool *endPtr = sbStart + ch*flagMask.HorizontalStride() + scanCount;
+				while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
+			}
 		}
 	}
 	
