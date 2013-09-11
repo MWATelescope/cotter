@@ -1037,22 +1037,36 @@ void Cotter::initPerInputSubbandGains()
 {
 	if(_applySBGains)
 	{
+		std::vector<double> gains(_subbandCount, 0.0);
 		if(_mwaConfig.HeaderExt().hasGlobalSubbandGains)
 		{
 			std::cout << "Using global subband gains from meta-fits file: ";
 			for(size_t sb=0; sb!=_subbandCount; ++sb)
 			{
 				double gain = _mwaConfig.HeaderExt().subbandGains[sb];
-				if(sb != 0) std::cout << ',';
-				std::cout << gain;
+				gains[sb] = gain;
 				for(size_t inpIndex=0; inpIndex!=_mwaConfig.NAntennae()*2; ++inpIndex)
 				{
 					MWAInput& input = _mwaConfig.InputRW(inpIndex);
 					input.pfbGains[sb] = gain;
 				}
 			}
-			std::cout << '\n';
 		}
+		else {
+			std::cout << "Using per-input subband gains. Average gains: ";
+			for(size_t inpIndex=0; inpIndex!=_mwaConfig.NAntennae()*2; ++inpIndex)
+			{
+				const MWAInput& input = _mwaConfig.Input(inpIndex);
+				for(size_t sb=0; sb!=_subbandCount; ++sb)
+					gains[sb] += input.pfbGains[sb];
+			}
+			for(size_t sb=0; sb!=_subbandCount; ++sb)
+				gains[sb] /= _mwaConfig.NAntennae()*2;
+		}
+		std::cout << gains[0];
+		for(size_t sb=1; sb!=_subbandCount; ++sb)
+			std::cout << ',' << gains[sb];
+		std::cout << '\n';
 	}
 	else {
 		std::cout << "Subband gains are disabled.\n";

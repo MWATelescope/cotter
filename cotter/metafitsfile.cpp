@@ -133,9 +133,6 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput>& inputs, std::vector<MWAAnten
 		gainsCol = -1;
 		status = 0;
 	}
-	else {
-		std::cout << "Meta fits file contains per-input pfb digital subband gains.\n";
-	}
 	
 	long int nrow;
 	fits_get_num_rows(_fptr, &nrow, &status);
