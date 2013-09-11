@@ -33,8 +33,9 @@ class Cotter : private UVWCalculater
 		Cotter();
 		~Cotter();
 		
-		void Run(const char* outputFilename, size_t timeAvgFactor, size_t freqAvgFactor);
+		void Run(size_t timeAvgFactor, size_t freqAvgFactor);
 		
+		void SetOutputFilename(const std::string& outputFilename) { _outputFilename = outputFilename; _defaultFilename = false; }
 		void SetOutputFormat(enum OutputFormat format) { _outputFormat = format; }
 		void SetFileSets(const std::vector<std::vector<std::string> >& fileSets) { _fileSets = fileSets; }
 		void SetThreadCount(size_t threadCount) { _threadCount = threadCount; }
@@ -89,9 +90,9 @@ class Cotter : private UVWCalculater
 		size_t _subbandEdgeFlagCount;
 		size_t _missingEndScans;
 		size_t _curChunkStart, _curChunkEnd, _curSbStart, _curSbEnd;
-		bool _rfiDetection, _collectStatistics;
+		bool _defaultFilename, _rfiDetection, _collectStatistics;
 		enum OutputFormat _outputFormat;
-		std::string _commandLine;
+		std::string _outputFilename, _commandLine;
 		std::string _metaFilename, _antennaLocationsFilename, _headerFilename, _instrConfigFilename;
 		std::string _subbandPassbandFilename;
 		std::vector<size_t> _userFlaggedAntennae;
@@ -118,7 +119,7 @@ class Cotter : private UVWCalculater
 		long double _customRARad, _customDecRad;
 		double _initDurationToFlag;
 		
-		void processAllContiguousBands(const char* outputFilename, size_t timeAvgFactor, size_t freqAvgFactor);
+		void processAllContiguousBands(size_t timeAvgFactor, size_t freqAvgFactor);
 		void processOneContiguousBand(const std::string& outputFilename, size_t timeAvgFactor, size_t freqAvgFactor);
 		void createReader(const std::vector<std::string> &curFileset);
 		void initializeReader();

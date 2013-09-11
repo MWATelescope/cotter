@@ -38,6 +38,7 @@ Cotter::Cotter() :
 	_subbandCount(24),
 	_quackSampleCount(4),
 	_subbandEdgeFlagCount(1),
+	_defaultFilename(true),
 	_rfiDetection(true),
 	_collectStatistics(true),
 	_outputFormat(MSOutputFormat),
@@ -72,7 +73,7 @@ Cotter::~Cotter()
 	delete[] _isAntennaFlaggedMap;
 }
 
-void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAvgFactor)
+void Cotter::Run(size_t timeAvgFactor, size_t freqAvgFactor)
 {
 	_readWatch.Start();
 	bool lockPointing = false;
@@ -121,7 +122,7 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	
 	_flagger = new AOFlagger();
 	
-	processAllContiguousBands(outputFilename, timeAvgFactor, freqAvgFactor);
+	processAllContiguousBands(timeAvgFactor, freqAvgFactor);
 	
 	std::cout
 		<< "Wall-clock time in reading: " << _readWatch.ToString()
@@ -129,7 +130,7 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		<< " writing: " << _writeWatch.ToString() << '\n';
 }
 
-void Cotter::processAllContiguousBands(const char* outputFilename, size_t timeAvgFactor, size_t freqAvgFactor)
+void Cotter::processAllContiguousBands(size_t timeAvgFactor, size_t freqAvgFactor)
 {
 	std::vector<std::pair<int, int> > contiguousSBRanges;
 	int subbandNumber = _mwaConfig.HeaderExt().subbandNumbers[0];
@@ -155,12 +156,21 @@ void Cotter::processAllContiguousBands(const char* outputFilename, size_t timeAv
 		_channelFrequenciesHz.resize(_mwaConfig.Header().nChannels);
 		for(size_t ch=0; ch!=_mwaConfig.Header().nChannels; ++ch)
 			_channelFrequenciesHz[ch] = _mwaConfig.ChannelFrequencyHz(ch);
+		
+		if(_defaultFilename)
+			_outputFilename = "preprocessed.ms";
 	
-		processOneContiguousBand(outputFilename, timeAvgFactor, freqAvgFactor);
+		processOneContiguousBand(_outputFilename, timeAvgFactor, freqAvgFactor);
 	}
 	else {
 		std::cout << "Observation's bandwidth is non-contiguous.\n";
-		std::string bandFilename = outputFilename;
+		
+		std::string bandFilename;
+		if(_defaultFilename)
+			bandFilename = "preprocessed-%b.ms";
+		else
+			bandFilename = _outputFilename;
+		
 		size_t numberPos = bandFilename.find("%b");
 		if(numberPos == std::string::npos)
 			throw std::runtime_error("When processing observations with a non-contiguous bandwidth, multiple files will be written. Therefore, the output filename should contain a percent symbol followed by the letter b (\"%b\"), e.g. \"HydraObservation-%b.ms\". This will be replaced by the coarse channel numbers (e.g. \"HydraObservation-093-100.ms\".");

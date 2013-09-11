@@ -3,7 +3,7 @@
 /** @file mwaconfig.cpp
  * @brief Several functions to read the MWA meta data files.
  * 
- * Most functions were converted to C++ from corr2uvfits.c that is
+ * Most functions were converted to C++ from corr2uvfits.c
  * written by Randall Wayth.
  * @author André Offringa offringa@gmail.com
  */
@@ -77,7 +77,7 @@ void MWAConfig::ReadMetaFits(const std::string& filename, bool lockPointing)
 	metaFile.ReadHeader(_header, _headerExt);
 	
 	_header.Validate(lockPointing);
-	std::cout << "Observation covers " << (ChannelFrequencyHz(0)/1000000.0) << '-' << (ChannelFrequencyHz(_header.nChannels-1)/1000000.0) << " MHz.\n";
+	std::cout << "Observation covers " << (ChannelFrequencyHz(0, 0)/1000000.0) << '-' << (ChannelFrequencyHz(23, _header.nChannels/24-1)/1000000.0) << " MHz.\n";
 	
 	if(_headerExt.centreSBNumber != (int) CentreSubbandNumber())
 	{

@@ -113,7 +113,7 @@ int cotterMain(int argc, const char* const* argv)
 	size_t freqAvg = 1, timeAvg = 1;
 	double memPercentage = 90.0;
 	Cotter cotter;
-	const char *outputFilename = "preprocessed.ms";
+	const char *outputFilename = 0;
 	while(argi!=argc)
 	{
 		if(strcmp(argv[argi], "-o") == 0)
@@ -326,7 +326,9 @@ int cotterMain(int argc, const char* const* argv)
 	cotter.SetFileSets(fileSets);
 	cotter.SetMaxBufferSize(memSize*memPercentage/(100*(sizeof(float)*2+1)));
 	cotter.SetThreadCount(sysconf(_SC_NPROCESSORS_ONLN));
-	cotter.Run(outputFilename, timeAvg, freqAvg);
+	if(outputFilename != 0)
+		cotter.SetOutputFilename(outputFilename);
+	cotter.Run(timeAvg, freqAvg);
 	
 	return 0;
 }
