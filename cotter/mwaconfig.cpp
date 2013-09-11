@@ -77,7 +77,7 @@ void MWAConfig::ReadMetaFits(const std::string& filename, bool lockPointing)
 	metaFile.ReadHeader(_header, _headerExt);
 	
 	_header.Validate(lockPointing);
-	std::cout << "Observation covers " << (ChannelFrequencyHz(0, 0)/1000000.0) << '-' << (ChannelFrequencyHz(23, _header.nChannels/24-1)/1000000.0) << " MHz.\n";
+	std::cout << "Observation covers " << (ChannelFrequencyHz(_headerExt.subbandNumbers[0], 0)/1000000.0) << '-' << (ChannelFrequencyHz(_headerExt.subbandNumbers[23], _header.nChannels/24-1)/1000000.0) << " MHz.\n";
 	
 	if(_headerExt.centreSBNumber != (int) CentreSubbandNumber())
 	{
