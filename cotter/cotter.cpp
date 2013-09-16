@@ -9,6 +9,7 @@
 #include "subbandpassband.h"
 #include "progressbar.h"
 #include "threadedwriter.h"
+#include "radeccoord.h"
 
 #include <aoflagger.h>
 
@@ -41,6 +42,7 @@ Cotter::Cotter() :
 	_defaultFilename(true),
 	_rfiDetection(true),
 	_collectStatistics(true),
+	_usePointingCentre(false),
 	_outputFormat(MSOutputFormat),
 	_metaFilename(),
 	_subbandPassbandFilename(),
@@ -101,8 +103,15 @@ void Cotter::Run(size_t timeAvgFactor, size_t freqAvgFactor)
 		_mwaConfig.HeaderRW().geomCorrection = false;
 	if(_overridePhaseCentre)
 	{
+		std::cout << "Using manually-specified phase centre: " << RaDecCoord::RAToString(_customRARad) << ' ' << RaDecCoord::DecToString(_customDecRad) << '\n';
 		_mwaConfig.HeaderRW().raHrs = _customRARad * (12.0/M_PI);
 		_mwaConfig.HeaderRW().decDegs = _customDecRad * (180.0/M_PI);
+	}
+	else if(_usePointingCentre)
+	{
+		std::cout << "Using pointing centre as phase centre: " << RaDecCoord::RAToString(_mwaConfig.HeaderExt().tilePointingRARad) << ' ' << RaDecCoord::DecToString(_mwaConfig.HeaderExt().tilePointingDecRad) << '\n';
+		_mwaConfig.HeaderRW().raHrs = _mwaConfig.HeaderExt().tilePointingRARad * (12.0/M_PI);
+		_mwaConfig.HeaderRW().decDegs = _mwaConfig.HeaderExt().tilePointingDecRad * (180.0/M_PI);
 	}
 	_mwaConfig.CheckSetup();
 	

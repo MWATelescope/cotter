@@ -80,6 +80,7 @@ void usage()
 	"  -noflagmissings    Do not flag missing gpu box files.\n"
 	"  -nosbgains         Do not correct for the digital gains.\n"
 	"  -centre <ra> <dec> Set alternative phase centre, e.g. -centre 00h00m00.0s 00d00m00.0s.\n"
+	"  -usepcentre        Centre on pointing centre.\n"
 	"  -sbcount <count>   Read/processes the first given number of sub-bands.\n"
 	"  -sbpassband <file> Read the sub-band passband from given file instead of using default passband.\n"
 	"                     (default passband does a reasonably good job)\n"
@@ -116,153 +117,161 @@ int cotterMain(int argc, const char* const* argv)
 	const char *outputFilename = 0;
 	while(argi!=argc)
 	{
-		if(strcmp(argv[argi], "-o") == 0)
+		if(argv[argi][0] == '-')
 		{
-			++argi;
-			outputFilename = argv[argi];
-			if(isFitsFile(outputFilename))
+			const std::string param = &argv[argi][1];
+			if(param == "o")
 			{
-				cotter.SetCollectStatistics(false);
-				cotter.SetFlagAutoCorrelations(false);
-				cotter.SetOutputFormat(Cotter::FitsOutputFormat);
+				++argi;
+				outputFilename = argv[argi];
+				if(isFitsFile(outputFilename))
+				{
+					cotter.SetCollectStatistics(false);
+					cotter.SetFlagAutoCorrelations(false);
+					cotter.SetOutputFormat(Cotter::FitsOutputFormat);
+				}
+				else if(isMWAFlagFile(outputFilename))
+				{
+					cotter.SetCollectStatistics(false);
+					cotter.SetOutputFormat(Cotter::FlagsOutputFormat);
+					cotter.SetDoAlign(false);
+					cotter.SetRemoveFlaggedAntennae(false);
+				}
 			}
-			else if(isMWAFlagFile(outputFilename))
+			else if(param == "m")
+			{
+				++argi;
+				cotter.SetMetaFilename(argv[argi]);
+			}
+			else if(param == "a")
+			{
+				++argi;
+				cotter.SetAntennaLocationsFilename(argv[argi]);
+			}
+			else if(param == "h")
+			{
+				++argi;
+				cotter.SetHeaderFilename(argv[argi]);
+			}
+			else if(param == "i")
+			{
+				++argi;
+				cotter.SetInstrConfigFilename(argv[argi]);
+			}
+			else if(param == "mem")
+			{
+				++argi;
+				memPercentage = atof(argv[argi]);
+			}
+			else if(param == "noflagautos")
+			{
+				cotter.SetFlagAutoCorrelations(false);
+			}
+			else if(param == "norfi")
+			{
+				cotter.SetRFIDetection(false);
+			}
+			else if(param == "nostats")
 			{
 				cotter.SetCollectStatistics(false);
-				cotter.SetOutputFormat(Cotter::FlagsOutputFormat);
+			}
+			else if(param == "nogeom")
+			{
+				cotter.SetDisableGeometricCorrections(true);
+			}
+			else if(param == "noalign")
+			{
 				cotter.SetDoAlign(false);
+			}
+			else if(param == "noantennapruning")
+			{
 				cotter.SetRemoveFlaggedAntennae(false);
 			}
-		}
-		else if(strcmp(argv[argi], "-m") == 0)
-		{
-			++argi;
-			cotter.SetMetaFilename(argv[argi]);
-		}
-		else if(strcmp(argv[argi], "-a") == 0)
-		{
-			++argi;
-			cotter.SetAntennaLocationsFilename(argv[argi]);
-		}
-		else if(strcmp(argv[argi], "-h") == 0)
-		{
-			++argi;
-			cotter.SetHeaderFilename(argv[argi]);
-		}
-		else if(strcmp(argv[argi], "-i") == 0)
-		{
-			++argi;
-			cotter.SetInstrConfigFilename(argv[argi]);
-		}
-		else if(strcmp(argv[argi], "-mem") == 0)
-		{
-			++argi;
-			memPercentage = atof(argv[argi]);
-		}
-		else if(strcmp(argv[argi], "-noflagautos") == 0)
-		{
-			cotter.SetFlagAutoCorrelations(false);
-		}
-		else if(strcmp(argv[argi], "-norfi") == 0)
-		{
-			cotter.SetRFIDetection(false);
-		}
-		else if(strcmp(argv[argi], "-nostats") == 0)
-		{
-			cotter.SetCollectStatistics(false);
-		}
-		else if(strcmp(argv[argi], "-nogeom") == 0)
-		{
-			cotter.SetDisableGeometricCorrections(true);
-		}
-		else if(strcmp(argv[argi], "-noalign") == 0)
-		{
-			cotter.SetDoAlign(false);
-		}
-		else if(strcmp(argv[argi], "-noantennapruning") == 0)
-		{
-			cotter.SetRemoveFlaggedAntennae(false);
-		}
-		else if(strcmp(argv[argi], "-noautos") == 0)
-		{
-			cotter.SetRemoveAutoCorrelations(true);
-		}
-		else if(strcmp(argv[argi], "-noflagmissings") == 0)
-		{
-			cotter.SetDoFlagMissingSubbands(false);
-		}
-		else if(strcmp(argv[argi], "-nosbgains") == 0)
-		{
-			cotter.SetApplySBGains(false);
-		}
-		else if(strcmp(argv[argi], "-timeavg") == 0)
-		{
-			++argi;
-			timeAvg = atoi(argv[argi]);
-		}
-		else if(strcmp(argv[argi], "-freqavg") == 0)
-		{
-			++argi;
-			freqAvg = atoi(argv[argi]);
-		}
-		else if(strcmp(argv[argi], "-centre") == 0)
-		{
-			++argi;
-			long double centreRA = RaDecCoord::ParseRA(argv[argi]);
-			++argi;
-			long double centreDec = RaDecCoord::ParseDec(argv[argi]);
-			cotter.SetOverridePhaseCentre(centreRA, centreDec);
-		}
-		else if(strcmp(argv[argi], "-sbcount") == 0)
-		{
-			++argi;
-			cotter.SetSubbandCount(atoi(argv[argi]));
-		}
-		else if(strcmp(argv[argi], "-sbpassband") == 0)
-		{
-			++argi;
-			cotter.SetReadSubbandPassbandFile(argv[argi]);
-		}
-		else if(strcmp(argv[argi], "-initflag") == 0)
-		{
-			++argi;
-			cotter.SetInitDurationToFlag(atof(argv[argi]));
-		}
-		else if(strcmp(argv[argi], "-flagantenna") == 0)
-		{
-			++argi;
-			std::vector<int> antennaList;
-			NumberList::ParseIntList(argv[argi], antennaList);
-			std::cout << "Flagging antennae: ";
-			for(std::vector<int>::const_iterator i=antennaList.begin(); i!=antennaList.end(); ++i)
+			else if(param == "noautos")
 			{
-				cotter.FlagAntenna(*i);
-				std::cout << *i << ' ';
+				cotter.SetRemoveAutoCorrelations(true);
 			}
-			std::cout << "\n";
-		}
-		else if(strcmp(argv[argi], "-flagsubband") == 0)
-		{
-			++argi;
-			std::vector<int> sbList;
-			NumberList::ParseIntList(argv[argi], sbList);
-				std::cout << "Flagging sub-bands: ";
-			for(std::vector<int>::const_iterator i=sbList.begin(); i!=sbList.end(); ++i)
+			else if(param == "noflagmissings")
 			{
-				cotter.FlagSubband(*i);
-				std::cout << *i << ' ';
+				cotter.SetDoFlagMissingSubbands(false);
 			}
-			std::cout << "\n";
-		}
-		else if(strcmp(argv[argi], "-flagedges") == 0)
-		{
-			++argi;
-			cotter.FlagSubbandEdges(atoi(argv[argi]));
-		}
-		else if(argv[argi][0] == '-')
-		{
-			std::cout << "Unknown command line option: " << argv[argi] << '\n';
-			return -1;
+			else if(param == "nosbgains")
+			{
+				cotter.SetApplySBGains(false);
+			}
+			else if(param == "timeavg")
+			{
+				++argi;
+				timeAvg = atoi(argv[argi]);
+			}
+			else if(param == "freqavg")
+			{
+				++argi;
+				freqAvg = atoi(argv[argi]);
+			}
+			else if(param == "centre")
+			{
+				++argi;
+				long double centreRA = RaDecCoord::ParseRA(argv[argi]);
+				++argi;
+				long double centreDec = RaDecCoord::ParseDec(argv[argi]);
+				cotter.SetOverridePhaseCentre(centreRA, centreDec);
+			}
+			else if(param == "usepcentre")
+			{
+				cotter.SetUsePointingCentre(true);
+			}
+			else if(param == "sbcount")
+			{
+				++argi;
+				cotter.SetSubbandCount(atoi(argv[argi]));
+			}
+			else if(param == "sbpassband")
+			{
+				++argi;
+				cotter.SetReadSubbandPassbandFile(argv[argi]);
+			}
+			else if(param == "initflag")
+			{
+				++argi;
+				cotter.SetInitDurationToFlag(atof(argv[argi]));
+			}
+			else if(param == "flagantenna")
+			{
+				++argi;
+				std::vector<int> antennaList;
+				NumberList::ParseIntList(argv[argi], antennaList);
+				std::cout << "Flagging antennae: ";
+				for(std::vector<int>::const_iterator i=antennaList.begin(); i!=antennaList.end(); ++i)
+				{
+					cotter.FlagAntenna(*i);
+					std::cout << *i << ' ';
+				}
+				std::cout << "\n";
+			}
+			else if(param == "flagsubband")
+			{
+				++argi;
+				std::vector<int> sbList;
+				NumberList::ParseIntList(argv[argi], sbList);
+					std::cout << "Flagging sub-bands: ";
+				for(std::vector<int>::const_iterator i=sbList.begin(); i!=sbList.end(); ++i)
+				{
+					cotter.FlagSubband(*i);
+					std::cout << *i << ' ';
+				}
+				std::cout << "\n";
+			}
+			else if(param == "flagedges")
+			{
+				++argi;
+				cotter.FlagSubbandEdges(atoi(argv[argi]));
+			}
+			else
+			{
+				std::cout << "Unknown command line option: " << argv[argi] << '\n';
+				return -1;
+			}
 		}
 		else {
 			unsortedFiles.push_back(argv[argi]);

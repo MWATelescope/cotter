@@ -54,6 +54,10 @@ class Cotter : private UVWCalculater
 			_customRARad = newRARad;
 			_customDecRad = newDecRad;
 		}
+		void SetUsePointingCentre(bool usePointingCentre)
+		{
+			_usePointingCentre = usePointingCentre;
+		}
 		void SetDoAlign(bool doAlign) { _doAlign = doAlign; }
 		void SetDoFlagMissingSubbands(bool doFlagMissingSubbands) { _doFlagMissingSubbands = doFlagMissingSubbands; }
 		void SetSubbandCount(size_t subbandCount) { _subbandCount = subbandCount; }
@@ -90,7 +94,7 @@ class Cotter : private UVWCalculater
 		size_t _subbandEdgeFlagCount;
 		size_t _missingEndScans;
 		size_t _curChunkStart, _curChunkEnd, _curSbStart, _curSbEnd;
-		bool _defaultFilename, _rfiDetection, _collectStatistics;
+		bool _defaultFilename, _rfiDetection, _collectStatistics, _usePointingCentre;
 		enum OutputFormat _outputFormat;
 		std::string _outputFilename, _commandLine;
 		std::string _metaFilename, _antennaLocationsFilename, _headerFilename, _instrConfigFilename;
