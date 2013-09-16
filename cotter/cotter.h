@@ -33,8 +33,9 @@ class Cotter : private UVWCalculater
 		Cotter();
 		~Cotter();
 		
-		void Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAvgFactor);
+		void Run(size_t timeAvgFactor, size_t freqAvgFactor);
 		
+		void SetOutputFilename(const std::string& outputFilename) { _outputFilename = outputFilename; _defaultFilename = false; }
 		void SetOutputFormat(enum OutputFormat format) { _outputFormat = format; }
 		void SetFileSets(const std::vector<std::vector<std::string> >& fileSets) { _fileSets = fileSets; }
 		void SetThreadCount(size_t threadCount) { _threadCount = threadCount; }
@@ -53,6 +54,10 @@ class Cotter : private UVWCalculater
 			_customRARad = newRARad;
 			_customDecRad = newDecRad;
 		}
+		void SetUsePointingCentre(bool usePointingCentre)
+		{
+			_usePointingCentre = usePointingCentre;
+		}
 		void SetDoAlign(bool doAlign) { _doAlign = doAlign; }
 		void SetDoFlagMissingSubbands(bool doFlagMissingSubbands) { _doFlagMissingSubbands = doFlagMissingSubbands; }
 		void SetSubbandCount(size_t subbandCount) { _subbandCount = subbandCount; }
@@ -64,6 +69,7 @@ class Cotter : private UVWCalculater
 		}
 		void SetFlagAutoCorrelations(bool flagAutoCorrelations) { _flagAutos = flagAutoCorrelations; }
 		void SetInitDurationToFlag(double initDuration) { _initDurationToFlag = initDuration; }
+		void SetApplySBGains(bool applySBGains) { _applySBGains = applySBGains; }
 		void FlagAntenna(size_t antIndex) { _userFlaggedAntennae.push_back(antIndex); }
 		void FlagSubband(size_t sbIndex) { _flaggedSubbands.insert(sbIndex); }
 		void FlagSubbandEdges(size_t edgeChannelCount) { _subbandEdgeFlagCount = edgeChannelCount; }
@@ -75,7 +81,6 @@ class Cotter : private UVWCalculater
 		aoflagger::Strategy *_strategy;
 		
 		std::vector<double> _subbandCorrectionFactors[4];
-		std::vector<double> _subbandGainCorrection;
 		bool *_isAntennaFlaggedMap;
 		size_t _unflaggedAntennaCount;
 		
@@ -88,10 +93,10 @@ class Cotter : private UVWCalculater
 		size_t _quackSampleCount;
 		size_t _subbandEdgeFlagCount;
 		size_t _missingEndScans;
-		size_t _curChunkStart, _curChunkEnd;
-		bool _rfiDetection, _collectStatistics;
+		size_t _curChunkStart, _curChunkEnd, _curSbStart, _curSbEnd;
+		bool _defaultFilename, _rfiDetection, _collectStatistics, _usePointingCentre;
 		enum OutputFormat _outputFormat;
-		std::string _commandLine;
+		std::string _outputFilename, _commandLine;
 		std::string _metaFilename, _antennaLocationsFilename, _headerFilename, _instrConfigFilename;
 		std::string _subbandPassbandFilename;
 		std::vector<size_t> _userFlaggedAntennae;
@@ -114,10 +119,12 @@ class Cotter : private UVWCalculater
 		std::complex<float> *_outputData;
 		float *_outputWeights;
 		bool _disableGeometricCorrections, _removeFlaggedAntennae, _removeAutoCorrelations, _flagAutos;
-		bool _overridePhaseCentre, _doAlign, _doFlagMissingSubbands;
+		bool _overridePhaseCentre, _doAlign, _doFlagMissingSubbands, _applySBGains;
 		long double _customRARad, _customDecRad;
 		double _initDurationToFlag;
 		
+		void processAllContiguousBands(size_t timeAvgFactor, size_t freqAvgFactor);
+		void processOneContiguousBand(const std::string& outputFilename, size_t timeAvgFactor, size_t freqAvgFactor);
 		void createReader(const std::vector<std::string> &curFileset);
 		void initializeReader();
 		void processAndWriteTimestep(size_t timeIndex);
@@ -130,16 +137,15 @@ class Cotter : private UVWCalculater
 		void writeSource();
 		void writeField();
 		void writeObservation();
-		void initSubbandGainsFromMeta();
-		void readSubbandGainsFile();
+		void initPerInputSubbandGains();
 		void readSubbandPassbandFile();
 		void initializeSubbandPassband();
 		void flagBadCorrelatorSamples(aoflagger::FlagMask &flagMask) const;
 		void initializeWeights(float *outputWeights);
 		void reorderSubbands(aoflagger::ImageSet& imageSet) const;
-		void initializeSbOrder(size_t centerSbNumber);
+		void initializeSbOrder();
 		void writeAlignmentScans();
-		void writeMWAFields(const char *outputFilename, size_t flagWindowSize);
+		void writeMWAFields(const std::string& outputFilename, size_t flagWindowSize);
 		size_t rowsPerTimescan() const
 		{
 			if(_removeFlaggedAntennae && _removeAutoCorrelations)
@@ -169,6 +175,10 @@ class Cotter : private UVWCalculater
 					return true;
 			}
 			return false;
+		}
+		size_t nChannelsInCurSBRange() const
+		{
+			return _mwaConfig.Header().nChannels * (_curSbEnd - _curSbStart) / _subbandCount;
 		}
 		
 		// Implementing UVWCalculater

@@ -9,6 +9,7 @@
 #include "subbandpassband.h"
 #include "progressbar.h"
 #include "threadedwriter.h"
+#include "radeccoord.h"
 
 #include <aoflagger.h>
 
@@ -37,9 +38,11 @@ Cotter::Cotter() :
 	_maxBufferSize(0),
 	_subbandCount(24),
 	_quackSampleCount(4),
-	_subbandEdgeFlagCount(1),
+	_subbandEdgeFlagCount(2),
+	_defaultFilename(true),
 	_rfiDetection(true),
 	_collectStatistics(true),
+	_usePointingCentre(false),
 	_outputFormat(MSOutputFormat),
 	_metaFilename(),
 	_subbandPassbandFilename(),
@@ -53,6 +56,7 @@ Cotter::Cotter() :
 	_overridePhaseCentre(false),
 	_doAlign(true),
 	_doFlagMissingSubbands(true),
+	_applySBGains(true),
 	_customRARad(0.0),
 	_customDecRad(0.0),
 	_initDurationToFlag(4.0)
@@ -71,13 +75,13 @@ Cotter::~Cotter()
 	delete[] _isAntennaFlaggedMap;
 }
 
-void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAvgFactor)
+void Cotter::Run(size_t timeAvgFactor, size_t freqAvgFactor)
 {
 	_readWatch.Start();
 	bool lockPointing = false;
 	
 	if(_metaFilename.empty())
-		throw std::runtime_error("No metafits file specified! This is required since 2013-08-02, because the text files (header/instr_config/antenna_location) are missing some of the information (e.g. digital gains). You can still override the information in the metafits file with a text file (see the -a-, -h and -i options)");
+		throw std::runtime_error("No metafits file specified! This is required since 2013-08-02, because the text files (header/instr_config/antenna_location) are missing some of the information (e.g. digital gains). You can still override the information in the metafits file with a text file (see the -a, -h and -i options)");
 	_mwaConfig.ReadMetaFits(_metaFilename.c_str(), lockPointing);
 	if(!_headerFilename.empty())
 	{
@@ -99,37 +103,122 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 		_mwaConfig.HeaderRW().geomCorrection = false;
 	if(_overridePhaseCentre)
 	{
+		std::cout << "Using manually-specified phase centre: " << RaDecCoord::RAToString(_customRARad) << ' ' << RaDecCoord::DecToString(_customDecRad) << '\n';
 		_mwaConfig.HeaderRW().raHrs = _customRARad * (12.0/M_PI);
 		_mwaConfig.HeaderRW().decDegs = _customDecRad * (180.0/M_PI);
+	}
+	else if(_usePointingCentre)
+	{
+		std::cout << "Using pointing centre as phase centre: " << RaDecCoord::RAToString(_mwaConfig.HeaderExt().tilePointingRARad) << ' ' << RaDecCoord::DecToString(_mwaConfig.HeaderExt().tilePointingDecRad) << '\n';
+		_mwaConfig.HeaderRW().raHrs = _mwaConfig.HeaderExt().tilePointingRARad * (12.0/M_PI);
+		_mwaConfig.HeaderRW().decDegs = _mwaConfig.HeaderExt().tilePointingDecRad * (180.0/M_PI);
 	}
 	_mwaConfig.CheckSetup();
 	
 	_quackSampleCount = round(_initDurationToFlag / _mwaConfig.Header().integrationTime);
 	std::cout << "The first " << _quackSampleCount << " samples (" << round(10.0 * _quackSampleCount * _mwaConfig.Header().integrationTime)/10.0 << " s) and " << _subbandEdgeFlagCount << " edge channels will be flagged.\n";
 	
-	_channelFrequenciesHz.resize(_mwaConfig.Header().nChannels);
-	for(size_t ch=0; ch!=_mwaConfig.Header().nChannels; ++ch)
-		_channelFrequenciesHz[ch] = _mwaConfig.ChannelFrequencyHz(ch);
-	
 	if(_subbandPassbandFilename.empty())
 		initializeSubbandPassband();
 	else
 		readSubbandPassbandFile();
 	
-	if(_metaFilename.empty())
-		readSubbandGainsFile();
-	else
-		initSubbandGainsFromMeta();
-	initializeSbOrder(_mwaConfig.CentreSubbandNumber());
+	initPerInputSubbandGains();
+	
+	initializeSbOrder();
 	if(_subbandEdgeFlagCount > _mwaConfig.Header().nChannels / (_subbandCount*2))
 		throw std::runtime_error("Tried to flag more edge channels than available");
 	
 	_flagger = new AOFlagger();
 	
-	const size_t nChannels = _mwaConfig.Header().nChannels;
-	const size_t antennaCount = _mwaConfig.NAntennae();
-	size_t maxScansPerPart = _maxBufferSize / (nChannels*(antennaCount+1)*antennaCount*2);
+	processAllContiguousBands(timeAvgFactor, freqAvgFactor);
 	
+	std::cout
+		<< "Wall-clock time in reading: " << _readWatch.ToString()
+		<< " processing: " << _processWatch.ToString()
+		<< " writing: " << _writeWatch.ToString() << '\n';
+}
+
+void Cotter::processAllContiguousBands(size_t timeAvgFactor, size_t freqAvgFactor)
+{
+	std::vector<std::pair<int, int> > contiguousSBRanges;
+	int subbandNumber = _mwaConfig.HeaderExt().subbandNumbers[0];
+	int rangeStartSB = 0;
+	for(size_t sb=1; sb!=_subbandCount; ++sb)
+	{
+		int curNumber = _mwaConfig.HeaderExt().subbandNumbers[sb];
+		if(curNumber != subbandNumber+1)
+		{
+			contiguousSBRanges.push_back(std::pair<int, int>(rangeStartSB, sb));
+			rangeStartSB = sb;
+		}
+		subbandNumber = curNumber;
+	}
+	contiguousSBRanges.push_back(std::pair<int, int>(rangeStartSB, _subbandCount));
+	
+	if(contiguousSBRanges.size() == 1)
+	{
+		std::cout << "Observation's bandwidth is contiguous.\n";
+		_curSbStart = 0;
+		_curSbEnd = _subbandCount;
+		
+		_channelFrequenciesHz.resize(_mwaConfig.Header().nChannels);
+		for(size_t ch=0; ch!=_mwaConfig.Header().nChannels; ++ch)
+			_channelFrequenciesHz[ch] = _mwaConfig.ChannelFrequencyHz(ch);
+		
+		if(_defaultFilename)
+			_outputFilename = "preprocessed.ms";
+	
+		processOneContiguousBand(_outputFilename, timeAvgFactor, freqAvgFactor);
+	}
+	else {
+		std::cout << "Observation's bandwidth is non-contiguous.\n";
+		
+		std::string bandFilename;
+		if(_defaultFilename)
+			bandFilename = "preprocessed-%b.ms";
+		else
+			bandFilename = _outputFilename;
+		
+		size_t numberPos = bandFilename.find("%b");
+		if(numberPos == std::string::npos)
+			throw std::runtime_error("When processing observations with a non-contiguous bandwidth, multiple files will be written. Therefore, the output filename should contain a percent symbol followed by the letter b (\"%b\"), e.g. \"HydraObservation-%b.ms\". This will be replaced by the coarse channel numbers (e.g. \"HydraObservation-093-100.ms\".");
+		bandFilename = bandFilename.substr(0, numberPos) + "\?\?\?-\?\?\?" + bandFilename.substr(numberPos+2);
+		for(size_t bandIndex = 0; bandIndex!=contiguousSBRanges.size(); ++bandIndex)
+		{
+			_curSbStart = contiguousSBRanges[bandIndex].first;
+			_curSbEnd = contiguousSBRanges[bandIndex].second;
+			
+			size_t nChannels = nChannelsInCurSBRange(), nChannelPerSb = _mwaConfig.Header().nChannels / _subbandCount;
+			_channelFrequenciesHz.resize(nChannels);
+			int
+				chStartNo = _mwaConfig.HeaderExt().subbandNumbers[_curSbStart],
+				chEndNo =_mwaConfig.HeaderExt().subbandNumbers[_curSbEnd-1];
+			std::vector<double>::iterator chFreqIter = _channelFrequenciesHz.begin();
+			for(int coarseChannel=chStartNo; coarseChannel!=chEndNo+1; ++coarseChannel)
+			{
+				for(size_t ch=0; ch!=nChannelPerSb; ++ch)
+				{
+					*chFreqIter = _mwaConfig.ChannelFrequencyHz(coarseChannel, ch);
+					++chFreqIter;
+				}
+			}
+			
+			bandFilename[numberPos] = (char) ('0' + (chStartNo/100));
+			bandFilename[numberPos+1] = (char) ('0' + ((chStartNo/10)%10));
+			bandFilename[numberPos+2] = (char) ('0' + (chStartNo%10));
+			bandFilename[numberPos+4] = (char) ('0' + (chEndNo/100));
+			bandFilename[numberPos+5] = (char) ('0' + ((chEndNo/10)%10));
+			bandFilename[numberPos+6] = (char) ('0' + (chEndNo%10));
+			std::cout << " |=== BAND " << (bandIndex+1) << " / " << contiguousSBRanges.size() << " ===|\n";
+			std::cout << "Writing contiguous band " << (bandIndex+1) << " to " << bandFilename << ".\n";
+			processOneContiguousBand(bandFilename, timeAvgFactor, freqAvgFactor);
+		}
+	}
+}
+
+void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t timeAvgFactor, size_t freqAvgFactor)
+{
 	switch(_outputFormat)
 	{
 		case FlagsOutputFormat:
@@ -162,6 +251,11 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	_writer->WritePolarizationForLinearPols(false);
 	writeObservation();
 		
+	const size_t
+		nChannels = nChannelsInCurSBRange(),
+		antennaCount = _mwaConfig.NAntennae();
+	size_t maxScansPerPart = _maxBufferSize / (nChannels*(antennaCount+1)*antennaCount*2);
+	
 	if(maxScansPerPart<1)
 	{
 		std::cout << "WARNING! The given amount of memory is not even enough for one scan and therefore below the minimum that Cotter will need; will use more memory. Expect swapping and very poor flagging accuracy.\nWARNING! This is a *VERY BAD* condition, so better make sure to resolve it!";
@@ -374,6 +468,7 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	{
 		delete imgBufIter->second;
 	}
+	_imageSetBuffers.clear();
 	
 	_writeWatch.Start();
 	
@@ -404,20 +499,31 @@ void Cotter::Run(const char *outputFilename, size_t timeAvgFactor, size_t freqAv
 	}
 	
 	_writeWatch.Pause();
-	
-	std::cout
-		<< "Wall-clock time in reading: " << _readWatch.ToString()
-		<< " processing: " << _processWatch.ToString()
-		<< " writing: " << _writeWatch.ToString() << '\n';
 }
 
-void Cotter::createReader(const std::vector< std::string >& curFileset)
+void Cotter::createReader(const std::vector<std::string>& curFileset)
 {
 	delete _reader; // might be 0, but that's ok.
-	_reader = new GPUFileReader(_mwaConfig.NAntennae(), _mwaConfig.Header().nChannels, _threadCount);
+	_reader = new GPUFileReader(_mwaConfig.NAntennae(), nChannelsInCurSBRange(), _threadCount);
 
-	for(std::vector<std::string>::const_iterator i=curFileset.begin(); i!=curFileset.end(); ++i)
-		_reader->AddFile(i->c_str());
+	// We need to make the distinction between non-contiguous and contiguous bandwidth mode, because
+	// in 32T data we cannot assume a gpubox file matches a coarse channel. However, 32T
+	// will always be contiguous.
+	if(_curSbStart==0 && _curSbEnd == _subbandCount)
+	{
+		// We are in contiguous bandwidth mode: just add all files
+		for(std::vector<std::string>::const_iterator i=curFileset.begin(); i!=curFileset.end(); ++i)
+			_reader->AddFile(i->c_str());
+	}
+	else {
+		// If we are in non-contiguous mode, add only those required in this freq range and add
+		// them in the right order
+		for(size_t sb=_curSbStart; sb!=_curSbEnd; ++sb)
+		{
+			size_t fileBelongingToSB = _subbandOrder[sb];
+			_reader->AddFile(curFileset[fileBelongingToSB].c_str());
+		}
+	}
 	
 	_reader->Initialize(_mwaConfig.Header().integrationTime, _doAlign);
 }
@@ -451,7 +557,7 @@ void Cotter::initializeReader()
 void Cotter::processAndWriteTimestep(size_t timeIndex)
 {
 	const size_t antennaCount = _mwaConfig.NAntennae();
-	const size_t nChannels = _mwaConfig.Header().nChannels;
+	const size_t nChannels = nChannelsInCurSBRange();
 	const double dateMJD = _mwaConfig.Header().dateFirstScanMJD + timeIndex * _mwaConfig.Header().integrationTime/86400.0;
 	
 	Geometry::UVWTimestepInfo uvwInfo;
@@ -667,13 +773,18 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 	// Correct passband
 	for(size_t i=0; i!=8; ++i)
 	{
-		const size_t channelsPerSubband = imageSet->Height()/_subbandCount;
-		for(size_t sb=0; sb!=_subbandCount; ++sb)
+		const double* subbandGains1Ptr = (i<4) ? input1X.pfbGains : input1Y.pfbGains;
+		const double* subbandGains2Ptr = (i==0 || i==1 || i==4 || i==5) ? input2X.pfbGains : input2Y.pfbGains;
+		
+		const size_t channelsPerSubband = imageSet->Height()/(_curSbEnd - _curSbStart);
+		for(size_t sb=0; sb!=_curSbEnd - _curSbStart; ++sb)
 		{
+			double subbandGainCorrection = 1.0 / (subbandGains1Ptr[sb+_curSbStart] * subbandGains2Ptr[sb+_curSbStart]);
+			
 			for(size_t ch=0; ch!=channelsPerSubband; ++ch)
 			{
 				float *channelPtr = imageSet->ImageBuffer(i) + (ch+sb*channelsPerSubband) * imageSet->HorizontalStride();
-				const float correctionFactor = _subbandCorrectionFactors[i/2][ch] * _subbandGainCorrection[sb];
+				const float correctionFactor = _subbandCorrectionFactors[i/2][ch] * subbandGainCorrection;
 				for(size_t x=0; x!=imageSet->Width(); ++x)
 				{
 					*channelPtr *= correctionFactor;
@@ -817,20 +928,23 @@ void Cotter::writeAntennae()
 
 void Cotter::writeSPW()
 {
-	std::vector<MSWriter::ChannelInfo> channels(_mwaConfig.Header().nChannels);
+	const size_t nChannels = nChannelsInCurSBRange();
+	std::vector<MSWriter::ChannelInfo> channels(nChannels);
 	std::ostringstream str;
-	str << "MWA_BAND_" << (round(_mwaConfig.Header().centralFrequencyMHz*10.0)/10.0);
-	for(size_t ch=0;ch!=_mwaConfig.Header().nChannels;++ch)
+	double centreFrequencyMHz = 0.0000005 * (_channelFrequenciesHz[nChannels/2-1] + _channelFrequenciesHz[nChannels/2]);
+	str << "MWA_BAND_" << (round(centreFrequencyMHz*10.0)/10.0);
+	const double chWidth = _mwaConfig.Header().bandwidthMHz * 1000000.0 / _mwaConfig.Header().nChannels;
+	for(size_t ch=0;ch!=nChannels;++ch)
 	{
 		MSWriter::ChannelInfo &channel = channels[ch];
 		channel.chanFreq = _channelFrequenciesHz[ch];
-		channel.chanWidth = _mwaConfig.Header().bandwidthMHz * 1000000.0 / _mwaConfig.Header().nChannels;
-		channel.effectiveBW = channel.chanWidth;
-		channel.resolution = channel.chanWidth;
+		channel.chanWidth = chWidth;
+		channel.effectiveBW = chWidth;
+		channel.resolution = chWidth;
 	}
 	_writer->WriteBandInfo(str.str(),
 		channels,
-		_mwaConfig.Header().centralFrequencyMHz*1000000.0,
+		centreFrequencyMHz*1000000.0,
 		_mwaConfig.Header().bandwidthMHz*1000000.0,
 		false
 	);
@@ -928,80 +1042,72 @@ void Cotter::initializeSubbandPassband()
 	for(size_t p=0; p!=4; ++p)
 		_subbandCorrectionFactors[p].resize(nChannelsPerSubband);
 	
-	std::cout << "Using a-priori subband passband with " << nChannelsPerSubband << " channels:\n[";
+	std::cout << "Using a-priori subband passband with " << nChannelsPerSubband << " channels.\n";
 	for(size_t ch=0; ch!=nChannelsPerSubband; ++ch)
 	{
-		if(ch != 0) std::cout << ',';
-		std::cout << round(passband[ch]*100.0)/100.0;
-		
 		double correctionFactor = 1.0 / passband[ch];
 		for(size_t p=0; p!=4; ++p) {
 			_subbandCorrectionFactors[p][ch] = correctionFactor;
 		}
 	}
-	std::cout << "]\n";
 }
 
-void Cotter::readSubbandGainsFile()
+void Cotter::initPerInputSubbandGains()
 {
-	std::ifstream gainsFile("subband-gains.txt");
-	
-	std::map<double, double> subbandGainCorrection;
-	while(gainsFile.good())
+	if(_applySBGains)
 	{
-		std::string line;
-		std::getline(gainsFile, line);
-		if(!line.empty() && line[0]!='#')
+		std::vector<double> gains(_subbandCount, 0.0);
+		if(_mwaConfig.HeaderExt().hasGlobalSubbandGains)
 		{
-			std::istringstream lineStr(line);
-			size_t index;
-			double centralFrequency, gain;
-			lineStr >> index >> centralFrequency >> gain;
-			if(lineStr.fail())
-				throw std::runtime_error("Could not parse subband gains file, line: " + line);
-			subbandGainCorrection.insert(std::pair<double,double>(centralFrequency, gain));
+			std::cout << "Using global subband gains from meta-fits file: ";
+			for(size_t sb=0; sb!=_subbandCount; ++sb)
+			{
+				double gain = _mwaConfig.HeaderExt().subbandGains[sb];
+				gains[sb] = gain;
+				for(size_t inpIndex=0; inpIndex!=_mwaConfig.NAntennae()*2; ++inpIndex)
+				{
+					MWAInput& input = _mwaConfig.InputRW(inpIndex);
+					input.pfbGains[sb] = gain;
+				}
+			}
+		}
+		else {
+			std::cout << "Using per-input subband gains. Average gains: ";
+			for(size_t inpIndex=0; inpIndex!=_mwaConfig.NAntennae()*2; ++inpIndex)
+			{
+				const MWAInput& input = _mwaConfig.Input(inpIndex);
+				for(size_t sb=0; sb!=_subbandCount; ++sb)
+					gains[sb] += input.pfbGains[sb];
+			}
+			for(size_t sb=0; sb!=_subbandCount; ++sb)
+				gains[sb] /= _mwaConfig.NAntennae()*2;
+		}
+		std::cout << gains[0];
+		for(size_t sb=1; sb!=_subbandCount; ++sb)
+			std::cout << ',' << gains[sb];
+		std::cout << '\n';
+	}
+	else {
+		std::cout << "Subband gains are disabled.\n";
+		for(size_t inpIndex=0; inpIndex!=_mwaConfig.NAntennae()*2; ++inpIndex)
+		{
+			MWAInput& input = _mwaConfig.InputRW(inpIndex);
+			for(size_t sb=0; sb!=_subbandCount; ++sb)
+			{
+				input.pfbGains[sb] = 1.0;
+			}
 		}
 	}
-	std::cout << "Subband gain file contains " << subbandGainCorrection.size() << " entries, used: ";
-	for(size_t sb=0; sb!=_subbandCount; ++sb)
-	{
-		double channelFreq = _channelFrequenciesHz[sb * _mwaConfig.Header().nChannels / _subbandCount];
-		std::map<double, double>::const_iterator i = subbandGainCorrection.lower_bound(channelFreq/1000000.0-(63.0*0.01));
-		if(sb != 0) std::cout << ',';
-		if(i == subbandGainCorrection.end())
-		{
-			std::cout << '1';
-			_subbandGainCorrection.push_back(1.0);
-		}
-		else
-		{
-			std::cout << i->second;
-			_subbandGainCorrection.push_back(1.0/i->second);
-		}
-	}
-	std::cout << '\n';
-}
-
-void Cotter::initSubbandGainsFromMeta()
-{
-	_subbandGainCorrection.clear();
-	std::cout << "Using subband gains from meta-fits file: ";
-	for(size_t sb=0; sb!=_subbandCount; ++sb)
-	{
-		double gain = _mwaConfig.HeaderExt().subbandGains[sb];
-		if(sb != 0) std::cout << ',';
-		std::cout << gain;
-		_subbandGainCorrection.push_back(1.0/(gain*gain));
-	}
-	std::cout << '\n';
 }
 
 void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask) const
 {
 	// Flag MWA side and centre channels
-	size_t scanCount = _curChunkEnd - _curChunkStart;
-	size_t chPerSb = flagMask.Height()/_subbandCount;
-	for(size_t sb=0; sb!=_subbandCount; ++sb)
+	const size_t
+		scanCount = _curChunkEnd - _curChunkStart,
+		curSBCount = _curSbEnd - _curSbStart,
+		chPerSb = flagMask.Height() / curSBCount;
+	for(size_t sb=0; sb!=curSBCount; ++sb)
 	{
 		bool *sbStart = flagMask.Buffer() + (sb*chPerSb)*flagMask.HorizontalStride();
 		
@@ -1032,12 +1138,16 @@ void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask) const
 	for(std::set<size_t>::const_iterator sbIter=_flaggedSubbands.begin();
 			sbIter!=_flaggedSubbands.end(); ++sbIter)
 	{
-		bool *sbStart = flagMask.Buffer() + (*sbIter*chPerSb)*flagMask.HorizontalStride();
-		for(size_t ch=0; ch!=chPerSb; ++ch)
+		if(*sbIter >= _curSbStart && *sbIter < _curSbEnd)
 		{
-			bool *channelPtr = sbStart + ch*flagMask.HorizontalStride();
-			bool *endPtr = sbStart + ch*flagMask.HorizontalStride() + scanCount;
-			while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
+			size_t sb = *sbIter - _curSbStart;
+			bool *sbStart = flagMask.Buffer() + (sb*chPerSb)*flagMask.HorizontalStride();
+			for(size_t ch=0; ch!=chPerSb; ++ch)
+			{
+				bool *channelPtr = sbStart + ch*flagMask.HorizontalStride();
+				bool *endPtr = sbStart + ch*flagMask.HorizontalStride() + scanCount;
+				while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
+			}
 		}
 	}
 	
@@ -1047,7 +1157,7 @@ void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask) const
 		for(size_t ch=0; ch!=flagMask.Height(); ++ch)
 		{
 			bool *channelPtr = flagMask.Buffer() + ch*flagMask.HorizontalStride();
-			const size_t count = _quackSampleCount - _curChunkStart;
+			const size_t count = std::min(_quackSampleCount - _curChunkStart, flagMask.Width());
 			for(size_t x=0; x!=count; ++x)
 			{
 				*channelPtr = true;
@@ -1068,12 +1178,13 @@ void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask) const
 	}
 }
 
-void Cotter::initializeWeights(float *outputWeights)
+void Cotter::initializeWeights(float* outputWeights)
 {
 	// Weights are normalized so that default res of 10 kHz, 1s has weight of "1" per sample
 	// Note that this only holds for numbers in the WEIGHTS_SPECTRUM column; WEIGHTS will hold the sum.
 	double weightFactor = _mwaConfig.Header().integrationTime * (100.0*_mwaConfig.Header().bandwidthMHz/_mwaConfig.Header().nChannels);
-	for(size_t sb=0; sb!=_subbandCount; ++sb)
+	size_t curSBRangeSize = _curSbEnd - _curSbStart;
+	for(size_t sb=0; sb!=curSBRangeSize; ++sb)
 	{
 		size_t channelsPerSubband = _mwaConfig.Header().nChannels / _subbandCount;
 		for(size_t ch=0; ch!=channelsPerSubband; ++ch)
@@ -1086,46 +1197,51 @@ void Cotter::initializeWeights(float *outputWeights)
 
 void Cotter::reorderSubbands(ImageSet& imageSet) const
 {
-	float *temp = new float[imageSet.HorizontalStride() * imageSet.Height()];
-	const size_t channelsPerSubband = imageSet.Height()/_subbandCount;
-	const size_t valuesPerSubband = imageSet.HorizontalStride()*channelsPerSubband;
-	for(size_t i=0;i!=8;++i)
+	// Reorder only in contiguous mode; in non-contiguous mode, coarse channels will be
+	// read in the right order by the reader.
+	if(_curSbStart==0 && _curSbEnd == _subbandCount)
 	{
-		memcpy(temp, imageSet.ImageBuffer(i), imageSet.HorizontalStride()*imageSet.Height()*sizeof(float));
-		
-		float *tempBfr = temp;
-		for(size_t sb=0;sb!=_subbandCount;++sb)
+		float *temp = new float[imageSet.HorizontalStride() * imageSet.Height()];
+		const size_t channelsPerSubband = imageSet.Height()/_subbandCount;
+		const size_t valuesPerSubband = imageSet.HorizontalStride()*channelsPerSubband;
+		for(size_t i=0;i!=8;++i)
 		{
-			float *destBfr = imageSet.ImageBuffer(i) + valuesPerSubband * _subbandOrder[sb];
-			memcpy(destBfr, tempBfr, valuesPerSubband*sizeof(float));
-				
-			tempBfr += valuesPerSubband;
+			memcpy(temp, imageSet.ImageBuffer(i), imageSet.HorizontalStride()*imageSet.Height()*sizeof(float));
+			
+			float *tempBfr = temp;
+			for(size_t sb=0;sb!=_subbandCount;++sb)
+			{
+				float *destBfr = imageSet.ImageBuffer(i) + valuesPerSubband * _subbandOrder[sb];
+				memcpy(destBfr, tempBfr, valuesPerSubband*sizeof(float));
+					
+				tempBfr += valuesPerSubband;
+			}
 		}
+		delete[] temp;
 	}
-	delete[] temp;
 }
 
-void Cotter::initializeSbOrder(size_t centerSbNumber)
+void Cotter::initializeSbOrder()
 {
-	if(centerSbNumber<=12 || centerSbNumber > 243)
-		throw std::runtime_error("Center channel must be between 13 and 243");
-
 	_subbandOrder.resize(_subbandCount);
-	size_t firstSb = centerSbNumber-(_subbandCount/2);
-	size_t nbank1 = 0, nbank2 = 0;
-	for(size_t i=firstSb; i!=firstSb+_subbandCount; ++i)
+	size_t sb = 0;
+	while(sb != _subbandCount)
 	{
-		if(i<=128)
-			++nbank1;
-		else
-			++nbank2;
+		size_t coarseCh = _mwaConfig.HeaderExt().subbandNumbers[sb];
+		if(coarseCh>128)
+			break;
+		_subbandOrder[sb] = sb;
+		++sb;
 	}
-	for(size_t i=0; i!=nbank1; ++i)
-		_subbandOrder[i]=i;
-	for(size_t i=0; i!=nbank2; ++i)
-		_subbandOrder[i+nbank1] = _subbandCount-1-i;
+	size_t rightSB = _subbandCount, stopPoint = sb;
+	while(rightSB != stopPoint)
+	{
+		--rightSB;
+		_subbandOrder[rightSB] = sb;
+		++sb;
+	}
 	
-	std::cout << "Subband order for centre subband " << centerSbNumber << ": " << _subbandOrder[0];
+	std::cout << "Subband order: " << _subbandOrder[0];
 	for(size_t i=1; i!=_subbandCount; ++i)
 		std::cout << ',' << _subbandOrder[i];
 	std::cout << '\n';
@@ -1148,7 +1264,7 @@ void Cotter::writeAlignmentScans()
 {
 	if(!_writer->IsTimeAligned(0, 0))
 	{
-		const size_t nChannels = _mwaConfig.Header().nChannels;
+		const size_t nChannels = nChannelsInCurSBRange();
 		const size_t antennaCount = _mwaConfig.NAntennae();
 		std::cout << "Nr of timesteps did not match averaging size, last averaged sample will be downweighted" << std::flush;
 		size_t timeIndex = _mwaConfig.Header().nScans;
@@ -1186,7 +1302,7 @@ void Cotter::writeAlignmentScans()
 	}
 }
 
-void Cotter::writeMWAFields(const char *outputFilename, size_t flagWindowSize)
+void Cotter::writeMWAFields(const std::string& outputFilename, size_t flagWindowSize)
 {
 	MWAMS mwaMs(outputFilename);
 	mwaMs.InitializeMWAFields();
@@ -1229,7 +1345,7 @@ void Cotter::writeMWAFields(const char *outputFilename, size_t flagWindowSize)
 		_mwaConfig.HeaderExt().tilePointingRARad, _mwaConfig.HeaderExt().tilePointingDecRad);
 	
 	for(int i=0; i!=24; ++i)
-		mwaMs.WriteMWASubbandInfo(i, sqrt(1.0/_subbandGainCorrection[i]), false);
+		mwaMs.WriteMWASubbandInfo(i, _mwaConfig.HeaderExt().subbandGains[i], false);
 	
 	mwaMs.WriteMWAKeywords(_mwaConfig.HeaderExt().fiberFactor, 0);
 }

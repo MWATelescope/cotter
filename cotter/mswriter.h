@@ -10,7 +10,7 @@
 class MSWriter : public Writer
 {
 	public:
-		MSWriter(const char *filename);
+		MSWriter(const std::string& filename);
 		virtual ~MSWriter();
 		
 		virtual void WriteBandInfo(const std::string& name, const std::vector<ChannelInfo>& channels, double refFreq, double totalBandwidth, bool flagRow);

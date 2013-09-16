@@ -3,7 +3,7 @@
 /** @file mwaconfig.cpp
  * @brief Several functions to read the MWA meta data files.
  * 
- * Most functions were converted to C++ from corr2uvfits.c that is
+ * Most functions were converted to C++ from corr2uvfits.c
  * written by Randall Wayth.
  * @author André Offringa offringa@gmail.com
  */
@@ -45,7 +45,6 @@ MWAHeader::MWAHeader() :
 	refHour(0),
 	refMinute(0),
 	refSecond(0.0),
-	invertFrequency(false),    // correlators have now been fixed
 	conjugate(false),
 	geomCorrection(true),
 	fieldName(),
@@ -56,7 +55,8 @@ MWAHeader::MWAHeader() :
 MWAHeaderExt::MWAHeaderExt() :
 	gpsTime(0), observerName("Unknown"), projectName("Unknown"),
 	gridName("Unknown"), mode("Unknown"), filename("Unknown"),
-	hasCalibrator(false), centreSBNumber(0),
+	hasCalibrator(false), hasGlobalSubbandGains(false),
+	centreSBNumber(0),
 	fiberFactor(VEL_FACTOR),
 	tilePointingRARad(0.0), tilePointingDecRad(0.0),
 	dateRequestedMJD(0.0)
@@ -77,7 +77,7 @@ void MWAConfig::ReadMetaFits(const std::string& filename, bool lockPointing)
 	metaFile.ReadHeader(_header, _headerExt);
 	
 	_header.Validate(lockPointing);
-	std::cout << "Observation covers " << (ChannelFrequencyHz(0)/1000000.0) << '-' << (ChannelFrequencyHz(_header.nChannels-1)/1000000.0) << " MHz.\n";
+	std::cout << "Observation covers " << (ChannelFrequencyHz(_headerExt.subbandNumbers[0], 0)/1000000.0) << '-' << (ChannelFrequencyHz(_headerExt.subbandNumbers[23], _header.nChannels/24-1)/1000000.0) << " MHz.\n";
 	
 	if(_headerExt.centreSBNumber != (int) CentreSubbandNumber())
 	{
@@ -87,14 +87,14 @@ void MWAConfig::ReadMetaFits(const std::string& filename, bool lockPointing)
 	}
 	
 	metaFile.ReadTiles(_inputs, _antennae);
-	for(std::vector<MWAInput>::const_iterator i=_inputs.begin();
+	for(std::vector<MWAInput>::iterator i=_inputs.begin();
 			i!=_inputs.end(); ++i)
 	{
-		const MWAInput &input = *i;
+		MWAInput &input = *i;
 		if(input.polarizationIndex == 0)
-			_antennaXInputs.insert(std::pair<size_t, MWAInput>(input.antennaIndex, input));
+			_antennaXInputs.insert(std::pair<size_t, MWAInput*>(input.antennaIndex, &input));
 		else
-			_antennaYInputs.insert(std::pair<size_t, MWAInput>(input.antennaIndex, input));
+			_antennaYInputs.insert(std::pair<size_t, MWAInput*>(input.antennaIndex, &input));
 	}
 }
 
@@ -135,7 +135,7 @@ void MWAConfig::ReadHeader(const std::string& filename, bool lockPointing)
 			else if(keyStr == "INT_TIME") _header.integrationTime = atof(valueStr.c_str());
 			else if(keyStr == "FREQCENT") _header.centralFrequencyMHz = atof(valueStr.c_str());
 			else if(keyStr == "BANDWIDTH") _header.bandwidthMHz = atof(valueStr.c_str());
-			else if(keyStr == "INVERT_FREQ") _header.invertFrequency = atoi(valueStr.c_str());
+			else if(keyStr == "INVERT_FREQ") { } // not used anymore
 			else if(keyStr == "CONJUGATE") _header.conjugate = atoi(valueStr.c_str());
 			else if(keyStr == "GEOM_CORRECT") _header.geomCorrection = atoi(valueStr.c_str());
 			else if(keyStr == "REF_AZ") _header.refAz = atof(valueStr.c_str())*(M_PI/180.0);
@@ -203,22 +203,21 @@ double MWAHeader::GetDateFirstScanFromFields() const
 /** Read the mapping between antennas and correlator inputs. */
 void MWAConfig::ReadInputConfig(const std::string& filename)
 {
-	_inputs.clear();
-	_antennaXInputs.clear();
-	_antennaYInputs.clear();
-	
 	std::ifstream file(filename.c_str());
 	if(!file.good())
 		throw std::runtime_error(std::string("Could not open ") + filename);
  
 	std::string line;
 	size_t nFlaggedInput = 0;
+	size_t inputIndex = 0;
   while(file.good())
 	{
 		std::getline(file, line);
     if(!line.empty() && line[0]!='#')
 		{
-			MWAInput input;
+			if(inputIndex >= _inputs.size())
+				throw std::runtime_error("Too many entries in " + filename + ": does not match with given meta fits file.");
+			MWAInput& input = _inputs[inputIndex];
 			std::istringstream str(line);
 			
 			std::string cableLen;
@@ -244,16 +243,14 @@ void MWAConfig::ReadInputConfig(const std::string& filename)
 				input.cableLenDelta = std::atof(cableLen.c_str()) * VEL_FACTOR;
 
 			input.polarizationIndex = polCharToIndex(polChar);
-			input.inputIndex = _inputs.size();
+			input.inputIndex = inputIndex;
 			
-			_inputs.push_back(input);
-			if(input.polarizationIndex == 0)
-				_antennaXInputs.insert(std::pair<size_t, MWAInput>(input.antennaIndex, input));
-			else
-				_antennaYInputs.insert(std::pair<size_t, MWAInput>(input.antennaIndex, input));
+			++inputIndex;
 		}
   }
-  std::cout << "Read " << _inputs.size() << " inputs from " << filename << ", of which " << nFlaggedInput << " were flagged.\n";
+  std::cout << "Read " << inputIndex << " inputs from " << filename << ", of which " << nFlaggedInput << " were flagged.\n";
+	if(inputIndex != _inputs.size())
+		throw std::runtime_error("Too few entries in " + filename + ": did not match with meta fits file.");
 }
 
 void MWAConfig::ReadAntennaPositions(const std::string& filename) {

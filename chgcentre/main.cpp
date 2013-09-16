@@ -24,6 +24,18 @@ using namespace casa;
 
 std::vector<MPosition> antennas;
 
+//typedef long int integer;
+//typedef double doublereal;
+typedef int integer;
+typedef double doublereal;
+
+extern "C" {
+  extern void dgesvd_(const char* jobu, const char* jobvt, const integer* M, const integer* N,
+        doublereal* A, const integer* lda, doublereal* S, doublereal* U, const integer* ldu,
+        doublereal* VT, const integer* ldvt, doublereal* work,const integer* lwork, const
+        integer* info);
+}
+
 std::string dirToString(const MDirection &direction)
 {
 	double ra = direction.getAngle().getValue()[0];
@@ -113,67 +125,72 @@ void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, cons
 	std::cout << "Processing field \"" << nameCol(fieldIndex) << "\": "
 		<< dirToString(phaseDirection) << " -> "
 		<< dirToString(newDirection) << "\n";
-		
-	MDirection refDirection =
-		MDirection::Convert(newDirection,
-												MDirection::Ref(MDirection::J2000))();
-	IPosition dataShape = dataCol.shape(0);
-	unsigned polarizationCount = dataShape[0];
-	Array<Complex> dataArray(dataShape);
-	
-	for(unsigned row=0; row!=set.nrow(); ++row)
+	if(dirToString(phaseDirection) == dirToString(newDirection))
 	{
-		if(fieldIdCol(row) == fieldIndex)
-		{
-			// Read values from set
-			const int
-				antenna1 = antenna1Col(row),
-				antenna2 = antenna2Col(row);
-			const Muvw oldUVW = uvwCol(row);
-			MEpoch time = timeCol(row);
-
-			// Calculate the new UVW
-			Muvw uvw1 = calculateUVW(antennas[antenna1], antennas[0], time, refDirection);
-			Muvw uvw2 = calculateUVW(antennas[antenna2], antennas[0], time, refDirection);
-			MVuvw newUVW = uvw1.getValue()-uvw2.getValue();
-			
-			// If one of the first results, output values for analyzing them.
-			if(row < 5)
-			{
-				std::cout << "Old " << oldUVW << " (" << length(oldUVW) << ")\n";
-				std::cout << "New " << newUVW << " (" << length(newUVW) << ")\n\n";
-			}
-			
-			// Read the visibilities and phase-rotate them
-			double wShiftFactor =
-				-2.0*M_PI* (newUVW.getVector()[2] - oldUVW.getValue().getVector()[2]);
-
-			dataCol.get(row, dataArray);
-			rotateVisibilities(bandData, wShiftFactor, polarizationCount, dataArray.cbegin());
-			dataCol.put(row, dataArray);
-				
-			if(hasCorrData)
-			{
-				correctedDataCol->get(row, dataArray);
-				rotateVisibilities(bandData, wShiftFactor, polarizationCount, dataArray.cbegin());
-				correctedDataCol->put(row, dataArray);
-			}
-			
-			if(hasModelData)
-			{
-				modelDataCol->get(row, dataArray);
-				rotateVisibilities(bandData, wShiftFactor, polarizationCount, dataArray.cbegin());
-				modelDataCol->put(row, dataArray);
-			}
-			
-			// Store uvws
-			uvwOutCol.put(row, newUVW.getVector());
-		}
+		std::cout << "Phase centre did not change: skipping field.\n";
 	}
-	phaseDirVector[0] = newDirection;
-	phaseDirCol.put(fieldIndex, phaseDirVector);
-	delayDirCol.put(fieldIndex, phaseDirVector);
-	refDirCol.put(fieldIndex, phaseDirVector);
+	else {
+		MDirection refDirection =
+			MDirection::Convert(newDirection,
+													MDirection::Ref(MDirection::J2000))();
+		IPosition dataShape = dataCol.shape(0);
+		unsigned polarizationCount = dataShape[0];
+		Array<Complex> dataArray(dataShape);
+		
+		for(unsigned row=0; row!=set.nrow(); ++row)
+		{
+			if(fieldIdCol(row) == fieldIndex)
+			{
+				// Read values from set
+				const int
+					antenna1 = antenna1Col(row),
+					antenna2 = antenna2Col(row);
+				const Muvw oldUVW = uvwCol(row);
+				MEpoch time = timeCol(row);
+
+				// Calculate the new UVW
+				Muvw uvw1 = calculateUVW(antennas[antenna1], antennas[0], time, refDirection);
+				Muvw uvw2 = calculateUVW(antennas[antenna2], antennas[0], time, refDirection);
+				MVuvw newUVW = uvw1.getValue()-uvw2.getValue();
+				
+				// If one of the first results, output values for analyzing them.
+				if(row < 5)
+				{
+					std::cout << "Old " << oldUVW << " (" << length(oldUVW) << ")\n";
+					std::cout << "New " << newUVW << " (" << length(newUVW) << ")\n\n";
+				}
+				
+				// Read the visibilities and phase-rotate them
+				double wShiftFactor =
+					-2.0*M_PI* (newUVW.getVector()[2] - oldUVW.getValue().getVector()[2]);
+
+				dataCol.get(row, dataArray);
+				rotateVisibilities(bandData, wShiftFactor, polarizationCount, dataArray.cbegin());
+				dataCol.put(row, dataArray);
+					
+				if(hasCorrData)
+				{
+					correctedDataCol->get(row, dataArray);
+					rotateVisibilities(bandData, wShiftFactor, polarizationCount, dataArray.cbegin());
+					correctedDataCol->put(row, dataArray);
+				}
+				
+				if(hasModelData)
+				{
+					modelDataCol->get(row, dataArray);
+					rotateVisibilities(bandData, wShiftFactor, polarizationCount, dataArray.cbegin());
+					modelDataCol->put(row, dataArray);
+				}
+				
+				// Store uvws
+				uvwOutCol.put(row, newUVW.getVector());
+			}
+		}
+		phaseDirVector[0] = newDirection;
+		phaseDirCol.put(fieldIndex, phaseDirVector);
+		delayDirCol.put(fieldIndex, phaseDirVector);
+		refDirCol.put(fieldIndex, phaseDirVector);
+	}
 }
 
 void readAntennas(MeasurementSet &set, std::vector<MPosition> &antennas)
@@ -192,12 +209,93 @@ void readAntennas(MeasurementSet &set, std::vector<MPosition> &antennas)
 	//std::cout << diff[0]/5000.0 << "\t" << diff[1]/5000.0 << "\t" << diff[2]/5000.0 << '\n';
 }
 
+casa::MPosition ArrayCentroid(MeasurementSet& set)
+{
+	casa::MSAntenna aTable = set.antenna();
+	if(aTable.nrow() == 0) throw std::runtime_error("No antennae in set");
+	casa::MPosition::ROScalarColumn antPosColumn(aTable, aTable.columnName(casa::MSAntennaEnums::POSITION));
+	double x = 0.0, y = 0.0, z = 0.0;
+	for(size_t row=0; row!=aTable.nrow(); ++row)
+	{
+		casa::MPosition antPos = antPosColumn(row);
+		casa::Vector<casa::Double> vec = antPos.getValue().getVector();
+		x += vec[0]; y += vec[1]; z += vec[2];
+	}
+	casa::MPosition arrayPos = antPosColumn(0);
+	double count = aTable.nrow();
+	arrayPos.set(casa::MVPosition(x/count, y/count, z/count), arrayPos.getRef());
+	return arrayPos;
+}
+
+MDirection ZenithDirection(MeasurementSet& set)
+{
+	casa::MPosition arrayPos = ArrayCentroid(set);
+	casa::MEpoch::ROScalarColumn timeColumn(set, set.columnName(casa::MSMainEnums::TIME));
+	casa::MEpoch time = timeColumn(set.nrow()/2);
+	casa::MeasFrame frame(arrayPos, time);
+	const casa::MDirection::Ref azelgeoRef(casa::MDirection::AZELGEO, frame);
+	const casa::MDirection::Ref j2000Ref(casa::MDirection::J2000, frame);
+	casa::MDirection zenithAzEl(casa::MVDirection(0.0, 0.0, 1.0), azelgeoRef);
+	return casa::MDirection::Convert(zenithAzEl, j2000Ref)();
+}
+
+MDirection MinWDirection(MeasurementSet& set)
+{
+	MPosition centroid = ArrayCentroid(set);
+	casa::Vector<casa::Double> cvec = centroid.getValue().getVector();
+	double cx = cvec[0], cy = cvec[1], cz = cvec[2];
+	
+	casa::MSAntenna aTable = set.antenna();
+	casa::MPosition::ROScalarColumn antPosColumn(aTable, aTable.columnName(casa::MSAntennaEnums::POSITION));
+	integer n = 3, m = aTable.nrow(), lda = m, ldu = m, ldvt = n;
+	std::vector<double> a(m*n);
+	
+	for(size_t row=0; row!=aTable.nrow(); ++row)
+	{
+		MPosition pos = antPosColumn(row);
+		casa::Vector<casa::Double> vec = pos.getValue().getVector();
+		a[row] = vec[0]-cx, a[row+m] = vec[1]-cy, a[row+2*m] = vec[2]-cz;
+	}
+	
+	double wkopt;
+	std::vector<double> s(n), u(ldu*m), vt(ldvt*n);
+	integer lwork = -1, info;
+	dgesvd_( "All", "All", &m, &n, &a[0], &lda, &s[0], &u[0], &ldu, &vt[0], &ldvt, &wkopt, &lwork, &info);
+	lwork = (int) wkopt;
+	double* work = (double*) malloc( lwork*sizeof(double) );
+	/* Compute SVD */
+	dgesvd_( "All", "All", &m, &n, &a[0], &lda, &s[0], &u[0], &ldu, &vt[0], &ldvt, work, &lwork, &info );
+	free((void*) work);
+	
+	if(info > 0)
+		throw std::runtime_error("The algorithm computing SVD failed to converge");
+	else {
+		// Get the right singular vector belonging to the smallest SV
+		double x = vt[n*0 + n-1], y = vt[n*1 + n-1], z = vt[n*2 + n-1];
+		// Get the hemisphere right
+		if((z < 0.0 && cz > 0.0) || (z > 0.0 && cz < 0.0))
+		{
+			x = -x; y =-y; z = -z;
+		}
+		
+		casa::MEpoch::ROScalarColumn timeColumn(set, set.columnName(casa::MSMainEnums::TIME));
+		casa::MEpoch time = timeColumn(set.nrow()/2);
+		casa::MeasFrame frame(centroid, time);
+		MDirection::Ref ref(casa::MDirection::ITRF, frame);
+		casa::MDirection direction(casa::MVDirection(x, y, z), ref);
+		const casa::MDirection::Ref j2000Ref(casa::MDirection::J2000, frame);
+		return casa::MDirection::Convert(direction, j2000Ref)();
+	}
+}
+
 void printPhaseDir(const std::string &filename)
 {
 	MeasurementSet set(filename);
 	MSField fieldTable = set.field();
 	MDirection::ROArrayColumn phaseDirCol(fieldTable, fieldTable.columnName(MSFieldEnums::PHASE_DIR));
-	std::cout << "Current phase direction:\n";
+	MDirection zenith = ZenithDirection(set);
+	
+	std::cout << "Current phase direction:\n  ";
 	for(size_t i=0; i!=fieldTable.nrow(); ++i)
 	{
 		Vector<MDirection> phaseDirVector = phaseDirCol(i);
@@ -205,18 +303,8 @@ void printPhaseDir(const std::string &filename)
 		std::cout << dirToString(phaseDirection) << '\n';
 	}
 	
-	casa::MSAntenna aTable = set.antenna();
-	if(aTable.nrow() == 0) throw std::runtime_error("No antennae in set");
-	casa::MPosition::ROScalarColumn antPosColumn(aTable, aTable.columnName(casa::MSAntennaEnums::POSITION));
-	casa::MPosition arrayPos = antPosColumn(0);
-	casa::MEpoch::ROScalarColumn timeColumn(set, set.columnName(casa::MSMainEnums::TIME));
-	casa::MEpoch time = timeColumn(set.nrow()/2);
-	casa::MeasFrame frame(arrayPos, time);
-	const casa::MDirection::Ref azelgeoRef(casa::MDirection::AZELGEO, frame);
-	const casa::MDirection::Ref j2000Ref(casa::MDirection::J2000, frame);
-	casa::MDirection zenithAzEl(casa::MVDirection(0.0, 0.0, 1.0), azelgeoRef);
-	casa::MDirection zenith = casa::MDirection::Convert(zenithAzEl, j2000Ref)();
-	std::cout << "Zenith is at:\n" << dirToString(zenith) << '\n';
+	std::cout << "Zenith is at:\n  " << dirToString(zenith) << '\n';
+	std::cout << "Min-w direction is at:\n  " << dirToString(MinWDirection(set)) << '\n';
 }
 
 int main(int argc, char **argv)
@@ -224,30 +312,61 @@ int main(int argc, char **argv)
 	std::cout <<
 		"A program to change the phase centre of a measurement set.\n"
 		"Written by André Offringa (offringa@gmail.com).\n\n";
-	if(argc == 2)
-	{
-		printPhaseDir(argv[1]);
-	}
-	else if(argc != 4)
+	if(argc < 2)
 	{
 		std::cout <<
-			"Syntax: chgcentre <ms> <new ra> <new dec>\n\n"
+			"Syntax: chgcentre [options] <ms> <new ra> <new dec>\n\n"
 			"The format of RA can either be 00h00m00.0s or 00:00:00.0\n"
 			"The format of Dec can either be 00d00m00.0s or 00.00.00.0\n\n"
 			"Example to rotate to HydA:\n"
 			"\tchgcentre myset.ms 09h18m05.8s -12d05m44s\n\n";
 	} else {
-		MeasurementSet set(argv[1], Table::Update);
-		double newRA = RaDecCoord::ParseRA(argv[2]);
-		double newDec = RaDecCoord::ParseDec(argv[3]);
-		MDirection newDirection(MVDirection(newRA, newDec), MDirection::Ref(MDirection::J2000));
-		
-		readAntennas(set, antennas);
-		
-		MSField fieldTable = set.field();
-		for(unsigned fieldIndex=0; fieldIndex!=fieldTable.nrow(); ++fieldIndex)
+		int argi=1;
+		bool toZenith = false, toMinW = false;
+		while(argv[argi][0] == '-')
 		{
-			processField(set, fieldIndex, fieldTable, newDirection);
+			std::string param(&argv[argi][1]);
+			if(param == "zenith")
+			{
+				toZenith = true;
+			}
+			else if(param == "minw")
+			{
+				toMinW = true;
+			}
+			else throw std::runtime_error("Invalid parameter");
+			++argi;
+		}
+		if(argi == argc)
+			std::cout << "Missing parameter.\n";
+		else if(argi+1 == argc && !toZenith && !toMinW)
+		{
+			printPhaseDir(argv[argi]);
+		}
+		else {
+			MeasurementSet set(argv[argi], Table::Update);
+			MDirection newDirection;
+			if(toZenith)
+			{
+				newDirection = ZenithDirection(set);
+			}
+			else if(toMinW)
+			{
+				newDirection = MinWDirection(set);
+			}
+			else {
+				double newRA = RaDecCoord::ParseRA(argv[argi+1]);
+				double newDec = RaDecCoord::ParseDec(argv[argi+2]);
+				newDirection = MDirection(MVDirection(newRA, newDec), MDirection::Ref(MDirection::J2000));
+			}
+			
+			readAntennas(set, antennas);
+			
+			MSField fieldTable = set.field();
+			for(unsigned fieldIndex=0; fieldIndex!=fieldTable.nrow(); ++fieldIndex)
+			{
+				processField(set, fieldIndex, fieldTable, newDirection);
+			}
 		}
 	}
 	

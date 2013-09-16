@@ -38,7 +38,7 @@ class MSWriterData
 		casa::Vector<float> *_weightsArr;
 };
 
-MSWriter::MSWriter(const char* filename) :
+MSWriter::MSWriter(const std::string& filename) :
 	_data(new MSWriterData),
 	_rowIndex(0),
 	_nChannels(0)

@@ -6,18 +6,18 @@
 
 #define VLIGHT 299792458.0  // speed of light in m/s
 
-FitsWriter::FitsWriter(const char* filename) : _nRowsWritten(0), _groupHeadersInitialized(false)
+FitsWriter::FitsWriter(const std::string& filename) : _nRowsWritten(0), _groupHeadersInitialized(false)
 {
 	/** If the file already exists, remove it */
-	FILE *fp = std::fopen(filename, "r");
+	FILE *fp = std::fopen(filename.c_str(), "r");
   if (fp != NULL) {
     std::fclose(fp);
-    std::remove(filename);
+    std::remove(filename.c_str());
   }
   
 	int status = 0;
-  if(fits_create_file(&_fptr, filename, &status))
-		throwError(status, std::string("Cannot open file ") + filename);
+  if(fits_create_file(&_fptr, filename.c_str(), &status))
+		throwError(status, "Cannot open file " + filename);
 }
 
 FitsWriter::~FitsWriter()

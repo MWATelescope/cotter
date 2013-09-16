@@ -6,19 +6,7 @@
 #include <string>
 #include <map>
 
-struct MWAInput
-{
-	MWAInput() :
-	inputIndex(0), antennaIndex(0), cableLenDelta(0.0), polarizationIndex(0), isFlagged(false), slot(0)
-	{ }
-	
-	size_t inputIndex;
-	size_t antennaIndex;
-	double cableLenDelta;
-	unsigned polarizationIndex;
-	bool isFlagged;
-	size_t slot;
-};
+#include "mwainput.h"
 
 struct MWAHeader
 {
@@ -38,7 +26,7 @@ struct MWAHeader
 		int    year, month, day;        // date/time in UTC.
 		int    refHour, refMinute;
 		double refSecond;
-		bool   invertFrequency;         // flag to indicate that freq decreases with increasing channel number.
+		//bool   invertFrequency;         // flag to indicate that freq decreases with increasing channel number.
 		bool   conjugate;               // conjugate the final vis to correct for any sign errors
 		bool   geomCorrection;          // apply geometric phase correction
 		std::string fieldName;
@@ -65,8 +53,8 @@ struct MWAHeaderExt
 	
 	int gpsTime;
 	std::string observerName, projectName, gridName, mode, filename;
-	int delays[16], subbandGains[24];
-	bool hasCalibrator;
+	int delays[16], subbandGains[24], subbandNumbers[24];
+	bool hasCalibrator, hasGlobalSubbandGains;
 	int centreSBNumber;
 	double fiberFactor;
 	double tilePointingRARad, tilePointingDecRad;
@@ -115,8 +103,8 @@ class MWAConfig
 		void CheckSetup();
 		
 		const MWAInput &Input(const size_t index) const { return _inputs[index]; }
-		const MWAInput &AntennaXInput(const size_t antennaIndex) const { return _antennaXInputs.find(antennaIndex)->second; }
-		const MWAInput &AntennaYInput(const size_t antennaIndex) const { return _antennaYInputs.find(antennaIndex)->second; }
+		const MWAInput &AntennaXInput(const size_t antennaIndex) const { return *_antennaXInputs.find(antennaIndex)->second; }
+		const MWAInput &AntennaYInput(const size_t antennaIndex) const { return *_antennaYInputs.find(antennaIndex)->second; }
 		const MWAAntenna &Antenna(const size_t antennaIndex) const {
 			return _antennae[antennaIndex];
 		}
@@ -125,11 +113,20 @@ class MWAConfig
 		const MWAHeader &Header() const { return _header; }
 		const MWAHeaderExt &HeaderExt() const { return _headerExt; }
 		
+		MWAInput &InputRW(const size_t index) { return _inputs[index]; }
+		MWAHeader &HeaderRW() { return _header; }
+		MWAHeaderExt &HeaderExtRW() { return _headerExt; }
+		
 		double ChannelFrequencyHz(size_t channelIndex) const
 		{
-			const double invertFactor = _header.invertFrequency ? -1.0 : 1.0;
+			const double channelWidthMHz = _header.bandwidthMHz / _header.nChannels;
 			return (_header.centralFrequencyMHz +
-				invertFactor * (channelIndex - _header.nChannels*0.5) * _header.bandwidthMHz / _header.nChannels) * 1000000.0;
+				(channelIndex - _header.nChannels*0.5) * channelWidthMHz) * 1000000.0;
+		}
+		double ChannelFrequencyHz(size_t coarseChannelNr, size_t channelIndexInSubband) const
+		{
+			const double channelWidthHz = 1000000.0*_header.bandwidthMHz / _header.nChannels;
+			return (double(coarseChannelNr) - 0.5) * 1280000.0 + double(channelIndexInSubband)*channelWidthHz;
 		}
 		
 		size_t CentreSubbandNumber() const;
@@ -139,11 +136,10 @@ class MWAConfig
 		static double ArrayHeightMeters();
 		static double VelocityFactor();
 		
-		MWAHeader &HeaderRW() { return _header; }
 	private:
 		std::vector<MWAInput> _inputs;
 		std::vector<MWAAntenna> _antennae;
-		std::map<size_t, MWAInput> _antennaXInputs, _antennaYInputs;
+		std::map<size_t, MWAInput*> _antennaXInputs, _antennaYInputs;
 		MWAHeader _header;
 		MWAHeaderExt _headerExt;
 		
