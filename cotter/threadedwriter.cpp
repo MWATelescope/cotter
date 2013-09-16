@@ -53,7 +53,7 @@ void ThreadedWriter::WriteRow(double time, double timeCentroid, size_t antenna1,
 {
 	boost::mutex::scoped_lock lock(_mutex);
 	
-	// Wait until the writer is ready AND the buffer is empty
+	// Wait until the writer is ready AND the buffer is empty (=not ready)
 	while(!_isWriterReady || _isBufferReady)
 		_bufferChangeCondition.wait(lock);
 	
