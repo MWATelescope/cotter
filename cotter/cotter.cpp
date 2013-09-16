@@ -1157,7 +1157,7 @@ void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask) const
 		for(size_t ch=0; ch!=flagMask.Height(); ++ch)
 		{
 			bool *channelPtr = flagMask.Buffer() + ch*flagMask.HorizontalStride();
-			const size_t count = _quackSampleCount - _curChunkStart;
+			const size_t count = std::min(_quackSampleCount - _curChunkStart, flagMask.Width());
 			for(size_t x=0; x!=count; ++x)
 			{
 				*channelPtr = true;
@@ -1199,7 +1199,7 @@ void Cotter::reorderSubbands(ImageSet& imageSet) const
 {
 	// Reorder only in contiguous mode; in non-contiguous mode, coarse channels will be
 	// read in the right order by the reader.
-	if(_curChunkStart==0 && _curSbEnd == _subbandCount)
+	if(_curSbStart==0 && _curSbEnd == _subbandCount)
 	{
 		float *temp = new float[imageSet.HorizontalStride() * imageSet.Height()];
 		const size_t channelsPerSubband = imageSet.Height()/_subbandCount;
