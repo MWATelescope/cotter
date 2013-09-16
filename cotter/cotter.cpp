@@ -38,7 +38,7 @@ Cotter::Cotter() :
 	_maxBufferSize(0),
 	_subbandCount(24),
 	_quackSampleCount(4),
-	_subbandEdgeFlagCount(1),
+	_subbandEdgeFlagCount(2),
 	_defaultFilename(true),
 	_rfiDetection(true),
 	_collectStatistics(true),
