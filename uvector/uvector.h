@@ -5,6 +5,7 @@
 #include <iterator>
 #include <memory>
 #include <utility>
+#include <stdexcept>
 
 /**
  * Tp must satisfy:
@@ -15,8 +16,14 @@ template<typename Tp, typename Alloc = std::allocator<Tp> >
 class uvector : private Alloc
 {
 public:
+	typedef Tp value_type;
+	typedef Alloc allocator_type;
+	typedef Tp& reference;
+	typedef const Tp& const_reference;
 	typedef Tp* pointer;
+	typedef const Tp* const_pointer;
 	typedef std::size_t size_t;
+	typedef std::size_t size_type;
 	typedef Tp* iterator;
 	typedef const Tp* const_iterator;
 	typedef std::reverse_iterator<iterator> reverse_iterator;
@@ -135,12 +142,6 @@ public:
 		return *this;
 	}
 	
-	bool empty() const noexcept { return _begin == _end; }
-	
-	size_t size() const noexcept { return _end - _begin; }
-	
-	size_t capacity() const noexcept { return _endOfStorage - _begin; }
-	
 	iterator begin() { return _begin; }
 	
 	const_iterator begin() const { return _begin; }
@@ -157,29 +158,99 @@ public:
 	
 	const_reverse_iterator rend() const { return const_reverse_iterator(begin()); }
 	
+	const_iterator cbegin() const { return _begin; }
+	
+	const_iterator cend() const { return _end; }
+	
+	const_reverse_iterator crbegin() const { return const_reverse_iterator(end()); }
+	
+	const_reverse_iterator crend() const { return const_reverse_iterator(begin()); }
+	
+	size_t size() const noexcept { return _end - _begin; }
+	
+	size_t max_size() const noexcept { return Alloc::max_size(); }
+	
+	void resize(size_t n)
+	{
+		if(capacity() < n)
+		{
+			pointer newStorage = allocate(n);
+			memcpy(newStorage, _begin, size() * sizeof(Tp));
+			deallocate();
+			_begin = newStorage;
+			_endOfStorage = _begin + n;
+		}
+		_end = _begin + n;
+	}
+	
+	void resize(size_t n, const Tp& val)
+	{
+		size_t oldSize = size();
+		if(capacity() < n)
+		{
+			pointer newStorage = allocate(n);
+			memcpy(newStorage, _begin, size() * sizeof(Tp));
+			deallocate();
+			_begin = newStorage;
+			_endOfStorage = _begin + n;
+		}
+		_end = _begin + n;
+		if(oldSize < n)
+			fill(_begin + oldSize, _end, val);
+	}
+	
+	size_t capacity() const noexcept { return _endOfStorage - _begin; }
+	
+	bool empty() const noexcept { return _begin == _end; }
+	
+	void reserve(size_t n)
+	{
+		if(capacity() < n)
+		{
+			const size_t curSize = size();
+			pointer newStorage = allocate(n);
+			memcpy(newStorage, _begin, curSize * sizeof(Tp));
+			deallocate();
+			_begin = newStorage;
+			_end = newStorage + curSize;
+			_endOfStorage = _begin + n;
+		}
+	}
+	
+	void shrink_to_fit()
+	{
+		const size_t curSize = size();
+		if(curSize == 0)
+		{
+			deallocate();
+			_begin = nullptr;
+			_end = nullptr;
+			_endOfStorage = nullptr;
+		}
+		else {
+			pointer newStorage = allocate(curSize);
+			memcpy(newStorage, _begin, curSize * sizeof(Tp));
+			deallocate();
+			_begin = newStorage;
+			_end = newStorage + curSize;
+			_endOfStorage = _begin + curSize;
+		}
+	}
+	
 	Tp& operator[](size_t index) { return _begin[index]; }
 	
 	const Tp& operator[](size_t index) const { return _begin[index]; }
 	
-	void resize(size_t n)
+	Tp& at(size_t index)
 	{
-		pointer newStorage = allocate(n);
-		memcpy(newStorage, _begin, std::min(n, size()) * sizeof(Tp));
-		deallocate();
-		_begin = newStorage;
-		_end = _begin + n;
-		_endOfStorage = _begin + n;
+		check_bounds(index);
+		return _begin[index];
 	}
 	
-	void reserve(size_t n)
+	const Tp& at(size_t index) const
 	{
-		size_t newSize = std::min(n, size());
-		pointer newStorage = allocate(n);
-		memcpy(newStorage, _begin, newSize * sizeof(Tp));
-		deallocate();
-		_begin = newStorage;
-		_end = newStorage + newSize;
-		_endOfStorage = _begin + n;
+		check_bounds(index);
+		return _begin[index];
 	}
 	
 	Tp& front() { return *_begin; }
@@ -193,6 +264,41 @@ public:
 	Tp* data() { return _begin; }
 	
 	const Tp* data() const { return _begin; }
+	
+	template<class InputIterator>
+  void assign(InputIterator first, InputIterator last)
+	{
+		assign_from_range<InputIterator>(first, last, std::is_integral<InputIterator>());
+	}
+	
+	void assign(size_t n, const Tp& val)
+	{
+		if(n > capacity())
+		{
+			deallocate();
+			_begin = allocate(n);
+			_endOfStorage = _begin + n;
+		}
+		_end = _begin + n;
+		fill(_begin, _end, val);
+	}
+	
+	void assign(std::initializer_list<Tp> initlist)
+	{
+		if(initlist.size() > capacity())
+		{
+			deallocate();
+			_begin = allocate(initlist.size());
+			_endOfStorage = _begin + initlist.size();
+		}
+		_end = _begin + initlist.size();
+		iterator destIter = _begin;
+		for(typename std::initializer_list<Tp>::const_iterator i=initlist.begin(); i!=initlist.end(); ++i)
+		{
+			*destIter = *i;
+			++destIter;
+		}
+	}
 	
 	void push_back(const Tp& item)
 	{
@@ -224,18 +330,79 @@ public:
 		++_end;
 	}
 	
-	iterator insert(iterator position, const Tp& item)
+	iterator insert(const_iterator position, const Tp& item)
 	{
 		if(_end == _endOfStorage)
 		{
 			size_t index = position - _begin;
-			enlarge();
+			enlarge_for_insert(enlarge_size(), index, 1);
 			position = _begin + index;
 		}
-		memmove(position+1, position, (_end - position) * sizeof(Tp));
-		*position = item;
-		++_end;
-		return position;
+		else {
+			memmove(const_cast<iterator>(position)+1, position, (_end - position) * sizeof(Tp));
+			++_end;
+		}
+		*const_cast<iterator>(position) = item;
+		return const_cast<iterator>(position);
+	}
+	
+	iterator insert(const_iterator position, size_t n, const Tp& val)
+	{
+		if(capacity() < size() + n)
+		{
+			size_t index = position - _begin;
+			enlarge_for_insert(std::max(size() + n, enlarge_size()), index, n);
+			position = _begin + index;
+		}
+		else {
+			memmove(const_cast<iterator>(position)+n, position, (_end - position) * sizeof(Tp));
+			_end += n;
+		}
+		fill(const_cast<iterator>(position), const_cast<iterator>(position)+n, val);
+		return const_cast<iterator>(position);
+	}
+	
+	template <class InputIterator>
+	iterator insert(const_iterator position, InputIterator first, InputIterator last)
+	{
+		return insert_from_range<InputIterator>(position, first, last, std::is_integral<InputIterator>());
+	}
+	
+	iterator insert(const_iterator position, Tp&& item)
+	{
+		if(_end == _endOfStorage)
+		{
+			size_t index = position - _begin;
+			enlarge_for_insert(enlarge_size(), index, 1);
+			position = _begin + index;
+		}
+		else {
+			memmove(const_cast<iterator>(position)+1, position, (_end - position) * sizeof(Tp));
+			++_end;
+		}
+		*const_cast<iterator>(position) = std::move(item);
+		return const_cast<iterator>(position);
+	}
+	
+	iterator insert(const_iterator position, std::initializer_list<Tp> initlist)
+	{
+		if(capacity() < size() + initlist.size())
+		{
+			size_t index = position - _begin;
+			enlarge_for_insert(std::max(size() + initlist.size(), enlarge_size()), index, initlist.size());
+			position = _begin + index;
+		}
+		else {
+			memmove(const_cast<iterator>(position)+initlist.size(), position, (_end - position) * sizeof(Tp));
+			_end += initlist.size();
+		}
+		iterator destIter = const_cast<iterator>(position);
+		for(typename std::initializer_list<Tp>::const_iterator i=initlist.begin(); i!=initlist.end(); ++i)
+		{
+			*destIter = *i;
+			++destIter;
+		}
+		return const_cast<iterator>(position);
 	}
 	
 private:
@@ -284,10 +451,106 @@ private:
 			++destIter; ++first;
 		}
 	}
-		
+	
+	template<typename InputIterator>
+	void assign_from_range(InputIterator first, InputIterator last, std::false_type)
+	{
+		assign_from_range<InputIterator>(first, last, typename std::iterator_traits<InputIterator>::iterator_category());
+	}
+	
+	template<typename Integral>
+	void assign_from_range(Integral n, Integral val, std::true_type)
+	{
+		if(size_t(n) > capacity())
+		{
+			deallocate();
+			_begin = allocate(n);
+			_endOfStorage = _begin + n;
+		}
+		_end = _begin + n;
+		fill(_begin, _end, val);
+	}
+	
+	template<typename InputIterator>
+	void assign_from_range(InputIterator first, InputIterator last, std::forward_iterator_tag)
+	{
+		size_t n = std::distance(first, last);
+		if(n > capacity())
+		{
+			deallocate();
+			_begin = allocate(n);
+			_endOfStorage = _begin + n;
+		}
+		_end = _begin + n;
+		Tp* destIter = _begin;
+		while(first != last)
+		{
+			*destIter = *first;
+			++destIter; ++first;
+		}
+	}
+	
+	template<typename InputIterator>
+	iterator insert_from_range(const_iterator position, InputIterator first, InputIterator last, std::false_type)
+	{
+		return insert_from_range<InputIterator>(position, first, last,
+			typename std::iterator_traits<InputIterator>::iterator_category());
+	}
+	
+	template<typename Integral>
+	iterator insert_from_range(const_iterator position, Integral n, Integral val, std::true_type)
+	{
+		if(capacity() < size() + n)
+		{
+			size_t index = position - _begin;
+			enlarge_for_insert(std::max(size() + n, enlarge_size()), index, n);
+			position = _begin + index;
+		}
+		else {
+			memmove(const_cast<iterator>(position)+n, position, (_end - position) * sizeof(Tp));
+			_end += n;
+		}
+		fill(const_cast<iterator>(position), const_cast<iterator>(position)+n, val);
+		return const_cast<iterator>(position);
+	}
+	
+	template<typename InputIterator>
+	iterator insert_from_range(const_iterator position, InputIterator first, InputIterator last, std::forward_iterator_tag)
+	{
+		size_t n = std::distance(first, last);
+		if(capacity() < size() + n)
+		{
+			size_t index = position - _begin;
+			enlarge_for_insert(std::max(size() + n, enlarge_size()), index, n);
+			position = _begin + index;
+		}
+		else {
+			memmove(const_cast<iterator>(position)+n, position, (_end - position) * sizeof(Tp));
+			_end += n;
+		}
+		Tp* destIter = const_cast<iterator>(position);
+		while(first != last)
+		{
+			*destIter = *first;
+			++destIter; ++first;
+		}
+		return const_cast<iterator>(position);
+	}
+	
+	void check_bounds(size_t index) const
+	{
+		if(index >= size())
+			throw std::out_of_range("Access to element in uvector >= size()");
+	}
+	
+	size_t enlarge_size() const noexcept
+	{
+		return size() * 2 + 16;
+	}
+	
 	void enlarge()
 	{
-		enlarge(size() * 2 + 16);
+		enlarge(enlarge_size());
 	}
 	
 	void enlarge(size_t newSize)
@@ -296,6 +559,17 @@ private:
 		memcpy(newStorage, _begin, size() * sizeof(Tp));
 		deallocate();
 		_end = newStorage + size();
+		_begin = newStorage;
+		_endOfStorage = _begin + newSize;
+	}
+	
+	void enlarge_for_insert(size_t newSize, size_t insert_position, size_t insert_count)
+	{
+		pointer newStorage = allocate(newSize);
+		memcpy(newStorage, _begin, insert_position * sizeof(Tp));
+		memcpy(newStorage + insert_position + insert_count, _begin + insert_position, (size() - insert_position) * sizeof(Tp));
+		deallocate();
+		_end = newStorage + size() + insert_count;
 		_begin = newStorage;
 		_endOfStorage = _begin + newSize;
 	}
