@@ -72,7 +72,7 @@ void MetaFitsFile::ReadHeader(MWAHeader& header, MWAHeaderExt &headerExt)
 			else
 				keyValueStr += '\'';
 			checkStatus(status);
-			fits_free_memory(keyValueLong, &status);
+			fffree(keyValueLong, &status); // use the short name; some fftw version don't know the long name
 			checkStatus(status);
 		}
 		
