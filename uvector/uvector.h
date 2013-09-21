@@ -8,36 +8,116 @@
 #include <stdexcept>
 
 /**
- * Tp must satisfy:
- * - Its behaviour must be defined when it is not initialized
- * - It must be copyable with memcpy
+ * @file uvector.h
+ * Header file for uvector and its relational and swap function.
+ * @author André Offringa
+ * @copyright André Offringa, 2013, distributed under the GPL license version 3.
+ */
+
+/**
+ * @brief A container similar to std::vector that can be constructed without initializing its elements.
+ * @details This container is similar to a std::vector, except that it can be constructor without
+ * initializing its elements. This saves the overhead of initialization, hence the
+ * constructor @ref uvector(size_t) is significantly faster than the corresponding std::vector
+ * constructor, and has no overhead to a manually allocated array.
+ * 
+ * Probably its greatest strength lies in the construction of containers with a number of elements
+ * that is runtime defined, but that will be initialized later. For example:
+ * 
+ * @code
+ * // Open a file
+ * std::ifstream file("myfile.bin");
+ * 
+ * // Construct a buffer for this file
+ * uvector<unsigned char> buffer(buffer_size);
+ * 
+ * // Read some data into the buffer
+ * file.read(&buffer[0], buffer_size);
+ * 
+ * @endcode
+ * 
+ * However, it has a few more use-cases with improved performance over std::vector. This is
+ * true because of more strengent requirements on the element's type.
+ * 
+ * The element type must be able to skip its constructor. This is the case for all integral
+ * types, such as @c char, @c int, pointers or simple structs or classes, but not for complex
+ * types that e.g. require their constructor to perform allocation, such as std::string or
+ * std::unique_ptr. A uvector can therefore also not hold itself as element type.
+ * 
+ * When an element is copied or assigned, there is no guarantee that the copy or move constructor
+ * or assignment operator are called. Instead, a byte-wise copy or displacement might be performed
+ * with @c memcpy or @c memmove. Finally, if a non-default copy or move
+ * constructor or assignment operator is defined, they are not allowed to throw. It also does not
+ * make much sense to define these methods, as there is no guarantee that they are called.
+ * 
+ * Because of the use of @c memcpy and @c memmove, the @ref push_back() and @ref insert()
+ * methods are a bit faster than the std::vector counterparts, at least on gcc 4.8. 
+ * 
+ * The methods with different semantics compared to std::vector are:
+ * * @ref uvector(size_t)
+ * * @ref resize(size_t)
+ * 
+ * Also one new member is introduced:
+ * * @ref insert_uninitialized(const_iterator, size_t)
+ * 
+ * All other members work exactly like std::vector's members, although some are slightly faster because of
+ * the stricter requirements on the element type.
+ * 
+ * @tparam Tp Container's element type
+ * @tparam Alloc Allocator type. Default is to use the std::allocator.
+ * 
+ * @author André Offringa
+ * @copyright André Offringa, 2013, distributed under the GPL license version 3.
  */
 template<typename Tp, typename Alloc = std::allocator<Tp> >
 class uvector : private Alloc
 {
 public:
+	/// Element type
 	typedef Tp value_type;
+	/// Type of allocator used to allocate and deallocate space
 	typedef Alloc allocator_type;
+	/// Reference to element type
 	typedef Tp& reference;
+	/// Constant reference to element type
 	typedef const Tp& const_reference;
+	/// Pointer to element type
 	typedef Tp* pointer;
+	/// Pointer to constant element type
 	typedef const Tp* const_pointer;
-	typedef std::size_t size_t;
-	typedef std::size_t size_type;
+	/// Iterator type
 	typedef Tp* iterator;
+	/// Iterator type of constant elements
 	typedef const Tp* const_iterator;
+	/// Reverse iterator type
 	typedef std::reverse_iterator<iterator> reverse_iterator;
+	/// Reverse iterator of constant elements
 	typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
+	/// Difference between to iterators
+	typedef std::ptrdiff_t difference_type;
+	/// Type used for indexing elements
+	typedef std::size_t size_t;
+	/// Type used for indexing elements
+	typedef std::size_t size_type;
 	
 private:
 	pointer _begin, _end, _endOfStorage;
 	
 public:
-	uvector(const Alloc& allocator = Alloc()) noexcept
+	/** @brief Construct an empty uvector.
+	 * @param allocator Allocator used for allocating and deallocating memory.
+	 */
+	uvector(const allocator_type& allocator = Alloc()) noexcept
 	: Alloc(allocator), _begin(nullptr), _end(nullptr), _endOfStorage(nullptr)
 	{
 	}
 	
+	/** @brief Construct a vector with given amount of elements, without initializing these.
+	 * @details This constructor deviates from std::vector's behaviour, because it will not
+	 * value construct its elements. It is therefore faster than the corresponding constructor
+	 * of std::vector.
+	 * @param n Number of elements that the uvector will be initialized with.
+	 */
 	explicit uvector(size_t n) :
 		_begin(allocate(n)),
 		_end(_begin + n),
@@ -45,7 +125,13 @@ public:
 	{
 	}
 	
-	uvector(size_t n, const Tp& val, const Alloc& allocator = Alloc()) :
+	/** @brief Construct a vector with given amount of elements and set these to a specific value.
+	 * @details This constructor will initialize its members with the given value. 
+	 * @param n Number of elements that the uvector will be initialized with.
+	 * @param val Value to initialize all elements with
+	 * @param allocator Allocator used for allocating and deallocating memory.
+	 */
+	uvector(size_t n, const value_type& val, const allocator_type& allocator = Alloc()) :
 		Alloc(allocator),
 		_begin(allocate(n)),
 		_end(_begin + n),
@@ -54,15 +140,23 @@ public:
 		fill(_begin, _end, val);
 	}
 	
+	/** @brief Construct a vector by copying elements from a range.
+	 * @param first Iterator to range start
+	 * @param last Iterator to range end
+	 * @param allocator Allocator used for allocating and deallocating memory.
+	 */
 	template<class InputIterator>
-	uvector(InputIterator first, InputIterator last, const Alloc& allocator = Alloc()) :
+	uvector(InputIterator first, InputIterator last, const allocator_type& allocator = Alloc()) :
 		Alloc(allocator)
 	{
 		construct_from_range<InputIterator>(first, last, std::is_integral<InputIterator>());
 	}
 	
-	uvector(const uvector& other) :
-		Alloc(other),
+	/** @brief Copy construct a uvector.
+	 * @param other Source uvector to be copied from.
+	 */
+	uvector(const uvector<Tp,Alloc>& other) :
+		Alloc(static_cast<allocator_type>(other)),
 		_begin(allocate(other.size())),
 		_end(_begin + other.size()),
 		_endOfStorage(_end)
@@ -70,7 +164,11 @@ public:
 		memcpy(_begin, other._begin, other.size() * sizeof(Tp));
 	}
 	
-	uvector(const uvector& other, const Alloc& allocator) :
+	/** @brief Copy construct a uvector with custom allocator.
+	 * @param other Source uvector to be copied from.
+	 * @param allocator Allocator used for allocating and deallocating memory.
+	 */
+	uvector(const uvector<Tp,Alloc>& other, const allocator_type& allocator) :
 		Alloc(allocator),
 		_begin(allocate(other.size())),
 		_end(_begin + other.size()),
@@ -79,7 +177,10 @@ public:
 		memcpy(_begin, other._begin, other.size() * sizeof(Tp));
 	}
 	
-	uvector(uvector&& other) :
+	/** @brief Move construct a uvector.
+	 * @param other Source uvector to be moved from.
+	 */
+	uvector(uvector<Tp,Alloc>&& other) :
 		Alloc(std::move(other)),
 		_begin(other._begin),
 		_end(other._end),
@@ -90,7 +191,11 @@ public:
 		other._endOfStorage = nullptr;
 	}
 	
-	uvector(uvector&& other, const Alloc& allocator) :
+	/** @brief Move construct a uvector with custom allocator.
+	 * @param other Source uvector to be moved from.
+	 * @param allocator Allocator used for allocating and deallocating memory.
+	 */
+	uvector(uvector<Tp,Alloc>&& other, const Alloc& allocator) :
 		Alloc(allocator),
 		_begin(other._begin),
 		_end(other._end),
@@ -101,6 +206,10 @@ public:
 		other._endOfStorage = nullptr;
 	}
 	
+	/** @brief Construct a uvector from a initializer list.
+	 * @param initlist Initializer list used for initializing the new uvector.
+	 * @param allocator Allocator used for allocating and deallocating memory.
+	 */
 	uvector(std::initializer_list<Tp> initlist, const Alloc& allocator = Alloc()) :
 		Alloc(allocator),
 		_begin(allocate(initlist.size())),
@@ -115,17 +224,19 @@ public:
 		}
 	}
 	
+	/** @brief Destructor. */
 	~uvector()
 	{
 		deallocate();
 	}
 	
-	uvector& operator=(const uvector& other)
+	uvector& operator=(const uvector<Tp,Alloc>& other)
 	{
 		const size_t n = other.size();
 		if(n > capacity()) {
+			iterator newStorage = allocate(n);
 			deallocate();
-			_begin = allocate(n);
+			_begin = newStorage;
 			_end = _begin + n;
 			_endOfStorage = _end;
 		}
@@ -133,7 +244,7 @@ public:
 		return *this;
 	}
 	
-	uvector& operator=(uvector&& other)
+	uvector& operator=(uvector<Tp,Alloc>&& other)
 	{
 		Alloc::operator=(other);
 		std::swap(_begin, other._begin);
@@ -275,8 +386,9 @@ public:
 	{
 		if(n > capacity())
 		{
+			iterator newStorage = allocate(n);
 			deallocate();
-			_begin = allocate(n);
+			_begin = newStorage;
 			_endOfStorage = _begin + n;
 		}
 		_end = _begin + n;
@@ -287,8 +399,9 @@ public:
 	{
 		if(initlist.size() > capacity())
 		{
+			iterator newStorage = allocate(initlist.size());
 			deallocate();
-			_begin = allocate(initlist.size());
+			_begin = newStorage;
 			_endOfStorage = _begin + initlist.size();
 		}
 		_end = _begin + initlist.size();
@@ -319,15 +432,6 @@ public:
 	void pop_back()
 	{
 		--_end;
-	}
-	
-	template<typename... Args>
-	void emplace_back(Args&&... args)
-	{
-		if(_end == _endOfStorage)
-			enlarge();
-		*_end = Tp(std::forward<Args...>(args...));
-		++_end;
 	}
 	
 	iterator insert(const_iterator position, const Tp& item)
@@ -405,7 +509,83 @@ public:
 		return const_cast<iterator>(position);
 	}
 	
+	iterator erase(const_iterator position)
+	{
+		--_end;
+		memmove(const_cast<iterator>(position), position+1, (_end-position)*sizeof(Tp));
+		return const_cast<iterator>(position);
+	}
+	
+	iterator erase(const_iterator first, const_iterator last)
+	{
+		size_t n = last - first;
+		_end -= n;
+		memmove(const_cast<iterator>(first), first+n, (_end-first)*sizeof(Tp));
+		return const_cast<iterator>(first);
+	}
+	
+	void swap(uvector<Tp, Alloc>& other)
+	{
+		std::swap(_begin, other._begin);
+		std::swap(_end, other._end);
+		std::swap(_endOfStorage, other._endOfStorage);
+		//swap_allocator(other, Alloc::propagate_on_container_move_assignment());
+		swap_allocator(other, std::true_type());
+	}
+	
+	void clear()
+	{
+		_end = _begin;
+	}
+	
+	template<typename... Args>
+	iterator emplace(const_iterator position, Args&&... args)
+	{
+		if(_end == _endOfStorage)
+		{
+			size_t index = position - _begin;
+			enlarge_for_insert(enlarge_size(), index, 1);
+			position = _begin + index;
+		}
+		else {
+			memmove(const_cast<iterator>(position)+1, position, (_end - position) * sizeof(Tp));
+			++_end;
+		}
+		*const_cast<iterator>(position) = Tp(std::forward<Args...>(args...));
+		return const_cast<iterator>(position);
+	}
+	
+	template<typename... Args>
+	void emplace_back(Args&&... args)
+	{
+		if(_end == _endOfStorage)
+			enlarge();
+		*_end = Tp(std::forward<Args...>(args...));
+		++_end;
+	}
+	
+	allocator_type get_allocator() const noexcept
+	{
+		return *this;
+	}
+	
+	iterator insert_uninitialized(const_iterator position, size_t n)
+	{
+		if(capacity() < size() + n)
+		{
+			size_t index = position - _begin;
+			enlarge_for_insert(std::max(size() + n, enlarge_size()), index, n);
+			position = _begin + index;
+		}
+		else {
+			memmove(const_cast<iterator>(position)+n, position, (_end - position) * sizeof(Tp));
+			_end += n;
+		}
+		return const_cast<iterator>(position);
+	}
+	
 private:
+	
 	pointer allocate(size_t n)
 	{
 		return Alloc::allocate(n);
@@ -463,8 +643,9 @@ private:
 	{
 		if(size_t(n) > capacity())
 		{
+			iterator newStorage = allocate(n);
 			deallocate();
-			_begin = allocate(n);
+			_begin = newStorage;
 			_endOfStorage = _begin + n;
 		}
 		_end = _begin + n;
@@ -477,8 +658,9 @@ private:
 		size_t n = std::distance(first, last);
 		if(n > capacity())
 		{
+			iterator newStorage = allocate(n);
 			deallocate();
-			_begin = allocate(n);
+			_begin = newStorage;
 			_endOfStorage = _begin + n;
 		}
 		_end = _begin + n;
@@ -545,7 +727,8 @@ private:
 	
 	size_t enlarge_size() const noexcept
 	{
-		return size() * 2 + 16;
+		//return size() * 2 + 16;
+		return size() + std::max(size(), size_t(1));
 	}
 	
 	void enlarge()
@@ -585,6 +768,74 @@ private:
 			}
 		}
 	}
+	
+	void swap_allocator(uvector<Tp,Alloc>& other, std::true_type /* propagate_on_container_move_assignment */)
+	{
+		std::swap(static_cast<Alloc&>(other), static_cast<Alloc&>(*this));
+	}
+	
+	void swap_allocator(uvector<Tp,Alloc>& other, std::false_type /* propagate_on_container_move_assignment */)
+	{
+		// no propagation: don't do anything
+	}
 };
+
+template<class Tp, class Alloc>
+inline bool operator==(const uvector<Tp,Alloc>& lhs, const uvector<Tp,Alloc>& rhs)
+{
+	return lhs.size()==rhs.size() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
+}
+
+template<class Tp, class Alloc>
+inline bool operator!=(const uvector<Tp,Alloc>& lhs, const uvector<Tp,Alloc>& rhs)
+{
+	return !(lhs == rhs);
+}
+
+template <class Tp, class Alloc>
+inline bool operator<(const uvector<Tp,Alloc>& lhs, const uvector<Tp,Alloc>& rhs)
+{
+	const size_t minSize = std::min(lhs.size(), rhs.size());
+	for(size_t i=0; i!=minSize; ++i)
+	{
+		if(lhs[i] < rhs[i])
+			return true;
+		else if(lhs[i] > rhs[i])
+			return false;
+	}
+	return lhs.size() < rhs.size();
+}
+
+template <class Tp, class Alloc>
+inline bool operator<=(const uvector<Tp,Alloc>& lhs, const uvector<Tp,Alloc>& rhs)
+{
+	const size_t minSize = std::min(lhs.size(), rhs.size());
+	for(size_t i=0; i!=minSize; ++i)
+	{
+		if(lhs[i] < rhs[i])
+			return true;
+		else if(lhs[i] > rhs[i])
+			return false;
+	}
+	return lhs.size() <= rhs.size();
+}
+
+template <class Tp, class Alloc>
+inline bool operator>(const uvector<Tp,Alloc>& lhs, const uvector<Tp,Alloc>& rhs)
+{
+	return rhs < lhs;
+}
+
+template <class Tp, class Alloc>
+inline bool operator>=(const uvector<Tp,Alloc>& lhs, const uvector<Tp,Alloc>& rhs)
+{
+	return rhs <= lhs;
+}
+
+template <class Tp, class Alloc>
+inline void swap(uvector<Tp,Alloc>& x, uvector<Tp,Alloc>& y)
+{
+	x.swap(y);
+}
 
 #endif // STDEXT_UVECTOR_H
