@@ -13,9 +13,21 @@ class RaDecCoord
 		static long double ParseRA(const std::string &str)
 		{
 			char *cstr;
+			bool sign = false;
+			for(size_t i=0; i!=str.size(); ++i)
+			{
+				if(str[i] == '-')
+				{
+					sign = true;
+					break;
+				} else if(str[i] != ' ')
+				{
+					sign = false;
+					break;
+				}
+			}
 			long double secs=0.0, mins=0.0,
 				hrs = strtol(str.c_str(), &cstr, 10);
-			bool sign = hrs < 0.0;
 			// Parse format '00h00m00.0s'
 			if(*cstr == 'h')
 			{
@@ -53,9 +65,21 @@ class RaDecCoord
 		static long double ParseDec(const std::string &str)
 		{
 			char *cstr;
+			bool sign = false;
+			for(size_t i=0; i!=str.size(); ++i)
+			{
+				if(str[i] == '-')
+				{
+					sign = true;
+					break;
+				} else if(str[i] != ' ')
+				{
+					sign = false;
+					break;
+				}
+			}
 			long double secs=0.0, mins=0.0,
 				degs = strtol(str.c_str(), &cstr, 10);
-			bool sign = degs < 0.0;
 			// Parse format '00d00m00.0s'
 			if(*cstr == 'd')
 			{
