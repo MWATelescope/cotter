@@ -4,34 +4,56 @@
 #include "uvector.h"
 #include "stopwatch.h"
 
+volatile int *ptr;
+
 template<class Tp>
 void doConstruct()
 {
-	for(std::size_t i=0; i!=2500000; ++i)
-		Tp(1000);
+	for(std::size_t i=0; i!=2500000; ++i) {
+		Tp tp(1000);
+		ptr = &tp[0];
+	}
 }
 
 template<class Tp>
 void doConstructFill()
 {
-	for(std::size_t i=0; i!=1000000; ++i)
-		Tp(1000, 0);
+	for(std::size_t i=0; i!=1000000; ++i) {
+		Tp tp(1000, 0);
+		ptr = &tp[0];
+	}
 }
 
 template<class Tp>
 void doCopyConstruct()
 {
 	Tp vec(1000, 1);
-	for(std::size_t i=0; i!=1000000; ++i)
-		volatile Tp a(vec);
+	for(std::size_t i=0; i!=1000000; ++i) {
+		Tp a(vec);
+		ptr = &a[0];
+	}
 }
 
 template<class Tp>
-void doAssign()
+void doAssignCopy()
 {
 	Tp vec(1000, 1), a;
-	for(std::size_t i=0; i!=1000000; ++i)
-		a = Tp(1000, 1);
+	for(std::size_t i=0; i!=1000000; ++i) {
+		a = vec;
+		ptr = &a[0];
+	}
+}
+
+template<class Tp>
+void doAssignMove()
+{
+	Tp vec(1000, 1), a;
+	for(std::size_t i=0; i!=1000000; ++i) {
+		a = std::move(vec);
+		ptr = &a[0];
+		vec = std::move(a);
+		ptr = &vec[0];
+	}
 }
 
 template<class Tp>
@@ -42,6 +64,7 @@ void doPushback()
 		Tp vec;
 		for(std::size_t i=0; i!=1000; ++i)
 			vec.push_back(i);
+		ptr = &vec[0];
 	}
 }
 
@@ -53,6 +76,7 @@ void doInsert()
 		Tp vec;
 		for(std::size_t i=0; i!=100; ++i)
 			vec.insert(vec.begin() + vec.size()/2, i);
+		ptr = &vec[0];
 	}
 }
 
@@ -64,6 +88,7 @@ void doInsertInitialized()
 		Tp vec;
 		for(std::size_t i=0; i!=100; ++i)
 			vec.insert(vec.begin() + vec.size()/2, 100, typename Tp::value_type());
+		ptr = &vec[0];
 	}
 }
 
@@ -75,6 +100,7 @@ void doInsertUninitialized()
 		Tp vec;
 		for(std::size_t i=0; i!=100; ++i)
 			vec.insert_uninitialized(vec.begin() + vec.size()/2, 100);
+		ptr = &vec[0];
 	}
 }
 
@@ -86,6 +112,7 @@ void doErase()
 		Tp vec(1000, 0);
 		for(std::size_t i=0; i!=1000; ++i)
 			vec.erase(vec.begin() + vec.size()/2);
+		ptr = &vec[0];
 	}
 }
 
@@ -189,19 +216,20 @@ void reportMeasurement(const Measurement& m)
 
 int main(int argc, char* argv[])
 {
-	uvector<Measurement> measurements(12);
-	measure<doInsertUninitialized<uvector<int>>, doInsertInitialized<std::vector<int>>>(measurements[6], "insert_uninitialized");
+	uvector<Measurement> measurements(13);
 	measure<doConstruct<uvector<int>>, doConstruct<std::vector<int>>>(measurements[0], "constructor");
 	measure<doConstructFill<uvector<int>>, doConstructFill<std::vector<int>>>(measurements[1], "constructor fill");
 	measure<doConstruct<uvector<int>>, doCopyConstruct<std::vector<int>>>(measurements[2], "copy constructor");
-	measure<doAssign<uvector<int>>, doAssign<std::vector<int>>>(measurements[3], "assign");
-	measure<doPushback<uvector<int>>, doPushback<std::vector<int>>>(measurements[4], "push_back");
-	measure<doInsert<uvector<int>>, doInsert<std::vector<int>>>(measurements[5], "insert");
-	measure<doErase<uvector<int>>, doErase<std::vector<int>>>(measurements[7], "erase");
-	measure<doIterate<uvector<int>>, doIterate<std::vector<int>>>(measurements[8], "iterate");
-	measure<doEquality<uvector<int>>, doEquality<std::vector<int>>>(measurements[9], "equality");
-	measure<doSmallerThan<uvector<int>>, doSmallerThan<std::vector<int>>>(measurements[10], "smaller than");
-	measure<doSmallerEqualThan<uvector<int>>, doSmallerEqualThan<std::vector<int>>>(measurements[11], "smaller or equal than");
+	measure<doAssignCopy<uvector<int>>, doAssignCopy<std::vector<int>>>(measurements[3], "assign copy");
+	measure<doAssignMove<uvector<int>>, doAssignMove<std::vector<int>>>(measurements[4], "assign move");
+	measure<doPushback<uvector<int>>, doPushback<std::vector<int>>>(measurements[5], "push_back");
+	measure<doInsert<uvector<int>>, doInsert<std::vector<int>>>(measurements[6], "insert");
+	measure<doInsertUninitialized<uvector<int>>, doInsertInitialized<std::vector<int>>>(measurements[7], "insert_uninitialized");
+	measure<doErase<uvector<int>>, doErase<std::vector<int>>>(measurements[8], "erase");
+	measure<doIterate<uvector<int>>, doIterate<std::vector<int>>>(measurements[9], "iterate");
+	measure<doEquality<uvector<int>>, doEquality<std::vector<int>>>(measurements[10], "equality");
+	measure<doSmallerThan<uvector<int>>, doSmallerThan<std::vector<int>>>(measurements[11], "smaller than");
+	measure<doSmallerEqualThan<uvector<int>>, doSmallerEqualThan<std::vector<int>>>(measurements[12], "smaller or equal than");
 	
 	for(uvector<Measurement>::const_iterator m=measurements.begin(); m!=measurements.end(); ++m)
 		reportMeasurement(*m);

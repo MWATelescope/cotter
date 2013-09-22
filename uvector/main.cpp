@@ -368,12 +368,13 @@ template<typename Tp>
 class FailingAllocator
 {
 public:
+	typedef Tp value_type;
 	typedef std::size_t size_type;
 	typedef Tp* pointer;
 	FailingAllocator() { }
 	FailingAllocator(bool fail) { _failAllocation = fail; }
 	void SetFailAllocation(bool fail) { _failAllocation = fail; }
-protected:
+	bool operator==(const FailingAllocator<Tp>&) { return true; }
 	pointer allocate(size_type n, std::allocator<void>::const_pointer hint=0)
 	{
 		if(_failAllocation)
@@ -391,9 +392,17 @@ private:
 template<typename Tp>
 bool FailingAllocator<Tp>::_failAllocation = false;
 
+template<typename Vec>
 void testBadAllocs()
 {
-	typedef uvector<int,FailingAllocator<int>> Vec;
+	typedef typename std::allocator_traits<typename Vec::allocator_type>::propagate_on_container_copy_assignment DoCopy;
+	typedef typename std::allocator_traits<typename Vec::allocator_type>::propagate_on_container_move_assignment DoMove;
+	typedef typename std::allocator_traits<typename Vec::allocator_type>::propagate_on_container_swap DoSwap;
+	std::cout <<
+		"Propogate on copy assignment: " << DoCopy().value << "\n"
+		"Propogate on move assignment: " << DoMove().value << "\n"
+		"Propogate on swap: " << DoSwap().value << "\n";
+	
 	Vec(5, 0, FailingAllocator<int>(false));
 	try {
 		Vec(5, 0, FailingAllocator<int>(true));
@@ -442,7 +451,7 @@ void testBadAllocs()
 	
 	vec.get_allocator().SetFailAllocation(true);
 	try {
-		vec.insert(0, 1000, 0);
+		vec.insert(vec.begin(), 1000, 0);
 		assert(false, "insert throws");
 	} catch(...) { 
 		assert(true, "insert throws");
@@ -456,34 +465,110 @@ class IdAllocater
 {
 public:
 	typedef std::size_t size_type;
+	typedef Tp value_type;
 	typedef Tp* pointer;
+	typedef std::true_type propagate_on_container_swap;
+	typedef std::true_type propagate_on_container_copy_assignment;
+	typedef std::true_type propagate_on_container_move_assignment;
 	IdAllocater(size_t id) : _id(id) { }
+	bool operator==(const IdAllocater<Tp>& rhs) { return rhs._id == _id; }
+	IdAllocater<Tp> operator=(const IdAllocater<Tp>& rhs) { _id = rhs._id; return *this; }
+	IdAllocater<Tp> select_on_container_copy_construction() const
+	{
+		return IdAllocater(_id+10);
+	}
 	size_t Id() const noexcept { return _id; }
-protected:
 	pointer allocate(size_type n, std::allocator<void>::const_pointer hint=0)
 	{
-		return static_cast<pointer>(malloc(n*sizeof(Tp)));
+		char *mem = static_cast<char*>(malloc(n*sizeof(Tp) + sizeof(_id)));
+		*reinterpret_cast<size_t*>(mem) = _id;
+		return reinterpret_cast<pointer>(mem + sizeof(_id));
 	}
 	void deallocate(pointer ptr, size_type n)
 	{
-		free(ptr);
+		char *mem = reinterpret_cast<char*>(ptr) - sizeof(_id);
+		size_t allocId = *reinterpret_cast<size_t*>(mem);
+		if(allocId == _id)
+		{
+			std::cout << "Correct deallocation for allocator with id " << _id << "\n";
+		}
+		else {
+			std::cout << "Deallocation error: Allocator id of allocation (" << allocId << ") is different from allocator id of deallocation (" << _id << ")\n";
+		}
+		free(mem);
 	}
 private:
 	size_t _id;
 };
 
+template<typename Vec>
 void testAllocater()
 {
-	uvector<int, IdAllocater<int>>
+	Vec
 		vecA({1, 2, 3}, IdAllocater<int>(4)),
-		vecB({1, 2, 3}, IdAllocater<int>(5)),
-		vecC(vecA);
+		vecB({11, 12, 13}, IdAllocater<int>(5)),
+		vecC(vecA); // select_on_container_copy_construction will add 10 to id
 	assert(vecA.get_allocator().Id() == 4, "alloc id == 4");
 	assert(vecB.get_allocator().Id() == 5, "alloc id == 5");
-	assert(vecC.get_allocator().Id() == 4, "alloc id == 4");
+	assert(vecC.get_allocator().Id() == 14, "alloc id == 4");
 	swap(vecA, vecB);
 	assert(vecA.get_allocator().Id() == 5, "alloc id == 5");
 	assert(vecB.get_allocator().Id() == 4, "alloc id == 4");
+	assert(vecA[0] == 11, "vecA[0] == 11");
+	assert(vecB[0] == 1, "vecB[0] == 1");
+	vecC = Vec({21, 22, 23}, IdAllocater<int>(6));
+	assert(vecC.get_allocator().Id() == 6, "alloc id == 6");
+	assert(vecC[0] == 21, "vecC[0] == 21");
+	vecC = std::move(vecA);
+	assert(vecA.end() - vecA.begin() >= 0, "vecA in valid state");
+	assert(vecC.get_allocator().Id() == 5, "alloc id == 5");
+	assert(vecC[0] == 11, "vecC[0] == 11");
+	Vec vecD(std::move(vecC));
+	assert(vecD.get_allocator().Id() == 5, "alloc id == 5");
+	assert(vecD[0] == 11, "vecD[0] == 11");
+	
+	class A { } ;
+	A a1, a2;
+	std::swap(a1, a2);
+}
+
+template<typename Vec>
+void testExtensions()
+{
+	// push_back(n, val)
+	Vec vecA{31};
+	vecA.push_back(2, 1337);
+	assert(vecA.size() == 3, "vec.size() == 3");
+	assert(vecA[0] == 31, "vecA[0] == 31");
+	assert(vecA[1] == 1337, "vecA[1] == 1337");
+	assert(vecA[2] == 1337, "vecA[2] == 1337");
+	
+	// push_back(initializer list)
+	Vec vecB;
+	vecB.push_back({1, 2, 3});
+	assert(vecB.size() == 3, "vecB.size() == 3");
+	assert(vecB[0] == 1, "vecB[0] == 1");
+	assert(vecB[1] == 2, "vecB[1] == 2");
+	assert(vecB[2] == 3, "vecB[2] == 3");
+	vecB.push_back({4, 5, 6});
+	assert(vecB.size() == 6, "vecB.size() == 6");
+	for(int i=0; i!=6; ++i)
+		assert(vecB[i] == i+1, "vecB[i] == i+1");
+	
+	// push_back(range)
+	vecB = Vec{9, 11, 12, 13};
+	Vec vecC{10};
+	vecC.push_back(vecB.begin()+1, vecB.end()-1);
+	assert(vecC.size() == 3, "vecC.size() == 3");
+	assert(vecC[0] == 10, "vecC[0] == 10");
+	assert(vecC[1] == 11, "vecC[1] == 11");
+	assert(vecC[2] == 12, "vecC[2] == 12");
+	
+	// push_back_uninitialized(n)
+	Vec vecD{42};
+	vecD.push_back_uninitialized(2);
+	assert(vecD.size() == 3, "vecD.size() == 3");
+	assert(vecD[0] == 42, "vecD[0] == 42");
 }
 
 int main(int argc, char **argv) {
@@ -493,9 +578,14 @@ int main(int argc, char **argv) {
 	test<uvector<int>>();
 	std::cout << "\n== uvector<long int> ==\n";
 	test<uvector<long int>>();
+	std::cout << "\n== std::vector<int> allocator ==\n";
+	testBadAllocs<std::vector<int,FailingAllocator<int>>>();
+	testAllocater<std::vector<int, IdAllocater<int>>>();
 	std::cout << "\n== uvector<int> allocator ==\n";
-	testBadAllocs();
-	testAllocater();
+	testBadAllocs<uvector<int,FailingAllocator<int>>>();
+	testAllocater<uvector<int, IdAllocater<int>>>();
+	
+	testExtensions<uvector<int>>();
 	
 	return 0;
 }

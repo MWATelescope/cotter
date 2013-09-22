@@ -3,25 +3,25 @@ cmake_minimum_required(VERSION 2.6)
 project(uvector)
 
 add_executable(uvector main.cpp)
-set_target_properties(uvector PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pedantic -O3")
+set_target_properties(uvector PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pedantic -O3 -march=native")
 
 add_executable(t01construct t01construct.cpp)
-set_target_properties(t01construct PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pedantic -O3")
+set_target_properties(t01construct PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pedantic -O3 -march=native")
 
 add_executable(t02pushback t02pushback.cpp)
-set_target_properties(t02pushback PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pedantic -O3")
+set_target_properties(t02pushback PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pedantic -O3 -march=native")
 
 add_executable(t03insert t03insert.cpp)
-set_target_properties(t03insert PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pedantic -O3")
+set_target_properties(t03insert PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pedantic -O3 -march=native")
 
 add_executable(t04iterate t04iterate.cpp)
-set_target_properties(t04iterate PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pedantic -O3")
+set_target_properties(t04iterate PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pedantic -O3 -march=native")
 
 add_executable(t05index t05index.cpp)
-set_target_properties(t05index PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pedantic -O3")
+set_target_properties(t05index PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pedantic -O3 -march=native")
 
 add_executable(tcompare tcompare.cpp stopwatch.cpp)
-set_target_properties(tcompare PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pedantic -O3")
+set_target_properties(tcompare PROPERTIES COMPILE_FLAGS "-std=c++11 -Wall -pedantic -O3 -march=native")
 
 install(TARGETS uvector RUNTIME DESTINATION bin)
 install(FILES uvector.h DESTINATION include)

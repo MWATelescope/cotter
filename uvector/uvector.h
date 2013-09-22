@@ -12,10 +12,13 @@
  * Header file for uvector and its relational and swap function.
  * @author André Offringa
  * @copyright André Offringa, 2013, distributed under the GPL license version 3.
+ * 
+ * @defgroup uvector Class uvector and related functions.
+ * @{
  */
 
 /**
- * @brief A container similar to std::vector that can be constructed without initializing its elements.
+ * @brief A container similar to std::vector, but that allows construction without initializing its elements.
  * @details This container is similar to a std::vector, except that it can be constructor without
  * initializing its elements. This saves the overhead of initialization, hence the
  * constructor @ref uvector(size_t) is significantly faster than the corresponding std::vector
@@ -33,7 +36,6 @@
  * 
  * // Read some data into the buffer
  * file.read(&buffer[0], buffer_size);
- * 
  * @endcode
  * 
  * However, it has a few more use-cases with improved performance over std::vector. This is
@@ -57,8 +59,12 @@
  * * @ref uvector(size_t)
  * * @ref resize(size_t)
  * 
- * Also one new member is introduced:
+ * Also the following new members are introduced:
  * * @ref insert_uninitialized(const_iterator, size_t)
+ * * @ref push_back(InputIterator first, InputIterator last)
+ * * @ref push_back(size_t n, const Tp& val)
+ * * @ref push_back(std::initializer_list<Tp> initlist)
+ * * @ref push_back_uninitialized(size_t)
  * 
  * All other members work exactly like std::vector's members, although some are slightly faster because of
  * the stricter requirements on the element type.
@@ -153,10 +159,12 @@ public:
 	}
 	
 	/** @brief Copy construct a uvector.
+	 * @details The allocator of the new uvector will be initialized from
+	 * @c std::allocator_traits<Alloc>::select_on_container_copy_construction(other).
 	 * @param other Source uvector to be copied from.
 	 */
 	uvector(const uvector<Tp,Alloc>& other) :
-		Alloc(static_cast<allocator_type>(other)),
+		Alloc(std::allocator_traits<Alloc>::select_on_container_copy_construction(static_cast<allocator_type>(other))),
 		_begin(allocate(other.size())),
 		_end(_begin + other.size()),
 		_endOfStorage(_end)
@@ -195,7 +203,7 @@ public:
 	 * @param other Source uvector to be moved from.
 	 * @param allocator Allocator used for allocating and deallocating memory.
 	 */
-	uvector(uvector<Tp,Alloc>&& other, const Alloc& allocator) :
+	uvector(uvector<Tp,Alloc>&& other, const allocator_type& allocator) :
 		Alloc(allocator),
 		_begin(other._begin),
 		_end(other._end),
@@ -210,7 +218,7 @@ public:
 	 * @param initlist Initializer list used for initializing the new uvector.
 	 * @param allocator Allocator used for allocating and deallocating memory.
 	 */
-	uvector(std::initializer_list<Tp> initlist, const Alloc& allocator = Alloc()) :
+	uvector(std::initializer_list<Tp> initlist, const allocator_type& allocator = Alloc()) :
 		Alloc(allocator),
 		_begin(allocate(initlist.size())),
 		_end(_begin + initlist.size()),
@@ -230,57 +238,75 @@ public:
 		deallocate();
 	}
 	
+	/** @brief Assign another uvector to this uvector.
+	 * @details The allocator of the uvector will be assigned to @p other when
+	 * std::allocator_traits<Alloc>::propagate_on_container_copy_assignment() is of true_type.
+	 */
 	uvector& operator=(const uvector<Tp,Alloc>& other)
 	{
-		const size_t n = other.size();
-		if(n > capacity()) {
-			iterator newStorage = allocate(n);
-			deallocate();
-			_begin = newStorage;
-			_end = _begin + n;
-			_endOfStorage = _end;
-		}
-		memcpy(_begin, other._begin, n * sizeof(Tp));
-		return *this;
+		return assign_copy_from(other, typename std::allocator_traits<Alloc>::propagate_on_container_copy_assignment());
 	}
 	
+	/** @brief Assign another uvector to this uvector.
+	 * @details The allocator of the uvector will be assigned to @p other when
+	 * std::allocator_traits<Alloc>::propagate_on_container_move_assignment() is of true_type.
+	 */
 	uvector& operator=(uvector<Tp,Alloc>&& other)
 	{
-		Alloc::operator=(other);
-		std::swap(_begin, other._begin);
-		std::swap(_end, other._end);
-		std::swap(_endOfStorage, other._endOfStorage);
-		return *this;
+		return assign_move_from(std::move(other), typename std::allocator_traits<Alloc>::propagate_on_container_move_assignment());
 	}
 	
+	/** @brief Get iterator to first element. */
 	iterator begin() { return _begin; }
 	
+	/** @brief Get constant iterator to first element. */
 	const_iterator begin() const { return _begin; }
 	
+	/** @brief Get iterator to element past last element. */
 	iterator end() { return _end; }
 	
+	/** @brief Get constant iterator to element past last element. */
 	const_iterator end() const { return _end; }
 	
+	/** @brief Get reverse iterator to last element. */
 	reverse_iterator rbegin() { return reverse_iterator(end()); }
 	
+	/** @brief Get constant reverse iterator to last element. */
 	const_reverse_iterator rbegin() const { return const_reverse_iterator(end()); }
 	
+	/** @brief Get reverse iterator to element before first element. */
 	reverse_iterator rend() { return reverse_iterator(begin()); }
 	
+	/** @brief Get constant reverse iterator to element before first element. */
 	const_reverse_iterator rend() const { return const_reverse_iterator(begin()); }
 	
+	/** @brief Get constant iterator to first element. */
 	const_iterator cbegin() const { return _begin; }
 	
+	/** @brief Get constant iterator to element past last element. */
 	const_iterator cend() const { return _end; }
 	
+	/** @brief Get constant reverse iterator to last element. */
 	const_reverse_iterator crbegin() const { return const_reverse_iterator(end()); }
 	
+	/** @brief Get constant reverse iterator to element before first element. */
 	const_reverse_iterator crend() const { return const_reverse_iterator(begin()); }
 	
+	/** @brief Get number of elements in container. */
 	size_t size() const noexcept { return _end - _begin; }
 	
+	/** @brief Get maximum number of elements that this container can hold. */ 
 	size_t max_size() const noexcept { return Alloc::max_size(); }
 	
+	/** @brief Change the number of elements in the container.
+	 * @details If the new size is larger than the current size, new values will be
+	 * left uninitialized. Therefore, it is more efficient than @c resize(size_t) in
+	 * @c std::vector, as well as @ref resize(size_t, const Tp&).
+	 * If the new size is smaller than the current size, the container will be
+	 * truncated and elements past the new size will be removed. No destructor of the
+	 * removed elements will be called.
+	 * @param n The new size of the container.
+	 */
 	void resize(size_t n)
 	{
 		if(capacity() < n)
@@ -294,6 +320,15 @@ public:
 		_end = _begin + n;
 	}
 	
+	/** @brief Change the number of elements in the container.
+	 * @details If the new size is larger than the current size, new values will be
+	 * initialized by the given value.
+	 * If the new size is smaller than the current size, the container will be
+	 * truncated and elements past the new size will be removed. No destructor of the
+	 * removed elements will be called.
+	 * @param n The new size of the container.
+	 * @param val New value of elements that get added to the container.
+	 */
 	void resize(size_t n, const Tp& val)
 	{
 		size_t oldSize = size();
@@ -310,10 +345,22 @@ public:
 			fill(_begin + oldSize, _end, val);
 	}
 	
+	/** @brief Get the number of elements the container can currently hold without reallocating storage. */
 	size_t capacity() const noexcept { return _endOfStorage - _begin; }
 	
+	/** @brief Determine if the container is currently empty.
+	 * @returns @c true if @ref size() == 0. */
 	bool empty() const noexcept { return _begin == _end; }
 	
+	/** @brief Reserve space for a number of elements, to prevent the overhead of extra
+	 * reallocations.
+	 * @details This has no effect on the working of the uvector, except that it might change
+	 * the current capacity. This can enhance performance when a large number of elements are added,
+	 * and an approximate size is known a priori.
+	 * 
+	 * This method might cause a reallocation, causing iterators to be invalidated.
+	 * @param n Number of elements to reserve space for.
+	 */
 	void reserve(size_t n)
 	{
 		if(capacity() < n)
@@ -328,6 +375,12 @@ public:
 		}
 	}
 	
+	/** @brief Change the capacity of the container such that no extra space is hold.
+	 * @details This has no effect on the working of the uvector, except that it might change
+	 * the current capacity. This can reduce the current memory usage of the container.
+	 * 
+	 * This method might cause a reallocation, causing iterators to be invalidated.
+	 */
 	void shrink_to_fit()
 	{
 		const size_t curSize = size();
@@ -348,40 +401,65 @@ public:
 		}
 	}
 	
+	/** @brief Get a reference to the element at the given index. */
 	Tp& operator[](size_t index) { return _begin[index]; }
 	
+	/** @brief Get a constant reference to the element at the given index. */
 	const Tp& operator[](size_t index) const { return _begin[index]; }
 	
+	/** @brief Get a reference to the element at the given index with bounds checking.
+	 * @throws std::out_of_range when given index is past the last element.
+	 */
 	Tp& at(size_t index)
 	{
 		check_bounds(index);
 		return _begin[index];
 	}
 	
+	/** @brief Get a constant reference to the element at the given index with bounds checking.
+	 * @throws std::out_of_range when given index is past the last element.
+	 */
 	const Tp& at(size_t index) const
 	{
 		check_bounds(index);
 		return _begin[index];
 	}
 	
+	/** @brief Get reference to first element in container. */ 
 	Tp& front() { return *_begin; }
 	
+	/** @brief Get constant reference to first element in container. */ 
 	const Tp& front() const { return *_begin; }
 	
+	/** @brief Get reference to last element in container. */ 
 	Tp& back() { return *(_end - 1); }
 	
+	/** @brief Get constant reference to last element in container. */ 
 	const Tp& back() const { return *(_end - 1); }
 	
+	/** @brief Get pointer to internal storage. */ 
 	Tp* data() { return _begin; }
 	
+	/** @brief Get constant pointer to internal storage. */ 
 	const Tp* data() const { return _begin; }
 	
+	/** @brief Assign this container to be equal to the given range.
+	 * @details The container will be resized to fit the length of the given
+	 * range. Iterators are invalidated.
+	 * @param first Iterator to the beginning of the range.
+	 * @param last Iterator past the end of the range.
+	 */ 
 	template<class InputIterator>
   void assign(InputIterator first, InputIterator last)
 	{
 		assign_from_range<InputIterator>(first, last, std::is_integral<InputIterator>());
 	}
 	
+	/** @brief Resize the container and assign the given value to all elements.
+	 * @details Iterators are invalidated.
+	 * @param n New size of container
+	 * @param val Value to be assigned to all elements.
+	 */
 	void assign(size_t n, const Tp& val)
 	{
 		if(n > capacity())
@@ -395,6 +473,11 @@ public:
 		fill(_begin, _end, val);
 	}
 	
+	/** @brief Assign this container to an initializer list.
+	 * @details The container will be resized to fit the length of the given
+	 * initializer list. Iterators are invalidated.
+	 * @param initlist List of values to assign to the container.
+	 */ 
 	void assign(std::initializer_list<Tp> initlist)
 	{
 		if(initlist.size() > capacity())
@@ -413,6 +496,10 @@ public:
 		}
 	}
 	
+	/** @brief Add the given value to the end of the container.
+	 * @details Iterators are invalidated.
+	 * @param item Value of new element.
+	 */
 	void push_back(const Tp& item)
 	{
 		if(_end == _endOfStorage)
@@ -421,6 +508,13 @@ public:
 		++_end;
 	}
 	
+	/** @brief Add the given value to the end of the container by moving it in.
+	 * @details Iterators are invalidated.
+	 * 
+	 * Note that this container can only hold simple types that do not perform allocations. Therefore,
+	 * there is probably no benefit in moving the new item in over copying it in with @ref push_back(const Tp&).
+	 * @param item Value of new element.
+	 */
 	void push_back(Tp&& item)
 	{
 		if(_end == _endOfStorage)
@@ -429,11 +523,20 @@ public:
 		++_end;
 	}
 	
+	/** @brief Remove the last element from the container. */
 	void pop_back()
 	{
 		--_end;
 	}
 	
+	/** @brief Insert an element at a given position.
+	 * @details All iterators will be invalidated. This operation needs to move all elements after
+	 * the new element, and can therefore be expensive.
+	 * @param position Position of the new element. The new element will be added before the old element
+	 * at that position.
+	 * @param item Value of the new item.
+	 * @return Position of the new element.
+	 */
 	iterator insert(const_iterator position, const Tp& item)
 	{
 		if(_end == _endOfStorage)
@@ -449,7 +552,16 @@ public:
 		*const_cast<iterator>(position) = item;
 		return const_cast<iterator>(position);
 	}
-	
+
+	/** @brief Insert elements at a given position and initialize them with a value.
+	 * @details All iterators will be invalidated. This operation needs to move all elements after
+	 * the new element, and can therefore be expensive.
+	 * @param position Position of the new elements. The new elements will be added before the old element
+	 * at that position.
+	 * @param n Number of elements to add.
+	 * @param val Value of the new item. 
+	 * @return Position of the first new element.
+	 */
 	iterator insert(const_iterator position, size_t n, const Tp& val)
 	{
 		if(capacity() < size() + n)
@@ -466,12 +578,33 @@ public:
 		return const_cast<iterator>(position);
 	}
 	
+	/** @brief Insert elements at a given position and initialize them from a range.
+	 * @details All iterators will be invalidated. This operation needs to move all elements after
+	 * the new element, and can therefore be expensive.
+	 * @param position Position of the new elements. The new elements will be added before the old element
+	 * at that position.
+	 * @param first Iterator to the beginning of the range.
+	 * @param last Iterator past the end of the range.
+	 * @return Position of the first new element.
+	 */
 	template <class InputIterator>
 	iterator insert(const_iterator position, InputIterator first, InputIterator last)
 	{
 		return insert_from_range<InputIterator>(position, first, last, std::is_integral<InputIterator>());
 	}
 	
+	/** @brief Insert an element at a given position by moving it in.
+	 * @details All iterators will be invalidated. This operation needs to move all elements after
+	 * the new element, and can therefore be expensive.
+	 * 
+	 * Note that this container can only hold simple types that do not perform allocations. Therefore,
+	 * there is probably no benefit in moving the new item in over copying it in with
+	 * @ref insert(const_iterator, const Tp&).
+	 * @param position Position of the new element. The new element will be added before the old element
+	 * at that position.
+	 * @param item Value of the new item.
+	 * @return Position of the new element.
+	 */
 	iterator insert(const_iterator position, Tp&& item)
 	{
 		if(_end == _endOfStorage)
@@ -488,6 +621,14 @@ public:
 		return const_cast<iterator>(position);
 	}
 	
+	/** @brief Insert elements at a given position and initialize them from a initializer list.
+	 * @details All iterators will be invalidated. This operation needs to move all elements after
+	 * the new element, and can therefore be expensive.
+	 * @param position Position of the new elements. The new elements will be added before the old element
+	 * at that position.
+	 * @param initlist List of items to insert.
+	 * @return Position of the first new element.
+	 */
 	iterator insert(const_iterator position, std::initializer_list<Tp> initlist)
 	{
 		if(capacity() < size() + initlist.size())
@@ -509,6 +650,12 @@ public:
 		return const_cast<iterator>(position);
 	}
 	
+	/** @brief Delete an element from the container.
+	 * @details This operation moves all elements past the removed element, and can therefore be
+	 * expensive.
+	 * @param position Position of element to be removed.
+	 * @return Iterator pointing to the first element past the delete element.
+	 */
 	iterator erase(const_iterator position)
 	{
 		--_end;
@@ -516,6 +663,13 @@ public:
 		return const_cast<iterator>(position);
 	}
 	
+	/** @brief Delete a range of elements from the container.
+	 * @details This operation moves all elements past the removed elements, and can therefore be
+	 * expensive.
+	 * @param first Position of first element to be removed.
+	 * @param last Position past last element to be removed.
+	 * @return Iterator pointing to the first element past the delete element.
+	 */
 	iterator erase(const_iterator first, const_iterator last)
 	{
 		size_t n = last - first;
@@ -524,20 +678,36 @@ public:
 		return const_cast<iterator>(first);
 	}
 	
+	/** @brief Swap the contents of this uvector with the given uvector.
+	 * @details Iterators to both vectors will remain valid and will point into
+	 * to the swapped container afterwards. This function will never reallocate
+	 * space.
+	 * 
+	 * The allocator will be swapped when the @c propagate_on_container_swap
+	 * of the respective @c allocator_trait is @c true_type.
+	 * Its behaviour is undefined when the allocators do not compare equal and
+	 * @c propagate_on_container_swap is false.
+	 * @param other Other uvector whose contents it to be swapped with this.
+	 */
 	void swap(uvector<Tp, Alloc>& other)
 	{
-		std::swap(_begin, other._begin);
-		std::swap(_end, other._end);
-		std::swap(_endOfStorage, other._endOfStorage);
-		//swap_allocator(other, Alloc::propagate_on_container_move_assignment());
-		swap_allocator(other, std::true_type());
+		swap(other, typename std::allocator_traits<Alloc>::propagate_on_container_swap());
 	}
 	
+	/** @brief Remove all elements from the container. */
 	void clear()
 	{
 		_end = _begin;
 	}
 	
+	/** @brief Insert an element at a given position by constructing it in place.
+	 * @details All iterators will be invalidated. This operation needs to move all elements after
+	 * the new element, and can therefore be expensive.
+	 * @param position Position of the new element. The new element will be added before the old element
+	 * at that position.
+	 * @param args List of arguments to be forwarded to construct the new element.
+	 * @return Position of the new element.
+	 */
 	template<typename... Args>
 	iterator emplace(const_iterator position, Args&&... args)
 	{
@@ -555,6 +725,10 @@ public:
 		return const_cast<iterator>(position);
 	}
 	
+	/** @brief Add the given value to the end of the container by constructing it in place.
+	 * @details Iterators are invalidated.
+	 * @param args List of arguments to be forwarded to construct the new element.
+	 */
 	template<typename... Args>
 	void emplace_back(Args&&... args)
 	{
@@ -564,11 +738,22 @@ public:
 		++_end;
 	}
 	
+	/** @brief Get a copy of the allocator. */
 	allocator_type get_allocator() const noexcept
 	{
 		return *this;
 	}
 	
+	// --- NON STANDARD METHODS ---
+	
+	/** @brief Insert elements at a given position without initializing them.
+	 * @details All iterators will be invalidated. This operation needs to move all elements after
+	 * the new element, and can therefore be expensive. It will not initialize the new elements,
+	 * and is therefore faster than @ref insert(const_iterator, size_t, const Tp&).
+	 * @param position Position of the new elements. The new elements will be added before the old element
+	 * at that position.
+	 * @param n Number of elements to add.
+	 */
 	iterator insert_uninitialized(const_iterator position, size_t n)
 	{
 		if(capacity() < size() + n)
@@ -582,6 +767,40 @@ public:
 			_end += n;
 		}
 		return const_cast<iterator>(position);
+	}
+	
+	template <class InputIterator>
+	void push_back(InputIterator first, InputIterator last)
+	{
+		push_back_range<InputIterator>(first, last, std::is_integral<InputIterator>());
+	}
+	
+	void push_back(size_t n, const Tp& val)
+	{
+		if(capacity() - size() < n)
+		{
+			enlarge(std::max(size() + n, enlarge_size()));
+		}
+		std::fill(_end, _end+n, val);
+		_end += n;
+	}
+	
+	void push_back(std::initializer_list<Tp> initlist)
+	{
+		if(capacity() - size() < initlist.size())
+		{
+			enlarge(std::max(size() + initlist.size(), enlarge_size()));
+		}
+		for(typename std::initializer_list<Tp>::iterator i = initlist.begin(); i != initlist.end(); ++i)
+		{
+			*_end = *i;
+			++_end;
+		}
+	}
+	
+	void push_back_uninitialized(size_t n)
+	{
+		resize(size() + n);
 	}
 	
 private:
@@ -638,6 +857,8 @@ private:
 		assign_from_range<InputIterator>(first, last, typename std::iterator_traits<InputIterator>::iterator_category());
 	}
 	
+	// This function is called from assign(iter,iter) when Tp is an integral. In that case,
+	// the user tried to call assign(n, &val), but it got caught by the wrong overload.
 	template<typename Integral>
 	void assign_from_range(Integral n, Integral val, std::true_type)
 	{
@@ -722,7 +943,7 @@ private:
 	void check_bounds(size_t index) const
 	{
 		if(index >= size())
-			throw std::out_of_range("Access to element in uvector >= size()");
+			throw std::out_of_range("Access to element in uvector past end");
 	}
 	
 	size_t enlarge_size() const noexcept
@@ -769,29 +990,184 @@ private:
 		}
 	}
 	
-	void swap_allocator(uvector<Tp,Alloc>& other, std::true_type /* propagate_on_container_move_assignment */)
+	// implementation of operator=() without propagate_on_container_copy_assignment
+	uvector& assign_copy_from(const uvector<Tp,Alloc>& other, std::false_type)
 	{
+		const size_t n = other.size();
+		if(n > capacity()) {
+			iterator newStorage = allocate(n);
+			deallocate();
+			_begin = newStorage;
+			_end = _begin + n;
+			_endOfStorage = _end;
+		}
+		memcpy(_begin, other._begin, n * sizeof(Tp));
+		return *this;
+	}
+	
+	// implementation of operator=() with propagate_on_container_copy_assignment
+	uvector& assign_copy_from(const uvector<Tp,Alloc>& other, std::true_type)
+	{
+		if(static_cast<Alloc&>(other) == static_cast<Alloc&>(*this))
+		{
+			assign_copy_from(other, std::false_type());
+		}
+		else {
+			const size_t n = other.size();
+			iterator newStorage = static_cast<Alloc&>(other).allocate(n);
+			deallocate();
+			_begin = newStorage;
+			_end = _begin + n;
+			_endOfStorage = _end;
+			memcpy(_begin, other._begin, n * sizeof(Tp));
+			Alloc::operator=(static_cast<Alloc&>(other));
+		}
+		return *this;
+	}
+	
+	// implementation of operator=() without propagate_on_container_move_assignment
+	uvector& assign_move_from(uvector<Tp,Alloc>&& other, std::false_type)
+	{
+		if(static_cast<Alloc&>(other) == static_cast<Alloc&>(*this))
+		{
+			deallocate();
+			_begin = other._begin;
+			_end = other._end;
+			_endOfStorage = other._endOfStorage;
+			other._begin = nullptr;
+			other._end = nullptr;
+			other._endOfStorage = nullptr;
+		}
+		else {
+			// We should not propagate the allocator and the allocators are different.
+			// This means we can not swap the allocated space, since then we would
+			// deallocate the space with a different allocator type. Therefore, we
+			// need to copy:
+			assign_copy_from(other, std::false_type());
+		}
+		return *this;
+	}
+	
+	// implementation of operator=() with propagate_on_container_move_assignment
+	uvector& assign_move_from(uvector<Tp,Alloc>&& other, std::true_type)
+	{
+		deallocate();
+		Alloc::operator=(std::move(static_cast<Alloc&>(other)));
+		_begin = other._begin;
+		_end = other._end;
+		_endOfStorage = other._endOfStorage;
+		other._begin = nullptr;
+		other._end = nullptr;
+		other._endOfStorage = nullptr;
+		return *this;
+	}
+	
+	// implementation of swap with propagate_on_container_swap
+	void swap(uvector<Tp,Alloc>& other, std::true_type)
+	{
+		std::swap(_begin, other._begin);
+		std::swap(_end, other._end);
+		std::swap(_endOfStorage, other._endOfStorage);
 		std::swap(static_cast<Alloc&>(other), static_cast<Alloc&>(*this));
 	}
 	
-	void swap_allocator(uvector<Tp,Alloc>& other, std::false_type /* propagate_on_container_move_assignment */)
+	// implementation of swap without propagate_on_container_swap
+	void swap(uvector<Tp,Alloc>& other, std::false_type)
 	{
-		// no propagation: don't do anything
+		std::swap(_begin, other._begin);
+		std::swap(_end, other._end);
+		std::swap(_endOfStorage, other._endOfStorage);
+		/**
+		 * We have two choices here:
+		 * - Do not swap the allocators. For stateful allocators, we would need to
+		 *   reallocate memory, and iterators would not be valid UNLESS
+		 *   they were stored as indices. However, containers with stateful allocators
+		 *   are not allowed to be swapped unless the allocators are equal, in which case swapping
+		 *   is not necessary.
+		 * - Swap the allocators. This would not reallocate memory and
+		 *   iterators remain valid, but the trait ignores propagate_on_container_swap.
+		 * 
+		 * The standard says:
+		 * "Allocator replacement is performed by copy assignment, move assignment, or
+		 * swapping of the allocator only if allocator_traits<allocatortype>::
+		 * propagate_on_container_copy_assignment::value,
+		 * allocator_traits<allocatortype>::propagate_on_container_move_assignment::value,
+		 * or allocator_traits<allocatortype>::propagate_on_container_swap::value is true
+		 * within the implementation of the corresponding container operation. The behavior
+		 * of a call to a container’s swap function is undefined unless the objects being
+		 * swapped have allocators that compare equal or
+		 * allocator_traits<allocatortype>::propagate_on_container_swap::value is true."
+		 * 
+		 * Therefore, in this situation std::swap has undefined behaviour. I do wonder
+		 * though what's the use of propagate_on_container_swap is if it can never
+		 * be honoured....
+		 * 
+		 * It might be that the standard intends to classify
+		 * this situation as "should never occur", and allocators that
+		 * have a state are not allowed to set
+		 * propagate_on_container_swap to false. This however is not
+		 * clear to me.
+		 *   
+		 * @TODO Inconsistency with propagate_on_container_swap
+		 */
+		// std::swap(static_cast<Alloc&>(other), static_cast<Alloc&>(*this));
 	}
+	
+	template<typename InputIterator>
+	void push_back_range(InputIterator first, InputIterator last, std::false_type)
+	{
+		push_back_range<InputIterator>(first, last, typename std::iterator_traits<InputIterator>::iterator_category());
+	}
+	
+	// This function is called from push_back(iter,iter) when Tp is an integral. In that case,
+	// the user tried to call push_back(n, &val), but it got caught by the wrong overload.
+	template<typename Integral>
+	void push_back_range(Integral n, Integral val, std::true_type)
+	{
+		if(capacity() - size() < size_t(n))
+		{
+			enlarge(std::max(size() + n, enlarge_size()));
+		}
+		std::fill(_end, _end+n, val);
+		_end += n;
+	}
+	
+	template<typename InputIterator>
+	void push_back_range(InputIterator first, InputIterator last, std::forward_iterator_tag)
+	{
+		size_t n = std::distance(first, last);
+		if(n > capacity() - size())
+		{
+			enlarge(std::max(size() + n, enlarge_size()));
+		}
+		while(first != last)
+		{
+			*_end = *first;
+			++_end;
+			++first;
+		}
+	}
+	
 };
 
+/** @brief Compare two uvectors for equality. */
 template<class Tp, class Alloc>
 inline bool operator==(const uvector<Tp,Alloc>& lhs, const uvector<Tp,Alloc>& rhs)
 {
 	return lhs.size()==rhs.size() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
 }
 
+/** @brief Compare two uvectors for inequality. */
 template<class Tp, class Alloc>
 inline bool operator!=(const uvector<Tp,Alloc>& lhs, const uvector<Tp,Alloc>& rhs)
 {
 	return !(lhs == rhs);
 }
 
+/** @brief Compare two uvectors for smaller than.
+ * @details If two uvectors compare equal up to the length of one, the uvector with
+ * the smallest size is consider to be smaller.
+ */
 template <class Tp, class Alloc>
 inline bool operator<(const uvector<Tp,Alloc>& lhs, const uvector<Tp,Alloc>& rhs)
 {
@@ -806,6 +1182,10 @@ inline bool operator<(const uvector<Tp,Alloc>& lhs, const uvector<Tp,Alloc>& rhs
 	return lhs.size() < rhs.size();
 }
 
+/** @brief Compare two uvectors for smaller than or equal.
+ * @details If two uvectors compare equal up to the length of one, the uvector with
+ * the smallest size is consider to be smaller.
+ */
 template <class Tp, class Alloc>
 inline bool operator<=(const uvector<Tp,Alloc>& lhs, const uvector<Tp,Alloc>& rhs)
 {
@@ -820,22 +1200,43 @@ inline bool operator<=(const uvector<Tp,Alloc>& lhs, const uvector<Tp,Alloc>& rh
 	return lhs.size() <= rhs.size();
 }
 
+/** @brief Compare two uvectors for larger than.
+ * @details If two uvectors compare equal up to the length of one, the uvector with
+ * the smallest size is consider to be smaller.
+ */
 template <class Tp, class Alloc>
 inline bool operator>(const uvector<Tp,Alloc>& lhs, const uvector<Tp,Alloc>& rhs)
 {
 	return rhs < lhs;
 }
 
+/** @brief Compare two uvectors for larger than or equal.
+ * @details If two uvectors compare equal up to the length of one, the uvector with
+ * the smallest size is consider to be smaller.
+ */
 template <class Tp, class Alloc>
 inline bool operator>=(const uvector<Tp,Alloc>& lhs, const uvector<Tp,Alloc>& rhs)
 {
 	return rhs <= lhs;
 }
 
+/** @brief Swap the contents of the two uvectors.
+	* @details Iterators to both vectors will remain valid and will point into
+	* to the swapped container afterwards. This function will never reallocate
+	* space.
+	* 
+	* The allocator will be swapped when the @c propagate_on_container_swap
+	* of the respective @c allocator_trait is @c true_type.
+	* Its behaviour is undefined when the allocators do not compare equal and
+	* @c propagate_on_container_swap is false.
+	*/
 template <class Tp, class Alloc>
 inline void swap(uvector<Tp,Alloc>& x, uvector<Tp,Alloc>& y)
 {
 	x.swap(y);
 }
+
+/** @} */
+
 
 #endif // STDEXT_UVECTOR_H
