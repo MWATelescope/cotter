@@ -18,7 +18,7 @@
  */
 
 /**
- * @brief A container similar to std::vector, but that allows construction without initializing its elements.
+ * @brief A container similar to std::vector, but one that allows construction without initializing its elements.
  * @details This container is similar to a std::vector, except that it can be constructor without
  * initializing its elements. This saves the overhead of initialization, hence the
  * constructor @ref uvector(size_t) is significantly faster than the corresponding std::vector
@@ -41,16 +41,19 @@
  * However, it has a few more use-cases with improved performance over std::vector. This is
  * true because of more strengent requirements on the element's type.
  * 
- * The element type must be able to skip its constructor. This is the case for all integral
- * types, such as @c char, @c int, pointers or simple structs or classes, but not for complex
- * types that e.g. require their constructor to perform allocation, such as std::string or
- * std::unique_ptr. A uvector can therefore also not hold itself as element type.
+ * The container will behave correctly with any POD type, but will not work for almost
+ * all non-POD types.
  * 
- * When an element is copied or assigned, there is no guarantee that the copy or move constructor
- * or assignment operator are called. Instead, a byte-wise copy or displacement might be performed
- * with @c memcpy or @c memmove. Finally, if a non-default copy or move
- * constructor or assignment operator is defined, they are not allowed to throw. It also does not
- * make much sense to define these methods, as there is no guarantee that they are called.
+ * The element type must obey the following rules:
+ * - The element type must be able to skip its constructor. This is the case for all integral
+ *   types, such as @c char, @c int, pointers or structs or classes that are a POD themselves.
+ *   Complex types that e.g. require their constructor to perform allocation, such as std::string or
+ *   std::unique_ptr will not work. A uvector can therefore also not hold itself as element type.
+ * - When an element is copied or assigned inside the container, there is no guarantee that the copy
+ *   or move constructor or assignment operator are called. Instead, a byte-wise copy
+ *   or displacement might be performed with @c memcpy or @c memmove.
+ *   Finally, if a non-default copy or move
+ *   constructor or assignment operator is defined, they are not allowed to throw.
  * 
  * Because of the use of @c memcpy and @c memmove, the @ref push_back() and @ref insert()
  * methods are a bit faster than the std::vector counterparts, at least on gcc 4.8. 
@@ -750,6 +753,8 @@ public:
 	 * @details All iterators will be invalidated. This operation needs to move all elements after
 	 * the new element, and can therefore be expensive. It will not initialize the new elements,
 	 * and is therefore faster than @ref insert(const_iterator, size_t, const Tp&).
+	 * 
+	 * This method is non-standard: it is not present in std::vector.
 	 * @param position Position of the new elements. The new elements will be added before the old element
 	 * at that position.
 	 * @param n Number of elements to add.
@@ -769,12 +774,26 @@ public:
 		return const_cast<iterator>(position);
 	}
 	
+	/** @brief Add a range of items to the end of the container.
+	 * @details All iterators will be invalidated.
+	 * 
+	 * This method is non-standard: it is not present in std::vector.
+	 * @param first Iterator to the beginning of the range.
+	 * @param last Iterator past the end of the range.
+	 */
 	template <class InputIterator>
 	void push_back(InputIterator first, InputIterator last)
 	{
 		push_back_range<InputIterator>(first, last, std::is_integral<InputIterator>());
 	}
 	
+	/** @brief Add elements at the end and initialize them with a value.
+	 * @details All iterators will be invalidated. 
+	 * 
+	 * This method is non-standard: it is not present in std::vector.
+	 * @param n Number of elements to add.
+	 * @param val Value of the new items. 
+	 */
 	void push_back(size_t n, const Tp& val)
 	{
 		if(capacity() - size() < n)
@@ -785,6 +804,12 @@ public:
 		_end += n;
 	}
 	
+	/** @brief Add elements from an initializer list to the end of the container.
+	 * @details All iterators will be invalidated. 
+	 * 
+	 * This method is non-standard: it is not present in std::vector.
+	 * @param initlist The list with values to add.
+	 */
 	void push_back(std::initializer_list<Tp> initlist)
 	{
 		if(capacity() - size() < initlist.size())
@@ -798,6 +823,12 @@ public:
 		}
 	}
 	
+	/** @brief Add elements at the end without initializing them.
+	 * @details All iterators will be invalidated. 
+	 * 
+	 * This method is non-standard: it is not present in std::vector.
+	 * @param n Number of elements to add.
+	 */
 	void push_back_uninitialized(size_t n)
 	{
 		resize(size() + n);
