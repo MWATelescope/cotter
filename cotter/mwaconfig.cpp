@@ -259,13 +259,16 @@ void MWAConfig::ReadAntennaPositions(const std::string& filename) {
 		throw std::runtime_error(std::string("Could not open ") + filename);
 	const double arrayLattitudeRad = MWA_LATTITUDE*(M_PI/180.0);
 
+	size_t antennaIndex = 0;
   /* Scan through lines. Convert east, north, height units to XYZ units */
   while(file.good()) {
 		std::string line;
 		std::getline(file, line);
 		if(!line.empty() && line[0]!='#')
 		{
-			MWAAntenna antenna;
+			if(antennaIndex >= _antennae.size())
+				_antennae.push_back(MWAAntenna());
+			MWAAntenna& antenna = _antennae[antennaIndex];
 			
 			std::istringstream lineStr(line);
 			double east, north, height;
@@ -275,17 +278,16 @@ void MWAConfig::ReadAntennaPositions(const std::string& filename) {
 			
 			Geometry::ENH2XYZ_local(east, north, height, arrayLattitudeRad, antenna.position[0], antenna.position[1], antenna.position[2]);
 			
-			antenna.stationIndex = _antennae.size();
+			antenna.stationIndex = antennaIndex;
 			
 			if(antenna.name.size() > 4 && antenna.name.substr(0, 4) == "Tile")
 				antenna.tileNumber = atoi(antenna.name.substr(4).c_str());
 			else
 				antenna.tileNumber = 0;
-			
-			_antennae.push_back(antenna);
+			++antennaIndex;
 		}
   }
-  std::cout << "Read positions for " << _antennae.size() << " tiles.\n";
+  std::cout << "Read positions for " << antennaIndex << " tiles.\n";
 }
 
 void MWAConfig::CheckSetup()
