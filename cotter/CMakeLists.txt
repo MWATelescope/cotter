@@ -51,6 +51,6 @@ ENDIF("${isSystemDir}" STREQUAL "-1")
 
 add_executable(cotter main.cpp cotter.cpp averagingmswriter.cpp flagwriter.cpp fitsuser.cpp fitswriter.cpp gpufilereader.cpp metafitsfile.cpp mwaconfig.cpp mwams.cpp mswriter.cpp progressbar.cpp stopwatch.cpp subbandpassband.cpp threadedwriter.cpp)
 
-target_link_libraries(cotter ${CFITSIO_LIB} ${AOFLAGGER_LIB} ${CASA_LIBS} ${LAPACK_lapack_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${LIBXML2_LIBRARIES} ${FFTW3_LIB} ${LIBSLA_LIB} ${PNG_LIB})
+target_link_libraries(cotter ${CFITSIO_LIB} ${AOFLAGGER_LIB} ${CASA_LIBS} ${LAPACK_lapack_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${LIBXML2_LIBRARIES} ${FFTW3_LIB} ${LIBSLA_LIB} ${PNG_LIB} ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
 
 install (TARGETS cotter DESTINATION bin)
