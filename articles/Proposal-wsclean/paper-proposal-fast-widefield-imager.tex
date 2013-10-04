@@ -1,0 +1,77 @@
+\documentclass[a4paper,10pt]{article} 
+%\usepackage[style=nature,backend=biber]{biblatex}
+\usepackage{graphicx}
+\usepackage[font={it},labelfont={bf}]{caption}
+\usepackage{times}
+\usepackage{color}
+%\usepackage{fixltx2e} % fixes placing of image positions
+\usepackage{authblk}
+\usepackage{amsmath}
+\usepackage{courier}
+\usepackage[round]{natbib}
+\usepackage{wrapfig}
+
+\definecolor{customhdrcolor}{rgb}{0.0,0.0,0.0}
+%\definecolor{customcitecolor}{rgb}{0.0,0.25,0.25}
+\definecolor{customcitecolor}{rgb}{0.0,0.5,0.75}
+%\definecolor{customlinkcolor}{rgb}{0.0,0.0,1.0}
+\definecolor{customlinkcolor}{rgb}{0.0,0.5,0.75}
+
+\usepackage[colorlinks=true,linkcolor=customlinkcolor,urlcolor=customlinkcolor,citecolor=customcitecolor,pdftex]{hyperref}
+
+\ifpdf\pdfinfo{/Title      (MWA paper proposal Offringa)
+               /Author     (A. R. Offringa)
+               /Keywords   (MWA, imaging)
+        }
+\else\usepackage{graphics}\fi
+
+\setlength{\pdfpageheight}{\paperheight}
+\setlength{\pdfpagewidth}{\paperwidth}
+
+%\title{MWA Paper proposal:\\````WSClean: a fast implementation of a generic widefield imager''}
+
+%\author{A.~R.~Offringa}
+%\author[1,2]{A.~R.~Offringa}
+%\affil[1]{RSAA, Australian National University, Mt Stromlo Observatory, via Cotter Road, Weston, ACT 2611, Australia}
+%\affil[2]{ARC Centre of Excellence for All-Sky Astrophysics (CAASTRO)}
+\begin{document}
+
+
+\label{firstpage}
+\section*{MWA Paper proposal: ``WSClean: a new implementation of a fast, generic wide-field imager''}
+\begin{tabular}{ll}
+Publication Title: & WSClean: a new implementation of a fast, generic \\
+                   & wide-field imager\\
+                   & \\
+Principle Contact: & Dr. Andr\'e R. Offringa \\
+                   & \\
+Draft publication\\
+\hspace{5mm}author list: & A.~R.~Offringa, B.~McKinley, N.~Hurley-Walker, \\
+                         & F.~H.~Briggs, MWA commissioning team and GLEAM \\
+                         & members where appropriate, MWA builders list \\
+                   & \\
+Intended Journal: & Probably MNRAS\\
+                   & \\
+Intended date of submission\\
+\hspace{5mm}to collaboration: & February 2014\\
+\end{tabular}
+
+\section*{Paper summary}
+We present our new imaging implementation, ``WSClean'', which is an order of magnitude faster than existing implementations and can handle MWA full-sky imaging at suitable resolution.
+
+Observations from non-coplanar interferometric radio telescopes that image large fractions of the sky at once can not be imaged with a simple FFT based imager with an image based deconvolution procedure such as described by \citet{hogbom-clean}. Instead, the imaging algorithm needs to accomodate the ``w-term'' during inversion, which is the term that describes the deviation of the array to a perfect plane. This deviation is amplified by the field of view of the telescope, making this especially a problem for low-frequency widefield telescopes.
+
+The most commonly used method to image observations from non-coplanar arrays is the w-projection algorithm \citep{wprojection-cornwell} that has been implemented in CASA. This is the fastest generic widefield imager available, and CASA is the only software package (known to us) that implements the w-projection algorithm. Other packages rely on the facetting algorithm \citep{facetting-cornwell}, which is about an order of magnitude slower and is less accurate \citep{wprojection-cornwell}. Despite the success of the w-projection algorithm, a new generation of widefield observatories has come on-line and is producing data sets that are orders of magnitude larger than before. Examples of such telescopes include the Murchison Widefield Array (MWA), the upgraded Jansky Very Large Array (JVA) and the Low-Frequency Array (LOFAR). Because of the large field of view or the enormous data volumes involved, observers are running into the limitations of the w-projection algorithm. At the MWA, we have seen that it can take up to tens of hours with the w-projection algorithm to image a two-minute MWA observation when the observed field is at low elevation. Moreover, the w-projection implementation in CASA can not handle images of 10 k $\times$ 10 k, which is desired for making full-sky images at the native resolution of the MWA. This is going to be an even bigger problem when the Square-Kilometre Array (SKA) begins its operation, and a considerably improvement in imaging techniques is required.
+
+We present a new implementation of a generic widefield imager that significantly improves upon the w-projection implementation. It is approximately an order of magnitude faster or more in all tested situations, while it maintains equal accuracy and can handle MWA full-sky imaging. The w-stacking method is used for correcting the w-terms \citep{widefield-imaging-ska-cornwell}, and causes the increase in speed. Performance can be improved further by combination with another technique: the MWA telescope splits observations in data products of typically a few minutes, and the w-terms can be kept small by phasing an observation to the orthogonal of the array's best fitting plane. This is somewhat similar to the w-snapshot algorithm proposed by \citet{widefield-imaging-ska-cornwell}. Our imager uses in this case a hybrid between w-stacking and a variation of the w-snapshot algorithms. We named the new imager ``WSClean'', as an abbriviation for ``W-Stacking Clean''.
+
+After describing the new imaging implementation, we will test its performance using various MWA observations, including observations with varying elevation and fields with diffuse emmission and point sources. We will compare these results with the results from the w-projection implementation in CASA and to other non-w-projection algorithms, thereby focussing on accuracy and performance.
+
+Once the paper is accepted for publication in a scientific journal, the WSClean source code will be publicly released.
+
+\label{lastpage}
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}
