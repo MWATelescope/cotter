@@ -928,13 +928,13 @@ void Cotter::writeAntennae()
 
 void Cotter::writeSPW()
 {
-	const size_t nChannels = nChannelsInCurSBRange();
-	std::vector<MSWriter::ChannelInfo> channels(nChannels);
+	const size_t nCurChannels = nChannelsInCurSBRange();
+	std::vector<MSWriter::ChannelInfo> channels(nCurChannels);
 	std::ostringstream str;
-	double centreFrequencyMHz = 0.0000005 * (_channelFrequenciesHz[nChannels/2-1] + _channelFrequenciesHz[nChannels/2]);
+	double centreFrequencyMHz = 0.0000005 * (_channelFrequenciesHz[nCurChannels/2-1] + _channelFrequenciesHz[nCurChannels/2]);
 	str << "MWA_BAND_" << (round(centreFrequencyMHz*10.0)/10.0);
 	const double chWidth = _mwaConfig.Header().bandwidthMHz * 1000000.0 / _mwaConfig.Header().nChannels;
-	for(size_t ch=0;ch!=nChannels;++ch)
+	for(size_t ch=0;ch!=nCurChannels;++ch)
 	{
 		MSWriter::ChannelInfo &channel = channels[ch];
 		channel.chanFreq = _channelFrequenciesHz[ch];
@@ -945,7 +945,7 @@ void Cotter::writeSPW()
 	_writer->WriteBandInfo(str.str(),
 		channels,
 		centreFrequencyMHz*1000000.0,
-		_mwaConfig.Header().bandwidthMHz*1000000.0,
+		nCurChannels*chWidth,
 		false
 	);
 }
