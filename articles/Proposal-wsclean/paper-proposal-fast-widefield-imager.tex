@@ -40,17 +40,17 @@
 \label{firstpage}
 \section*{MWA paper proposal: ``WSClean: a new implementation of a fast, generic wide-field imager''}
 \begin{tabular}{ll}
-Publication Title: & WSClean: a new implementation of a fast, generic \\
+Publication title: & WSClean: a new implementation of a fast, generic \\
                    & wide-field imager\\
                    & \\
-Principle Contact: & Dr. Andr\'e R. Offringa \\
+Principle contact: & Dr. Andr\'e R. Offringa \\
                    & \\
 Draft publication        & A.~R.~Offringa, B.~McKinley, N.~Hurley-Walker, \\
 \hspace{5mm}author list: & F.~H.~Briggs, J. Rhee, MWA commissioning team \\
                          & and GLEAM members where appropriate, MWA \\
                          & builders list \\
                    & \\
-Intended Journal: & Probably MNRAS\\
+Journal:           & Probably MNRAS\\
                    & \\
 Intended date of submission\\
 \hspace{5mm}to collaboration: & February 2014\\
@@ -65,14 +65,14 @@ The most commonly used method to image observations from non-coplanar arrays is 
 
 We present a new implementation of a generic wide-field imager that significantly improves upon the w-projection implementation. Currently we believe it is approximately an order of magnitude faster in all situations and even more for very large images, while it maintains equal accuracy and can handle MWA full-sky imaging. The w-stacking method is used for correcting the w-terms \citep{widefield-imaging-ska-cornwell}, and causes the increase in speed. Performance can be improved further by combination with another technique: the MWA telescope splits observations in data products of typically a few minutes, and the w-terms can be kept small by phasing an observation to the orthogonal of the array's best-fitting plane. This is somewhat similar to the w-snapshot algorithm proposed in \citet{widefield-imaging-ska-cornwell}. Hence, we can describe the imager as a hybrid between w-stacking and a variation of the w-snapshot algorithms. It also implements the Clean deconvolution procedure (\citealt{hogbom-clean} and various variations). We named the new imager ``WSClean'', as an abbreviation for ``W-Stacking Clean''.
 
-After describing the new imaging implementation, we will test its performance using various MWA observations, including observations with varying elevation and fields (diffuse emission, point sources). We will compare these results with the results from the w-projection implementation in CASA and to other non-w-projection algorithms, thereby focusing on accuracy and performance. The data sets that we currently envision to use are summarized in Table~\ref{tbl:observations}.
+After describing the new imaging implementation, we will test its performance using various MWA observations, including observations with varying elevation and fields (diffuse emission, point sources). GMRT data and -- if available -- LOFAR data will also be used. We will compare these results with the results from the w-projection implementation in CASA and to other non-w-projection algorithms, thereby focusing on accuracy and performance. The data sets that we currently envision to use are summarized in Table~\ref{tbl:observations}.
 
 Once the paper is accepted for publication in a scientific journal, the WSClean source code will be publicly released.
 
 \begin{figure*}[bh]
 \begin{center}
 \includegraphics[width=12cm]{EoR0-apparent.png}
-\caption{A deep MWA image of EoR0 created from one hour of observing, imaged and deconvolved with WSClean in about an hour using 10 nodes on Fornax. Image has not been beam corrected. Noise level after correcting is 7 mJy.}
+\caption{A deep MWA image of EoR0 created from one hour of observing, imaged and deconvolved with WSClean in about an hour using 10 nodes on Fornax. Image has not been beam corrected. Noise level after correcting is 7 mJy. 200 sources were subtracted from the centre before imaging.}
 \label{fig:stddev-spectrum}
 \end{center}
 \end{figure*}
@@ -97,8 +97,14 @@ Once the paper is accepted for publication in a scientific journal, the WSClean 
   2013-07-31 & EoR0              & $\bullet$ Test cleaning of point sources \\
   MWA 128T   &                   & $\bullet$ Test deep imaging \\
  \hline
-  ---        & Simulations       & $\bullet$ Validate photometry / astrometry \\
-             &                   & $\bullet$ Test computational performance \\
+  2008-2009  & ZCosmos           & $\bullet$ Test relevance to GMRT data \\
+  GMRT       & (stacking)        & $\bullet$ Verify making image cubes \\
+ \hline
+  LOFAR      & To be determined  & $\bullet$ Test relevance to LOFAR data \\
+             &                   & (only if data easily obtainable) \\
+ \hline
+             & Simulations       & $\bullet$ Validate photometry / astrometry \\
+   ---       &                   & $\bullet$ Test computational performance \\
              &                   & \hspace{5mm} at very low elevation\\
  \hhline{|=|=|=|}
 \end{tabular}
