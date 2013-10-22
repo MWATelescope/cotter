@@ -1,0 +1,10 @@
+#!/bin/bash
+#PBS -N JOB_NAME
+#PBS -W group_list=astronomy556
+#PBS -q workq
+#PBS -l walltime=WALLTIME
+#PBS -l select=1:ncpus=12:mem=69gb
+#PBS -j oe
+
+cd ~/pbs_work
+
