@@ -14,9 +14,9 @@ else
   rootname="${outputdir}/${filename}"
 
   polpar[0]="-pol xx -name ${rootname}-xx -niter ${niter}"
-  polpar[1]="-pol xy -name ${rootname}-xy -niter ${niter}"
+  polpar[1]="-pol xy -name ${rootname}-xy"
   polpar[2]="-pol yx -name ${rootname}-yx"
-  polpar[3]="-pol yy -name ${rootname}-yy"
+  polpar[3]="-pol yy -name ${rootname}-yy -niter ${niter}"
   polpar[4]="-pol xy -imaginarypart -name ${rootname}-xyi"
   polpar[5]="-pol yx -imaginarypart -name ${rootname}-yxi"
   dependencies=""
