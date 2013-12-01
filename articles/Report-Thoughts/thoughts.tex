@@ -1,0 +1,76 @@
+\documentclass[a4paper,11pt]{article} 
+%\usepackage[style=nature,backend=biber]{biblatex}
+\usepackage{graphicx}
+\usepackage[font={it},labelfont={bf}]{caption}
+\usepackage{times}
+\usepackage{color}
+%\usepackage{fixltx2e} % fixes placing of image positions
+\usepackage{authblk}
+\usepackage{amsmath}
+\usepackage{courier}
+
+\definecolor{customhdrcolor}{rgb}{0.0,0.0,0.0}
+%\definecolor{customcitecolor}{rgb}{0.0,0.25,0.25}
+\definecolor{customcitecolor}{rgb}{0.0,0.5,0.75}
+%\definecolor{customlinkcolor}{rgb}{0.0,0.0,1.0}
+\definecolor{customlinkcolor}{rgb}{0.0,0.5,0.75}
+
+\usepackage[colorlinks=true,linkcolor=customlinkcolor,urlcolor=customlinkcolor,citecolor=customcitecolor,pdftex]{hyperref}
+
+\ifpdf\pdfinfo{/Title      (Thoughts on calibration)
+               /Author     (A. R. Offringa)
+               /Keywords   (calibration)
+        }
+\else\usepackage{graphics}\fi
+
+\setlength{\pdfpageheight}{\paperheight}
+\setlength{\pdfpagewidth}{\paperwidth}
+
+\title{Thoughts on calibration}
+
+\author{A.~R.~Offringa}
+%\author[1,2]{A.~R.~Offringa}
+%\affil[1]{RSAA, Australian National University, Mt Stromlo Observatory, via Cotter Road, Weston, ACT 2611, Australia}
+%\affil[2]{ARC Centre of Excellence for All-Sky Astrophysics (CAASTRO)}
+\begin{document}
+
+\label{firstpage}
+\maketitle
+
+\section{Calibrating the ionospheric phase}
+Mitch minimizes the following equation for calibration in the RTS:
+\begin{equation}
+\sum\limits_{j=1}^{N_a} \sum\limits_{k,k\neq j}^{N_a} \left\| \mathbf{M}_{j,k} - \mathbf{J}_j \mathbf{V}_{j,k} \overline{\mathbf{J}}_k \right\|^2_F,
+\end{equation}
+where $\mathbf{M}_{j,k}$ and $\mathbf{V}_{j,k}$ are the predicted and observed visibility matrices respectively for baseline $j,k$ and $\mathbf{J}_j$ is the Jones matrix for antenna $j$. Each of these are $2\times 2$ matrices.
+
+For the MWA, the relevant effects within $\mathbf{J}$ can be decomposed (in order) in the ionospheric phase term $j_I$, Faraday rotation $\mathbf{J}_F$, the beam $\mathbf{J}_B$ and the instrumental gain $\mathbf{J}_G$:
+\begin{equation}
+ \mathbf{J} = j_I \mathbf{J}_F \mathbf{J}_B \mathbf{J}_G.
+\end{equation}
+$j_I$ is a scalar term and commutes with everything. $\mathbf{J}_F$ is a rotation matrix and does not commute with $\mathbf{J}_B$, which itself can perform shear, rotation and scale transforms. $\mathbf{J}_G$ is a diagonal (scaling) matrix, and does not commute with $\mathbf{J}_B$ either.
+
+Once a solution $\mathbf{J}$ is found, one can try to decompose it into these terms. To start off, the value of $\mathbf{J}_B$ is (approximately) known. However, because it does not commute with its neighbouring terms, one cannot divide it out. This even remains the case when the model is unpolarized. Fortunately, in MWA all tiles are looking approximately through the same ionosphere, and therefore we can assume $\mathbf{J}_F$ is equal for every antenna. As long as the model is unpolarized, the model becomes a scalar term $m$ and the $\mathbf{J}_F$ term is eliminated:
+\begin{equation}
+ \mathbf{J}_F^{-1} m \overline{\mathbf{J}}_F^{-1} = m \left( \mathbf{J}_F^{-1} \overline{\mathbf{J}}_F^{-1} \right) = m.
+\end{equation}
+This implies one can divide the beam from the model, such that $\mathbf{N}_{j,k} = \mathbf{J}_B^{-1}m_{j,k}\overline{\mathbf{J}}_B^{-1}$ and one arrives at:
+\begin{equation}
+ \sum\limits_{j=1}^{N_a} \sum\limits_{k,k\neq j}^{N_a} \left\| \mathbf{N}_{j,k} - j_j^I \mathbf{J}^G_j \mathbf{V}_{j,k} \overline{\mathbf{J}}_k^G \overline{j}_k^I \right\|^2_F.
+\end{equation}
+It is clear we can not trivially distinguish between the ionospheric phase term and the instrumental (complex) gain. However, if the instrumental gain is constant over a long time while the ionosphere changes on scales of minutes but has a unity average over long term, one can solve first for the instrumental gain by taking the solution over a long interval, and perform ionospheric solutions over short intervals. Assume that $W$ are the corrected visibilities after instrumental gain calibration.
+\begin{equation}
+ \sum\limits_{j=1}^{N_a} \sum\limits_{k,k\neq j}^{N_a} \left\| \mathbf{N}_{j,k} - j_j^I \mathbf{W}_{j,k} \overline{j}_k^I \right\|^2_F.
+\end{equation}
+Since $j_j^I = \overline{j}^I_k$, this is equal to
+\begin{equation}
+ \sum\limits_{j=1}^{N_a} \sum\limits_{k,k\neq j}^{N_a} \left\| \mathbf{N}_{j,k} - j_I^2 \mathbf{W}_{j,k} \right\|^2_F.
+\end{equation}
+This can now become a scalar problem for each polarisation:
+\begin{equation}
+ \sum\limits_{j=1}^{N_a} \sum\limits_{k,k\neq j}^{N_a} \left( \sum\limits_{p=1}^4 \left[ n_{j,k,p} - j_I^2 w_{j,k,p} \right] \right)^2.
+\end{equation}
+
+\label{lastpage}
+
+\end{document}
