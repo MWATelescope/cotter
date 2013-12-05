@@ -71,6 +71,19 @@ This can now become a scalar problem for each polarisation:
  \sum\limits_{j=1}^{N_a} \sum\limits_{k,k\neq j}^{N_a} \left( \sum\limits_{p=1}^4 \left[ n_{j,k,p} - j_I^2 w_{j,k,p} \right] \right)^2.
 \end{equation}
 
+This method works, but does not deal with ionospheric position shifting, and hence does in practice fail to do an accurate subtraction job when the source position are not found every short interval (2 min).
+
+\section{Source position finding}
+Instead of fitting for a global gain and phase, we can also fit for a global (real) gain $g$ and two parameters $\Delta l$ and $\Delta m$ that describe the movement of the source. We would then want to calculate the minimization
+\begin{equation}
+ \min_{g,\Delta l,\Delta m} \epsilon(g,\Delta l,\Delta m),\hspace{1cm} g\approx 1, \Delta l\approx 0, \Delta m\approx 0
+\end{equation}
+where $\epsilon$ is defined as the squared error between model and data:
+\begin{equation}
+ \epsilon(g,\Delta l,\Delta m) = \left( g e^{2\pi \left( u\Delta l + v\Delta m\right)} M(i) - V(i) \right)^2
+\end{equation}
+
+
 \label{lastpage}
 
 \end{document}
