@@ -46,6 +46,7 @@ Cotter::Cotter() :
 	_outputFormat(MSOutputFormat),
 	_metaFilename(),
 	_subbandPassbandFilename(),
+	_qualityStatisticsFilename(),
 	_statistics(0),
 	_correlatorMask(0),
 	_fullysetMask(0),
@@ -243,7 +244,7 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	
 	if(freqAvgFactor != 1 || timeAvgFactor != 1)
 	{
-		_writer = new ThreadedWriter(new AveragingMSWriter(_writer, timeAvgFactor, freqAvgFactor, *this));
+		_writer = new ThreadedWriter(new AveragingWriter(_writer, timeAvgFactor, freqAvgFactor, *this));
 	}
 	writeAntennae();
 	writeSPW();
@@ -489,8 +490,13 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	_reader = 0;
 	
 	if(_collectStatistics && writerSupportsStatistics) {
-		std::cout << "Writing statistics to file...\n";
+		std::cout << "Writing statistics to measurement set...\n";
 		_flagger->WriteStatistics(*_statistics, outputFilename);
+	}
+	
+	if(_collectStatistics && !_qualityStatisticsFilename.empty()) {
+		std::cout << "Writing statistics to " << _qualityStatisticsFilename << "...\n";
+		_flagger->WriteStatistics(*_statistics, _qualityStatisticsFilename);
 	}
 	
 	if(_outputFormat == MSOutputFormat)
@@ -733,7 +739,7 @@ void Cotter::baselineProcessThreadFunc()
 		lock.lock();
 	}
 	
-	// Mutex needs to be still locked
+	// Mutex still needs to be locked
 	if(_statistics == 0)
 		_statistics = new QualityStatistics(threadStatistics);
 	else
