@@ -1,7 +1,7 @@
 #ifndef COTTER_H
 #define COTTER_H
 
-#include "averagingmswriter.h"
+#include "averagingwriter.h"
 #include "gpufilereader.h"
 #include "mwaconfig.h"
 #include "stopwatch.h"
@@ -70,6 +70,8 @@ class Cotter : private UVWCalculater
 		void SetFlagAutoCorrelations(bool flagAutoCorrelations) { _flagAutos = flagAutoCorrelations; }
 		void SetInitDurationToFlag(double initDuration) { _initDurationToFlag = initDuration; }
 		void SetApplySBGains(bool applySBGains) { _applySBGains = applySBGains; }
+		void SetFlagDCChannels(bool flagDCChannels) { _flagDCChannels = flagDCChannels; }
+		void SetSaveQualityStatistics(const std::string& file) { _qualityStatisticsFilename = file; }
 		void FlagAntenna(size_t antIndex) { _userFlaggedAntennae.push_back(antIndex); }
 		void FlagSubband(size_t sbIndex) { _flaggedSubbands.insert(sbIndex); }
 		void FlagSubbandEdges(size_t edgeChannelCount) { _subbandEdgeFlagCount = edgeChannelCount; }
@@ -98,7 +100,7 @@ class Cotter : private UVWCalculater
 		enum OutputFormat _outputFormat;
 		std::string _outputFilename, _commandLine;
 		std::string _metaFilename, _antennaLocationsFilename, _headerFilename, _instrConfigFilename;
-		std::string _subbandPassbandFilename;
+		std::string _subbandPassbandFilename, _qualityStatisticsFilename;
 		std::vector<size_t> _userFlaggedAntennae;
 		std::set<size_t> _flaggedSubbands;
 		
@@ -119,7 +121,7 @@ class Cotter : private UVWCalculater
 		std::complex<float> *_outputData;
 		float *_outputWeights;
 		bool _disableGeometricCorrections, _removeFlaggedAntennae, _removeAutoCorrelations, _flagAutos;
-		bool _overridePhaseCentre, _doAlign, _doFlagMissingSubbands, _applySBGains;
+		bool _overridePhaseCentre, _doAlign, _doFlagMissingSubbands, _applySBGains, _flagDCChannels;
 		long double _customRARad, _customDecRad;
 		double _initDurationToFlag;
 		

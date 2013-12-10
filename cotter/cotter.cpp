@@ -46,6 +46,7 @@ Cotter::Cotter() :
 	_outputFormat(MSOutputFormat),
 	_metaFilename(),
 	_subbandPassbandFilename(),
+	_qualityStatisticsFilename(),
 	_statistics(0),
 	_correlatorMask(0),
 	_fullysetMask(0),
@@ -57,6 +58,7 @@ Cotter::Cotter() :
 	_doAlign(true),
 	_doFlagMissingSubbands(true),
 	_applySBGains(true),
+	_flagDCChannels(true),
 	_customRARad(0.0),
 	_customDecRad(0.0),
 	_initDurationToFlag(4.0)
@@ -242,7 +244,7 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	
 	if(freqAvgFactor != 1 || timeAvgFactor != 1)
 	{
-		_writer = new ThreadedWriter(new AveragingMSWriter(_writer, timeAvgFactor, freqAvgFactor, *this));
+		_writer = new ThreadedWriter(new AveragingWriter(_writer, timeAvgFactor, freqAvgFactor, *this));
 	}
 	writeAntennae();
 	writeSPW();
@@ -250,6 +252,20 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	writeField();
 	_writer->WritePolarizationForLinearPols(false);
 	writeObservation();
+	
+	if(!_qualityStatisticsFilename.empty())
+	{
+		Writer* qsWriter = new MSWriter(_qualityStatisticsFilename);
+		std::swap(qsWriter, _writer);
+		writeAntennae();
+		writeSPW();
+		writeSource();
+		writeField();
+		_writer->WritePolarizationForLinearPols(false);
+		writeObservation();
+		std::swap(qsWriter, _writer);
+		delete qsWriter;
+	}
 		
 	const size_t
 		nChannels = nChannelsInCurSBRange(),
@@ -488,8 +504,13 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	_reader = 0;
 	
 	if(_collectStatistics && writerSupportsStatistics) {
-		std::cout << "Writing statistics to file...\n";
+		std::cout << "Writing statistics to measurement set...\n";
 		_flagger->WriteStatistics(*_statistics, outputFilename);
+	}
+	
+	if(_collectStatistics && !_qualityStatisticsFilename.empty()) {
+		std::cout << "Writing statistics to " << _qualityStatisticsFilename << "...\n";
+		_flagger->WriteStatistics(*_statistics, _qualityStatisticsFilename);
 	}
 	
 	if(_outputFormat == MSOutputFormat)
@@ -732,7 +753,7 @@ void Cotter::baselineProcessThreadFunc()
 		lock.lock();
 	}
 	
-	// Mutex needs to be still locked
+	// Mutex still needs to be locked
 	if(_statistics == 0)
 		_statistics = new QualityStatistics(threadStatistics);
 	else
@@ -1120,16 +1141,19 @@ void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask) const
 		}
 		
 		// Flag centre channel of sb
-		size_t halfBand = chPerSb/2;
-		bool *channelPtr = sbStart + halfBand*flagMask.HorizontalStride();
-		bool *endPtr = sbStart + halfBand*flagMask.HorizontalStride() + scanCount;
-		while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
+		if(_flagDCChannels)
+		{
+			size_t halfBand = chPerSb/2;
+			bool *channelPtr = sbStart + halfBand*flagMask.HorizontalStride();
+			bool *endPtr = sbStart + halfBand*flagMask.HorizontalStride() + scanCount;
+			while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
+		}
 		
 		// Flag last edge channels of sb
 		for(size_t ch=chPerSb-_subbandEdgeFlagCount; ch!=chPerSb; ++ch)
 		{
-			channelPtr = sbStart + ch * flagMask.HorizontalStride();
-			endPtr = sbStart + ch * flagMask.HorizontalStride() + scanCount;
+			bool *channelPtr = sbStart + ch * flagMask.HorizontalStride();
+			bool *endPtr = sbStart + ch * flagMask.HorizontalStride() + scanCount;
 			while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
 		}
 	}

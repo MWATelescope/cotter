@@ -79,6 +79,8 @@ void usage()
 	"  -noflagautos       Do not flag auto-correlations (default for uvfits file output).\n"
 	"  -noflagmissings    Do not flag missing gpu box files.\n"
 	"  -nosbgains         Do not correct for the digital gains.\n"
+	"  -flagdcchannels    Flag the centre channel of each sub-band (currently the default).\n"
+	"  -noflagdcchannels  Do not flag the centre channel of each sub-band.\n"
 	"  -centre <ra> <dec> Set alternative phase centre, e.g. -centre 00h00m00.0s 00d00m00.0s.\n"
 	"  -usepcentre        Centre on pointing centre.\n"
 	"  -sbcount <count>   Read/processes the first given number of sub-bands.\n"
@@ -88,6 +90,7 @@ void usage()
 	"  -flagsubband <lst> Flag the comma-separated list of zero-indexed sub-bands.\n"
 	"  -flagedges <count> Flag the given number of edge channels of each sub-band.\n"
 	"  -initflag <sec>    Specify number of seconds to flag at beginning of observation (default: 4s).\n"
+	"  -saveqs <file.qs>  Save the quality statistics to the specified file. Use extension of '.sq'.\n"
 	"\n"
 	"The filenames of the input gpu files should end in '...nn_mm.fits', where nn >= 1 is the\n"
 	"gpu box number and mm >= 0 is the time step number.\n";
@@ -199,6 +202,14 @@ int cotterMain(int argc, const char* const* argv)
 			{
 				cotter.SetApplySBGains(false);
 			}
+			else if(param == "flagdcchannels")
+			{
+				cotter.SetFlagDCChannels(true);
+			}
+			else if(param == "noflagdcchannels")
+			{
+				cotter.SetFlagDCChannels(false);
+			}
 			else if(param == "timeavg")
 			{
 				++argi;
@@ -266,6 +277,11 @@ int cotterMain(int argc, const char* const* argv)
 			{
 				++argi;
 				cotter.FlagSubbandEdges(atoi(argv[argi]));
+			}
+			else if(param == "saveqs")
+			{
+				++argi;
+				cotter.SetSaveQualityStatistics(argv[argi]);
 			}
 			else
 			{

@@ -11,16 +11,16 @@ class UVWCalculater
 		virtual void CalculateUVW(double date, size_t antenna1, size_t antenna2, double &u, double &v, double &w) = 0;
 };
 
-class AveragingMSWriter : public Writer
+class AveragingWriter : public Writer
 {
 	public:
-		AveragingMSWriter(Writer *writer, size_t timeCount, size_t freqAvgFactor, UVWCalculater &uvwCalculater)
+		AveragingWriter(Writer *writer, size_t timeCount, size_t freqAvgFactor, UVWCalculater &uvwCalculater)
 		: _writer(writer), _timeAvgFactor(timeCount), _freqAvgFactor(freqAvgFactor), _rowsAdded(0),
 		_originalChannelCount(0), _avgChannelCount(0), _antennaCount(0), _uvwCalculater(uvwCalculater)
 		{
 		}
 		
-		virtual ~AveragingMSWriter()
+		virtual ~AveragingWriter()
 		{
 			destroyBuffers();
 			
