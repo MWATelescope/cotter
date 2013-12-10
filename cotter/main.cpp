@@ -118,6 +118,7 @@ int cotterMain(int argc, const char* const* argv)
 	double memPercentage = 90.0;
 	Cotter cotter;
 	const char *outputFilename = 0;
+	bool saveQualityStatistics = false;
 	while(argi!=argc)
 	{
 		if(argv[argi][0] == '-')
@@ -129,13 +130,13 @@ int cotterMain(int argc, const char* const* argv)
 				outputFilename = argv[argi];
 				if(isFitsFile(outputFilename))
 				{
-					cotter.SetCollectStatistics(false);
+					cotter.SetCollectStatistics(saveQualityStatistics);
 					cotter.SetFlagAutoCorrelations(false);
 					cotter.SetOutputFormat(Cotter::FitsOutputFormat);
 				}
 				else if(isMWAFlagFile(outputFilename))
 				{
-					cotter.SetCollectStatistics(false);
+					cotter.SetCollectStatistics(saveQualityStatistics);
 					cotter.SetOutputFormat(Cotter::FlagsOutputFormat);
 					cotter.SetDoAlign(false);
 					cotter.SetRemoveFlaggedAntennae(false);
@@ -282,6 +283,8 @@ int cotterMain(int argc, const char* const* argv)
 			{
 				++argi;
 				cotter.SetSaveQualityStatistics(argv[argi]);
+				cotter.SetCollectStatistics(true);
+				saveQualityStatistics = true;
 			}
 			else
 			{
