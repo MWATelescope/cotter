@@ -57,6 +57,7 @@ Cotter::Cotter() :
 	_doAlign(true),
 	_doFlagMissingSubbands(true),
 	_applySBGains(true),
+	_flagDCChannels(true),
 	_customRARad(0.0),
 	_customDecRad(0.0),
 	_initDurationToFlag(4.0)
@@ -1120,16 +1121,19 @@ void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask) const
 		}
 		
 		// Flag centre channel of sb
-		size_t halfBand = chPerSb/2;
-		bool *channelPtr = sbStart + halfBand*flagMask.HorizontalStride();
-		bool *endPtr = sbStart + halfBand*flagMask.HorizontalStride() + scanCount;
-		while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
+		if(_flagDCChannels)
+		{
+			size_t halfBand = chPerSb/2;
+			bool *channelPtr = sbStart + halfBand*flagMask.HorizontalStride();
+			bool *endPtr = sbStart + halfBand*flagMask.HorizontalStride() + scanCount;
+			while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
+		}
 		
 		// Flag last edge channels of sb
 		for(size_t ch=chPerSb-_subbandEdgeFlagCount; ch!=chPerSb; ++ch)
 		{
-			channelPtr = sbStart + ch * flagMask.HorizontalStride();
-			endPtr = sbStart + ch * flagMask.HorizontalStride() + scanCount;
+			bool *channelPtr = sbStart + ch * flagMask.HorizontalStride();
+			bool *endPtr = sbStart + ch * flagMask.HorizontalStride() + scanCount;
 			while(channelPtr != endPtr) { *channelPtr=true; ++channelPtr; }
 		}
 	}

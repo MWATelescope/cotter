@@ -79,6 +79,8 @@ void usage()
 	"  -noflagautos       Do not flag auto-correlations (default for uvfits file output).\n"
 	"  -noflagmissings    Do not flag missing gpu box files.\n"
 	"  -nosbgains         Do not correct for the digital gains.\n"
+	"  -flagdcchannels    Flag the centre channel of each sub-band (currently the default).\n"
+	"  -noflagdcchannels  Do not flag the centre channel of each sub-band.\n"
 	"  -centre <ra> <dec> Set alternative phase centre, e.g. -centre 00h00m00.0s 00d00m00.0s.\n"
 	"  -usepcentre        Centre on pointing centre.\n"
 	"  -sbcount <count>   Read/processes the first given number of sub-bands.\n"
@@ -198,6 +200,14 @@ int cotterMain(int argc, const char* const* argv)
 			else if(param == "nosbgains")
 			{
 				cotter.SetApplySBGains(false);
+			}
+			else if(param == "flagdcchannels")
+			{
+				cotter.SetFlagDCChannels(true);
+			}
+			else if(param == "noflagdcchannels")
+			{
+				cotter.SetFlagDCChannels(false);
 			}
 			else if(param == "timeavg")
 			{
