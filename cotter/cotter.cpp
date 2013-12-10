@@ -252,6 +252,20 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	writeField();
 	_writer->WritePolarizationForLinearPols(false);
 	writeObservation();
+	
+	if(!_qualityStatisticsFilename.empty())
+	{
+		Writer* qsWriter = new MSWriter(_qualityStatisticsFilename);
+		std::swap(qsWriter, _writer);
+		writeAntennae();
+		writeSPW();
+		writeSource();
+		writeField();
+		_writer->WritePolarizationForLinearPols(false);
+		writeObservation();
+		std::swap(qsWriter, _writer);
+		delete qsWriter;
+	}
 		
 	const size_t
 		nChannels = nChannelsInCurSBRange(),
