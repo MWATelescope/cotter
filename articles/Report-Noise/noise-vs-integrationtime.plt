@@ -1,12 +1,12 @@
 set term postscript enhanced color font "Helvetica,16"
 set title "Image noise vs integration time"
 set xlabel "Integration time (s)"
-set ylabel "Noise standard deviation (Jy)"
+set ylabel "Noise standard deviation (mJy)"
 set output "noise-vs-integration.ps"
 set log xy
 #set key inside bottom left
 set xrange [0.5:20000]
-set yrange [0.005:0.3]
+set yrange [0.005:0.300]
 plot \
 "noise-vs-integrationtime-data.txt" using (column(1)):2 title "Theoretical" with lines lw 2, \
 "noise-vs-integrationtime-data.txt" using (column(1)):3 title "Uniform" with lines lw 2, \
