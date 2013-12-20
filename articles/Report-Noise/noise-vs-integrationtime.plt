@@ -16,4 +16,5 @@ plot \
 "noise-vs-integrationtime-data.txt" using (column(1)):6 title "" with lines lw 2 lc 7 lt 3, \
 "noise-vs-integrationtime-data.txt" using (column(1)):7 title "" with lines lw 2 lc 4 lt 3, \
 "noise-vs-integrationtime-data.txt" using (column(1)):8 title "" with lines lw 2 lc 2 lt 3, \
-"noise-vs-integrationtime-data.txt" using (column(1)):9 title "" with lines lw 2 lc 3 lt 3
+"noise-vs-integrationtime-data.txt" using (column(1)):9 title "" with lines lw 2 lc 3 lt 3, \
+"noise-vs-integrationtime-data2.txt" using 1:2 title "16k s peeled" with lines lw 4 lc 7
