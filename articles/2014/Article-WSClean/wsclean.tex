@@ -1,0 +1,107 @@
+\documentclass[useAMS,usenatbib]{mn2e}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+%\usepackage[font={it},labelfont={bf}]{caption}
+%\usepackage{units}
+\usepackage{times}
+\usepackage{color}
+\usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+
+\usepackage{fixltx2e} % fixes placing of image positions
+
+\definecolor{customhdrcolor}{rgb}{0.0,0.0,0.0}
+\definecolor{customcitecolor}{rgb}{0.0,0.5,0.75}
+\definecolor{customlinkcolor}{rgb}{0.0,0.5,0.75}
+
+\usepackage[colorlinks=true,linkcolor=customlinkcolor,urlcolor=customlinkcolor,citecolor=customcitecolor,pdftex]{hyperref}
+
+\ifpdf\pdfinfo{/Title      (WSClean)
+               /Author     (A. R. Offringa et al.)
+               /Keywords   (instrumentation: interferometers;methods: observational;techniques: interferometric;radio continuum: general)
+        }
+\else\usepackage{graphics}\fi
+
+\setlength{\pdfpageheight}{\paperheight}
+\setlength{\pdfpagewidth}{\paperwidth}
+
+%\newcommand{\editmark}[1]{#1}
+%\newcommand{\editmark}[1]{{\color{red}{\textbf{#1}}}}
+
+% To make Dutch ``tussenvoegsels'' work correctly in Latex such as ``de Bruyn'', we use this command
+% It fixes ordering and uppercases.
+% In text, it should be written with uppercase, as in ``De Bruyn''
+\DeclareRobustCommand{\TUSSEN}[3]{#2}
+
+\title[WSClean: a new imager]{WSClean: a new implementation of a fast, generic wide-field imager}
+
+\author[A.~R.~Offringa et al.]{A.~R.~Offringa$^{1,2}$\thanks{E-mail:
+\url{andre.offringa@anu.edu.au}}, B.~McKinley$^{1,2}$, N.~Hurley-Walker, 
+F.~H.~Briggs, \newauthor
+J.~Rhee, L.~Feng, D.~Kaplan, A.~R.~Neben, J.~D.~Hughes, MWA commissioning team\newauthor
+and GLEAM members where appropriate \& MWA builders list
+\\
+$^{1}$RSAA, Australian National University, Mt Stromlo Observatory, via Cotter Road, Weston, ACT 2611, Australia \\
+$^{2}$ARC Centre of Excellence for All-sky Astrophysics (CAASTRO) \\
+}
+
+\begin{document}
+
+\date{Accepted TODO. Received TODO; in original form TODO}
+\pagerange{\pageref{firstpage}--\pageref{lastpage}}
+\pubyear{2014}
+
+\label{firstpage}
+\maketitle
+
+\begin{abstract}
+We present our new imager implementation, ``WSClean'', which we find to be an order of magnitude faster than existing implementations, as well as being capable of MWA full-sky imaging at full resolution.
+TODO
+\end{abstract}
+
+\begin{keywords}
+instrumentation: interferometers -- methods: observational -- techniques: interferometric -- radio continuum: general
+\end{keywords}
+
+\section{Introduction}
+
+\section*{Acknowledgments}
+...
+
+% To make Dutch ``tussenvoegsels'' work correctly in Latex such as ``de Bruyn'', we use this command
+% In bibliography, it should be written with lowercase, as in ``de Bruyn''
+\DeclareRobustCommand{\TUSSEN}[3]{#3}
+
+
+Observations from non-coplanar interferometric radio telescopes that image large fractions of the sky at once can not be imaged with simple imagers that are based on a two-dimensional Fast Fourier Transformation (FFT). Instead, the imaging algorithm needs to account for the ``w-term'' during inversion, which is the term that describes the deviation of the array from a perfect plane. This deviation is amplified for telescopes with wide field of view, making this especially an issue for low-frequency telescopes, that by nature are wide-field instruments.
+
+The most commonly used method to image observations from non-coplanar arrays is the w-projection algorithm \citep{wprojection-cornwell} that has been implemented in CASA. This is the fastest generic wide-field imager available, and CASA is the only software package (known to us) that implements the w-projection algorithm. Other packages rely on the faceting algorithm \citep{facetting-cornwell}, which is about an order of magnitude slower and is less accurate \citep{wprojection-cornwell}. The w-projection algorithm has thus been successful so far. However, the available implementations are unable to cope with the data rates from the new generation of wide-field observatories, which are producing data sets that are orders of magnitude larger than before. Examples of such telescopes include the Murchison Widefield Array (MWA), the upgraded Jansky Very Large Array (JVLA) and the Low-Frequency Array (LOFAR). At the MWA, we have seen that it can take up to tens of hours with the w-projection algorithm to image a two-minute MWA observation when the observed field is at low elevation. Moreover, the w-projection implementation in CASA can not handle images of 10 k $\times$ 10 k, which is desired for making full-sky images at the native resolution of the MWA. This will become an even bigger problem when the Square-Kilometre Array (SKA) begins its operation, and hence a considerable improvement in imaging techniques is required.
+
+We present a new implementation of a generic wide-field imager that significantly improves upon the w-projection implementation. Currently it performs approximately an order of magnitude faster in all situations and even more for very large images, while it maintains equal accuracy and can handle MWA full-sky imaging. The implementation uses the ``w-stacking method'' for correcting the w-terms \citep{widefield-imaging-ska-cornwell} to obtain the increase in speed. Performance can be improved further by combination with another technique: the MWA telescope splits observations in data products of typically a few minutes, and the w-terms can be kept small by phasing an observation to the orthogonal of the array's best-fitting plane. This is somewhat similar to the w-snapshot algorithm proposed in \citet{widefield-imaging-ska-cornwell}. Hence, we can describe the imager as a hybrid between w-stacking and a variation of the w-snapshot algorithm. It also implements the Clean deconvolution procedure (\citealt{hogbom-clean} and various variations). We named the new imager ``WSClean'', as an abbreviation for ``W-Stacking Clean''.
+
+After describing the new imaging implementation, we will test its performance using various MWA observations, including observations with varying elevation and fields (diffuse emission, point sources). GMRT data and -- if available -- LOFAR data will also be used. We will compare these results with the results from the w-projection implementation in CASA and to other non-w-projection algorithms, thereby focusing on accuracy and performance.
+
+\section{The w-stacking technique}
+In this section, we will describe the w-stacking algorithm from a mathematical point of view.
+
+The sky equation for an interferometer is given by
+\begin{eqnarray}\label{eq:visibility-function}
+V(u,v,w) = \iint \frac{A(l,m) I(l,m)}{\sqrt{1-l^2-m^2}} e^{-2\pi i \left(ul + vm + w(\sqrt{1-l^2-m^2}-1)\right)} dl dm,
+\end{eqnarray}
+where function $V$ is formed by the calibrated visibilities, $u,v,w$ is a coordinate giving the observed mode in the coordinate system of the array, $A$ is the primary-beam function, $I$ is the sky function and $l,m$ are cosine sky coordinates. Imaging consists of inverting this equation to find $I$ from $V$. 
+
+For small field of views, the term $\sqrt{1-l^2-m^2}$ is approximately of unit size, transforming Eq.~\eqref{eq:visibility-function} into an ordinary 2-dimensional Fourier transform which can be inverted with an inverse Fast-Fourier Transform (FFT). A common rule is that this is valid when $\forall w,l,m: w\left(\sqrt{1-l^2-m^2}-1\right) \ll 1$.
+
+TODO: Algorithm; plain w-stacking and further alterations such as w-snapshotting and full-sky imaging.
+\section{The WSClean imager implementation}
+
+\section{Analysis}
+TODO: Show image quality; show time-efficiency comparisons.
+
+\bibliographystyle{mn2e}
+\bibliography{references}
+
+\label{lastpage}
+
+\end{document}
