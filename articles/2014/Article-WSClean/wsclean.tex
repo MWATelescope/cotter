@@ -66,14 +66,6 @@ instrumentation: interferometers -- methods: observational -- techniques: interf
 
 \section{Introduction}
 
-\section*{Acknowledgments}
-...
-
-% To make Dutch ``tussenvoegsels'' work correctly in Latex such as ``de Bruyn'', we use this command
-% In bibliography, it should be written with lowercase, as in ``de Bruyn''
-\DeclareRobustCommand{\TUSSEN}[3]{#3}
-
-
 Observations from non-coplanar interferometric radio telescopes that image large fractions of the sky at once can not be imaged with simple imagers that are based on a two-dimensional Fast Fourier Transformation (FFT). Instead, the imaging algorithm needs to account for the ``w-term'' during inversion, which is the term that describes the deviation of the array from a perfect plane. This deviation is amplified for telescopes with wide field of view, making this especially an issue for low-frequency telescopes, that by nature are wide-field instruments.
 
 The most commonly used method to image observations from non-coplanar arrays is the w-projection algorithm \citep{wprojection-cornwell} that has been implemented in CASA. This is the fastest generic wide-field imager available, and CASA is the only software package (known to us) that implements the w-projection algorithm. Other packages rely on the faceting algorithm \citep{facetting-cornwell}, which is about an order of magnitude slower and is less accurate \citep{wprojection-cornwell}. The w-projection algorithm has thus been successful so far. However, the available implementations are unable to cope with the data rates from the new generation of wide-field observatories, which are producing data sets that are orders of magnitude larger than before. Examples of such telescopes include the Murchison Widefield Array (MWA), the upgraded Jansky Very Large Array (JVLA) and the Low-Frequency Array (LOFAR). At the MWA, we have seen that it can take up to tens of hours with the w-projection algorithm to image a two-minute MWA observation when the observed field is at low elevation. Moreover, the w-projection implementation in CASA can not handle images of 10 k $\times$ 10 k, which is desired for making full-sky images at the native resolution of the MWA. This will become an even bigger problem when the Square-Kilometre Array (SKA) begins its operation, and hence a considerable improvement in imaging techniques is required.
@@ -85,19 +77,102 @@ After describing the new imaging implementation, we will test its performance us
 \section{The w-stacking technique}
 In this section, we will describe the w-stacking algorithm from a mathematical point of view.
 
-The sky equation for an interferometer is given by
-\begin{eqnarray}\label{eq:visibility-function}
-V(u,v,w) = \iint \frac{A(l,m) I(l,m)}{\sqrt{1-l^2-m^2}} e^{-2\pi i \left(ul + vm + w(\sqrt{1-l^2-m^2}-1)\right)} dl dm,
-\end{eqnarray}
-where function $V$ is formed by the calibrated visibilities, $u,v,w$ is a coordinate giving the observed mode in the coordinate system of the array, $A$ is the primary-beam function, $I$ is the sky function and $l,m$ are cosine sky coordinates. Imaging consists of inverting this equation to find $I$ from $V$. 
+An interferometer samples the complex visibility function
+\begin{align}\notag
+V(u,v,w) = & \iint \frac{A(l,m) I(l,m)}{\sqrt{1-l^2-m^2}} \cdot \\ \label{eq:visibility-function}
+& e^{-2\pi i \left(ul + vm + w(\sqrt{1-l^2-m^2}-1)\right)} dl dm,
+\end{align}
+where $u,v,w$ is a baseline coordinate in the coordinate system of the array, $A$ is the primary-beam function, $I$ is the sky function and $l,m$ are cosine sky coordinates. We will use $I'(l,m)$ to denote the sky function before primary-beam correction, $I'(l,m)=A(l,m)I(l,m)$. We will not discuss calibration, and assume $V$ has been calibrated before imaging. In the case of a polarized measurement, the symbols $V$, $A$ and $I$ are $2\times 2$ Jones matrices, but without loss of generality we will ignore polarization and treat inversion as a scalar problem. Imaging consists of inverting Eq.~\eqref{eq:visibility-function}, i.e., to find $I'$ from $V$.
 
-For small field of views, the term $\sqrt{1-l^2-m^2}$ is approximately of unit size, transforming Eq.~\eqref{eq:visibility-function} into an ordinary 2-dimensional Fourier transform which can be inverted with an inverse Fast-Fourier Transform (FFT). A common rule is that this is valid when $\forall w,l,m: w\left(\sqrt{1-l^2-m^2}-1\right) \ll 1$.
+For small field of views, the term $\sqrt{1-l^2-m^2}$ is approximately of unit size, making Eq.~\eqref{eq:visibility-function} approximate an ordinary 2-dimensional Fourier transform, which can be inverted with an inverse Fast Fourier Transform (FFT). A common rule is that this is valid when
+\begin{equation}\label{eq:when-2d-is-valid}
+\forall w,l,m: w\left(\sqrt{1-l^2-m^2}-1\right) \ll 1.
+\end{equation}
+
+We will now mathematically derive the w-stacking technique. First Eq.~\eqref{eq:visibility-function} is rewritten to
+\begin{align}\notag
+V(u,v,w) = & \iint \frac{I'(l,m) e^{-2\pi i w(\sqrt{1-l^2-m^2}-1)}}{\sqrt{1-l^2-m^2}} \cdot \\ \notag
+& e^{-2\pi i \left(ul + vm\right)} dl dm.
+\end{align}
+This is an ordinary two-dimensional Fourier transform going from $u,v$ space to $l,m$ space, and can be inverted to get:
+% Intermediate step:
+%\begin{align}\notag
+%\frac{I'(l,m) e^{-2\pi i w(\sqrt{1-l^2-m^2}-1)}}{\sqrt{1-l^2-m^2}} = & \iint V(u,v,w) \cdot \\ \notag
+%& e^{-2\pi i \left(ul + vm\right)} du dv,
+%\end{align}
+%which can be rewritten to
+\begin{align}\notag
+\frac{I'(l,m)}{\sqrt{1-l^2-m^2}} = & e^{2\pi i w(\sqrt{1-l^2-m^2}-1)} \iint V(u,v,w) \cdot \\ \notag
+& e^{-2\pi i \left(ul + vm\right)} du dv.
+\end{align}
+Integrating both sides over $w_0$ to $w_e$, the minimum and maximum value of $w$, results in
+\begin{align}\notag
+\frac{I'(l,m)\left(w_e - w_0\right)}{\sqrt{1-l^2-m^2}} = \int\limits_{w_0}^{w_e} e^{2\pi i w(\sqrt{1-l^2-m^2}-1)} \cdot \\ \label{eq:wstacking}
+\iint V(u,v,w)  e^{-2\pi i \left(ul + vm\right)} du dv dw.
+\end{align}
+The final step is to make the $u,v,w$ parameters discrete, so that the integration over $u$ and $v$ can become an inverse FFT and the integration over $w$ becomes a summation. This shows that the sky function can be reconstructed by i)~taking all samples that correspond to a specific value of $w$; ii)~grid those samples on a uniform grid; iii)~calculating the inverse FFT; iv)~apply the direction dependent phaseshift $e^{2\pi i w(\sqrt{1-l^2-m^2}-1)}$; v)~repeat this for all $w$-values and add the results together; vi)~apply the final scaling.
+
+In practice, the final scaling will be different from $\left(w_e - w_0\right)/\sqrt{1-l^2-m^2}$ suggested by Eq.~\eqref{eq:wstacking}, because the individual $w$-layers will not be completely filled with samples. Therefore, the number of added samples and their weight have to be taken into account. Additionally, it might be required to divide out the effect of a possible convolution kernel and/or primary beam.
+
+\subsection{Discretization of w} \label{sec:gridding-w}
+While the discretization of $u$ and $v$ is similar to conventional imaging, the discretization of $w$ defines the number of w-layers that need to be processed. For this, we can use a similar rule to \eqref{eq:when-2d-is-valid}, and make sure that for two subsequent discretized $w$-values, $w_A$ and $w_B$, the phase difference is less than one radian. This results in the constraint
+\begin{equation} \label{eq:minimum-w-distance}
+\left|\left(w_A - w_B\right) 2\pi (\sqrt{1-l^2-m^2}-1)\right| \ll 1.
+\end{equation}
+This suggest that a uniform discretization in $w$ is optimal TODO in contrast to some article? -- could be explained by having more samples at smaller $w$s. From Eq.~\eqref{eq:minimum-w-distance}, the required number of layers can be derived and is given by
+\begin{equation}
+ N_\textrm{wlayers} \gg 2\pi \left(w_e - w_0\right) \max_{l,m} \left(1 - \sqrt{1-l^2-m^2}\right).
+\end{equation}
+Actual values for the right-hand side can differ a lot. The value of $w_e - w_0$ is influenced by the coplanarity of the array, the zenith angle and the wavelength, while the value of the $\max_{l,m}$ term is influenced by the angular size of the image. For the MWA, a typical value of $w_e - w_0$ is $\sim 10$ at zenith, but is already $\sim 400$ at a zenith angle of $30^{\circ}$. [TODO table of arrays with $w$ values at zenith/more angles/more freq?] For a typical full-field-of-view image of a MWA observation of $3072\times 3072$ pixels of $0.75''$ size, the $\max_{l,m}$ term is $0.68$. This implies that, in the case of the MWA, tens of $w$-layers are required at zenith and hundreds at lower elevations. The number of $w$-layers has a large effect on the performance of the $w$-stacking algorithm, and will be discussed further in section TODO.
 
 TODO: Algorithm; plain w-stacking and further alterations such as w-snapshotting and full-sky imaging.
+\subsection{Gridding}
+TODO
+
+\subsection{Time complexity of w-stacking}
+We will now derive the time complexity of w-stacking. The time complexity is expressed in several parameters. The number of samples $N_\textrm{samples}$ in the image influences the amount of samples that need to be gridded. Each sample belongs to exactly one $w$-layer, and thus each sample is gridded exactly once. For gridding, a sample is convolved with a convolution kernel to suppress FFT aliasing as well as gridding aliasing. If the kernel has a diameter of $N_\textrm{kernel}$, the amount of operations involved in gridding all samples scales with $N_\textrm{samples}N^2_\textrm{kernel}$.
+
+Due to memory constraints it is often necessary to perform multiple passes over the data set. The overhead caused by this is often negligable, but when both the number of passes and the number of samples is large, the algorithm will become dominated by seeking through the data set. Therefore, we add another term $(\eta+1) N_\textrm{samples}$, where $\eta$ defines the involved overhead. This overhead becomes higher when $N_\textrm{wlayers}$, $N_\textrm{imgsize}$ and $N_\textrm{samples}$ are higher or when the available memory is lower, but is $\sim 0$ in common MWA cases.
+
+For each $w$-layer, an inverse FFT operation is performed with a size equal to the image size. If we define $N_\textrm{imgsize}$ the size of the image along one axis, the number of operations involved in this scales with $N_\textrm{wlayers} N^2_\textrm{imgsize} \log N_\textrm{imgsize}$. After each inverse FFT, the direction dependent phase shift needs to be applied, for which a number of operations $\sim$ $N_\textrm{wlayers} N^2_\textrm{imgsize}$ is required, and the time spent on the inverse FFT normally dominates. Finally, the layers need to be added together and will be scaled, which adds a factor relative to $N_\textrm{samples}$ operations, which also is insignificant relative to the inverse FFTs.
+
+This implies that the total number of operations $N_\textrm{op}$ scales in the following way:
+\begin{align} \notag
+ N_\textrm{op} \sim & N_\textrm{wlayers} \left( N^2_\textrm{imgsize} \log N_\textrm{imgsize} + N^2_\textrm{imgsize} \right) + \\
+ & N^2_\textrm{imgsize} + N_\textrm{samples} \left( N^2_\textrm{kernel} + {\eta} + 1 \right).
+\end{align}
+If we ignore the possible reading overhead, and assume that the number of $w$-layers scales with the image size, a strict bound in Big-O notation is given by
+\begin{equation}
+\mathcal{O}\left(N^3_\textrm{imgsize} \log N_\textrm{imgsize} + N_\textrm{samples} N^2_\textrm{kernel}\right).
+\end{equation}
+
+We can compare this to $w$-projection algorithm \citep{wprojection-cornwell}, for which the total number of operations scales as
+\begin{align} \notag
+ N_\textrm{op-wproj} \sim & N^2_\textrm{imgsize} \log N_\textrm{imgsize} + N^2_\textrm{imgsize} + \\
+ & N_\textrm{samples} \left( N_\textrm{kernel} + N_\textrm{wkernel} \right)^2 + N_\textrm{wplanes},
+\end{align}
+where $N_\textrm{wkernel}$ is the size of the added kernel to correct the $w$-corrections in $uv$-space as a convolution, instead of as multiplication in $lm$-space. Each sample needs to be convolved with the combined kernel, hence the term $N_\textrm{samples} \left( N_\textrm{kernel} + N_\textrm{wkernel} \right)^2$. There is also time associated with calculating these kernels, and this can be substantial for the MWA. This scales with $N_\textrm{wplanes}$ the number of $w$-projection planes. The constraints on this number are equal to the constraints on $N_\textrm{wlayers}$ in the $w$-stacking algorithm, as described in \S\ref{sec:gridding-w}. The number of pixels in the $w$-kernel is depending on how quickly the kernel approaches zero. This kernel is a function in $u,v$, and hence the larger the angular size of the image, the smaller an individual $u,v$ pixel becomes, and the larger (in pixels) the kernel becomes. Hence, $N_\textrm{wkernel}$ scales with $N_\textrm{imgsize}$. The resulting bound for $w$-projection is:
+\begin{equation}
+\mathcal{O}\left(N^2_\textrm{imgsize} \log N_\textrm{imgsize} + N_\textrm{samples} N^2_\textrm{imgsize} + N_\textrm{planes} \right).
+\end{equation}
+By comparing the time complexity between $w$-stacking and $w$-projection, we can conclude that in the limiting behaviour, the $w$-stacking method will be faster when the gridding of the visibilities is the dominating cost of the algorithm. The $w$-projection algorithm will be faster when the inverse FFTs are dominating. The main parameter that changes this balance is the number of visibilities to be gridded, i.e., the size of the dataset. For larger datasets, $w$-stacking becomes more favourable. In section TODO we will determine which method is faster in practice for different parameters.
+
+\subsection{Cleaning a w-stacked image}
+TODO describe how to do
+
+It is tempting to use a very low number of $w$-layers, and define the major clean iteration threshold such that it will never clean any $w$-aliasing artefacts. However, predicting the visibilities from an image with a similar low number of $w$-layers will cause similar aliased errors, and thus will subtract incorrect fluxes from the visibilities. In the end, even though the sources causing the $w$-aliasing effects are removed, aliasing artefacts will still remain.
+
 \section{The WSClean imager implementation}
 
 \section{Analysis}
 TODO: Show image quality; show time-efficiency comparisons.
+
+\section*{Acknowledgments}
+...
+
+% To make Dutch ``tussenvoegsels'' work correctly in Latex such as ``de Bruyn'', we use this command
+% In bibliography, it should be written with lowercase, as in ``de Bruyn''
+\DeclareRobustCommand{\TUSSEN}[3]{#3}
 
 \bibliographystyle{mn2e}
 \bibliography{references}
