@@ -19,6 +19,7 @@
 
 #include "radeccoord.h"
 #include "banddata.h"
+#include "progressbar.h"
 
 using namespace casa;
 
@@ -137,6 +138,8 @@ void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, cons
 		unsigned polarizationCount = dataShape[0];
 		Array<Complex> dataArray(dataShape);
 		
+		ProgressBar* progressBar = 0;
+		
 		for(unsigned row=0; row!=set.nrow(); ++row)
 		{
 			if(fieldIdCol(row) == fieldIndex)
@@ -158,6 +161,11 @@ void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, cons
 				{
 					std::cout << "Old " << oldUVW << " (" << length(oldUVW) << ")\n";
 					std::cout << "New " << newUVW << " (" << length(newUVW) << ")\n\n";
+				}
+				else {
+					if(progressBar == 0)
+						progressBar = new ProgressBar("Changing phase centre");
+					progressBar->SetProgress(row, set.nrow());
 				}
 				
 				// Read the visibilities and phase-rotate them
