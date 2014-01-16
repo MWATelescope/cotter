@@ -194,6 +194,8 @@ void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, cons
 				uvwOutCol.put(row, newUVW.getVector());
 			}
 		}
+		delete progressBar;
+		
 		phaseDirVector[0] = newDirection;
 		phaseDirCol.put(fieldIndex, phaseDirVector);
 		delayDirCol.put(fieldIndex, phaseDirVector);
