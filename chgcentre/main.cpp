@@ -86,7 +86,7 @@ void rotateVisibilities(const BandData &bandData, double wShiftFactor, unsigned 
 	}
 }
 
-void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, const MDirection &newDirection)
+void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, const MDirection &newDirection, bool onlyUVW)
 {
 	BandData bandData(set.spectralWindow());
 	ROScalarColumn<casa::String> nameCol(fieldTable, fieldTable.columnName(MSFieldEnums::NAME));
@@ -99,8 +99,6 @@ void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, cons
 		antenna1Col(set, set.columnName(MSMainEnums::ANTENNA1)),
 		antenna2Col(set, set.columnName(MSMainEnums::ANTENNA2)),
 		fieldIdCol(set, set.columnName(MSMainEnums::FIELD_ID));
-	ArrayColumn<Complex>
-		dataCol(set, set.columnName(MSMainEnums::DATA));
 	Muvw::ROScalarColumn
 		uvwCol(set, set.columnName(MSMainEnums::UVW));
 	ArrayColumn<double>
@@ -109,16 +107,22 @@ void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, cons
 	const bool
 		hasCorrData = set.isColumn(casa::MSMainEnums::CORRECTED_DATA),
 		hasModelData = set.isColumn(casa::MSMainEnums::MODEL_DATA);
-	std::auto_ptr<ArrayColumn<Complex> > correctedDataCol, modelDataCol;
-	if(hasCorrData)
+	std::auto_ptr<ArrayColumn<Complex> > dataCol, correctedDataCol, modelDataCol;
+	if(!onlyUVW)
 	{
-		correctedDataCol.reset(new ArrayColumn<Complex>(set,
-			set.columnName(MSMainEnums::CORRECTED_DATA)));
-	}
-	if(hasModelData)
-	{
-		modelDataCol.reset(new ArrayColumn<Complex>(set,
-			set.columnName(MSMainEnums::MODEL_DATA)));
+		dataCol.reset(new ArrayColumn<Complex>(set,
+			set.columnName(MSMainEnums::DATA)));
+		
+		if(hasCorrData)
+		{
+			correctedDataCol.reset(new ArrayColumn<Complex>(set,
+				set.columnName(MSMainEnums::CORRECTED_DATA)));
+		}
+		if(hasModelData)
+		{
+			modelDataCol.reset(new ArrayColumn<Complex>(set,
+				set.columnName(MSMainEnums::MODEL_DATA)));
+		}
 	}
 	
 	Vector<MDirection> phaseDirVector = phaseDirCol(fieldIndex);
@@ -134,9 +138,15 @@ void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, cons
 		MDirection refDirection =
 			MDirection::Convert(newDirection,
 													MDirection::Ref(MDirection::J2000))();
-		IPosition dataShape = dataCol.shape(0);
-		unsigned polarizationCount = dataShape[0];
-		Array<Complex> dataArray(dataShape);
+		IPosition dataShape;
+		unsigned polarizationCount = 0;
+		std::auto_ptr<Array<Complex> > dataArray;
+		if(!onlyUVW)
+		{
+			dataShape = dataCol->shape(0);
+			polarizationCount = dataShape[0];
+			dataArray.reset(new Array<Complex>(dataShape));
+		}
 		
 		ProgressBar* progressBar = 0;
 		
@@ -172,22 +182,25 @@ void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, cons
 				double wShiftFactor =
 					-2.0*M_PI* (newUVW.getVector()[2] - oldUVW.getValue().getVector()[2]);
 
-				dataCol.get(row, dataArray);
-				rotateVisibilities(bandData, wShiftFactor, polarizationCount, dataArray.cbegin());
-				dataCol.put(row, dataArray);
+				if(!onlyUVW)
+				{
+					dataCol->get(row, *dataArray);
+					rotateVisibilities(bandData, wShiftFactor, polarizationCount, dataArray->cbegin());
+					dataCol->put(row, *dataArray);
+						
+					if(hasCorrData)
+					{
+						correctedDataCol->get(row, *dataArray);
+						rotateVisibilities(bandData, wShiftFactor, polarizationCount, dataArray->cbegin());
+						correctedDataCol->put(row, *dataArray);
+					}
 					
-				if(hasCorrData)
-				{
-					correctedDataCol->get(row, dataArray);
-					rotateVisibilities(bandData, wShiftFactor, polarizationCount, dataArray.cbegin());
-					correctedDataCol->put(row, dataArray);
-				}
-				
-				if(hasModelData)
-				{
-					modelDataCol->get(row, dataArray);
-					rotateVisibilities(bandData, wShiftFactor, polarizationCount, dataArray.cbegin());
-					modelDataCol->put(row, dataArray);
+					if(hasModelData)
+					{
+						modelDataCol->get(row, *dataArray);
+						rotateVisibilities(bandData, wShiftFactor, polarizationCount, dataArray->cbegin());
+						modelDataCol->put(row, *dataArray);
+					}
 				}
 				
 				// Store uvws
@@ -332,7 +345,7 @@ int main(int argc, char **argv)
 			"\tchgcentre myset.ms 09h18m05.8s -12d05m44s\n\n";
 	} else {
 		int argi=1;
-		bool toZenith = false, toMinW = false;
+		bool toZenith = false, toMinW = false, onlyUVW = false, shiftback = false;
 		while(argv[argi][0] == '-')
 		{
 			std::string param(&argv[argi][1]);
@@ -343,6 +356,14 @@ int main(int argc, char **argv)
 			else if(param == "minw")
 			{
 				toMinW = true;
+			}
+			else if(param == "only-uvw")
+			{
+				onlyUVW = true;
+			}
+			else if(param == "shiftback")
+			{
+				shiftback = true;
 			}
 			else throw std::runtime_error("Invalid parameter");
 			++argi;
@@ -375,7 +396,7 @@ int main(int argc, char **argv)
 			MSField fieldTable = set.field();
 			for(unsigned fieldIndex=0; fieldIndex!=fieldTable.nrow(); ++fieldIndex)
 			{
-				processField(set, fieldIndex, fieldTable, newDirection);
+				processField(set, fieldIndex, fieldTable, newDirection, onlyUVW, shiftback);
 			}
 		}
 	}
