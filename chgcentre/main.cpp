@@ -20,6 +20,7 @@
 #include "radeccoord.h"
 #include "banddata.h"
 #include "progressbar.h"
+#include "imagecoordinates.h"
 
 using namespace casa;
 
@@ -68,11 +69,11 @@ Muvw calculateUVW(const MPosition &antennaPos,
 	return Muvw(uvw, Muvw::J2000);
 }
 
-void rotateVisibilities(const BandData &bandData, double wShiftFactor, unsigned polarizationCount, Array<Complex>::contiter dataIter)
+void rotateVisibilities(const BandData &bandData, double shiftFactor, unsigned polarizationCount, Array<Complex>::contiter dataIter)
 {
 	for(unsigned ch=0; ch!=bandData.ChannelCount(); ++ch)
 	{
-		const double wShiftRad = wShiftFactor / bandData.ChannelWavelength(ch);
+		const double wShiftRad = shiftFactor / bandData.ChannelWavelength(ch);
 		double rotSin, rotCos;
 		sincos(wShiftRad, &rotSin, &rotCos);
 		for(unsigned p=0; p!=polarizationCount; ++p)
@@ -86,7 +87,9 @@ void rotateVisibilities(const BandData &bandData, double wShiftFactor, unsigned 
 	}
 }
 
-void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, const MDirection &newDirection, bool onlyUVW)
+void processField(
+	MeasurementSet &set, int fieldIndex, MSField &fieldTable, const MDirection &newDirection,
+	bool onlyUVW, bool shiftback)
 {
 	BandData bandData(set.spectralWindow());
 	ROScalarColumn<casa::String> nameCol(fieldTable, fieldTable.columnName(MSFieldEnums::NAME));
@@ -135,6 +138,13 @@ void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, cons
 		std::cout << "Phase centre did not change: skipping field.\n";
 	}
 	else {
+		double oldRA = phaseDirection.getAngle().getValue()[0];
+		double oldDec = phaseDirection.getAngle().getValue()[1];
+		double newRA = newDirection.getAngle().getValue()[0];
+		double newDec = newDirection.getAngle().getValue()[1];
+		double dl, dm;
+		ImageCoordinates::RaDecToLM(oldRA, oldDec, newRA, newDec, dl, dm);
+		
 		MDirection refDirection =
 			MDirection::Convert(newDirection,
 													MDirection::Ref(MDirection::J2000))();
@@ -150,6 +160,8 @@ void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, cons
 		
 		ProgressBar* progressBar = 0;
 		
+		std::vector<Muvw> uvws(antennas.size());
+		MEpoch time(MVEpoch(-1.0));
 		for(unsigned row=0; row!=set.nrow(); ++row)
 		{
 			if(fieldIdCol(row) == fieldIndex)
@@ -159,12 +171,17 @@ void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, cons
 					antenna1 = antenna1Col(row),
 					antenna2 = antenna2Col(row);
 				const Muvw oldUVW = uvwCol(row);
-				MEpoch time = timeCol(row);
+				
+				MEpoch rowTime = timeCol(row);
+				if(rowTime.getValue() != time.getValue())
+				{
+					time = rowTime;
+					for(size_t a=0; a!=antennas.size(); ++a)
+						uvws[a] = calculateUVW(antennas[a], antennas[0], time, refDirection);
+				}
 
 				// Calculate the new UVW
-				Muvw uvw1 = calculateUVW(antennas[antenna1], antennas[0], time, refDirection);
-				Muvw uvw2 = calculateUVW(antennas[antenna2], antennas[0], time, refDirection);
-				MVuvw newUVW = uvw1.getValue()-uvw2.getValue();
+				MVuvw newUVW = uvws[antenna1].getValue() - uvws[antenna2].getValue();
 				
 				// If one of the first results, output values for analyzing them.
 				if(row < 5)
@@ -179,26 +196,33 @@ void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, cons
 				}
 				
 				// Read the visibilities and phase-rotate them
-				double wShiftFactor =
+				double shiftFactor =
 					-2.0*M_PI* (newUVW.getVector()[2] - oldUVW.getValue().getVector()[2]);
 
+				if(shiftback)
+				{
+					double u = newUVW.getVector()[0], v = newUVW.getVector()[1];
+					shiftFactor +=
+						-2.0*M_PI* (u*dl + v*dm);
+				}
+				
 				if(!onlyUVW)
 				{
 					dataCol->get(row, *dataArray);
-					rotateVisibilities(bandData, wShiftFactor, polarizationCount, dataArray->cbegin());
+					rotateVisibilities(bandData, shiftFactor, polarizationCount, dataArray->cbegin());
 					dataCol->put(row, *dataArray);
 						
 					if(hasCorrData)
 					{
 						correctedDataCol->get(row, *dataArray);
-						rotateVisibilities(bandData, wShiftFactor, polarizationCount, dataArray->cbegin());
+						rotateVisibilities(bandData, shiftFactor, polarizationCount, dataArray->cbegin());
 						correctedDataCol->put(row, *dataArray);
 					}
 					
 					if(hasModelData)
 					{
 						modelDataCol->get(row, *dataArray);
-						rotateVisibilities(bandData, wShiftFactor, polarizationCount, dataArray->cbegin());
+						rotateVisibilities(bandData, shiftFactor, polarizationCount, dataArray->cbegin());
 						modelDataCol->put(row, *dataArray);
 					}
 				}
@@ -213,6 +237,12 @@ void processField(MeasurementSet &set, int fieldIndex, MSField &fieldTable, cons
 		phaseDirCol.put(fieldIndex, phaseDirVector);
 		delayDirCol.put(fieldIndex, phaseDirVector);
 		refDirCol.put(fieldIndex, phaseDirVector);
+		
+		if(shiftback)
+		{
+			fieldTable.rwKeywordSet().define(RecordFieldId("WSCLEAN_DL"), dl);
+			fieldTable.rwKeywordSet().define(RecordFieldId("WSCLEAN_DM"), dm);
+		}
 	}
 }
 
@@ -225,11 +255,7 @@ void readAntennas(MeasurementSet &set, std::vector<MPosition> &antennas)
 	for(unsigned i=0; i!=antennaTable.nrow(); ++i)
 	{
 		antennas[i] = MPosition::Convert(posCol(i), MPosition::ITRF)();
-		//Vector<double> diff = antennas[i].getValue().getVector()-antennas[0].getValue().getVector();
-		//std::cout << diff[0] << "\t" << diff[1] << "\t" << diff[2] << '\n';
 	}
-	//Vector<double> diff = antennas[0].getValue().getVector();
-	//std::cout << diff[0]/5000.0 << "\t" << diff[1]/5000.0 << "\t" << diff[2]/5000.0 << '\n';
 }
 
 casa::MPosition ArrayCentroid(MeasurementSet& set)
