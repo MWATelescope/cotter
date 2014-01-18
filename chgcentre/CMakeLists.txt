@@ -37,7 +37,7 @@ IF("${isSystemDir}" STREQUAL "-1")
    SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 ENDIF("${isSystemDir}" STREQUAL "-1")
 
-add_executable(chgcentre main.cpp)
+add_executable(chgcentre main.cpp progressbar.cpp)
 
 target_link_libraries(chgcentre ${CASA_LIBS} ${LAPACK_lapack_LIBRARY})
 
