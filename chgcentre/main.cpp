@@ -130,18 +130,19 @@ void processField(
 	
 	Vector<MDirection> phaseDirVector = phaseDirCol(fieldIndex);
 	MDirection phaseDirection = phaseDirVector[0];
+	double oldRA = phaseDirection.getAngle().getValue()[0];
+	double oldDec = phaseDirection.getAngle().getValue()[1];
+	double newRA = newDirection.getAngle().getValue()[0];
+	double newDec = newDirection.getAngle().getValue()[1];
 	std::cout << "Processing field \"" << nameCol(fieldIndex) << "\": "
 		<< dirToString(phaseDirection) << " -> "
-		<< dirToString(newDirection) << "\n";
+		<< dirToString(newDirection) << " ("
+		<< ImageCoordinates::AngularDistance(oldRA, oldDec, newRA, newDec)*(180.0/M_PI) << " deg)\n";
 	if(dirToString(phaseDirection) == dirToString(newDirection))
 	{
 		std::cout << "Phase centre did not change: skipping field.\n";
 	}
 	else {
-		double oldRA = phaseDirection.getAngle().getValue()[0];
-		double oldDec = phaseDirection.getAngle().getValue()[1];
-		double newRA = newDirection.getAngle().getValue()[0];
-		double newDec = newDirection.getAngle().getValue()[1];
 		double dl, dm;
 		ImageCoordinates::RaDecToLM(oldRA, oldDec, newRA, newDec, dl, dm);
 		
