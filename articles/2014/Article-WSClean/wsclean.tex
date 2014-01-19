@@ -66,17 +66,27 @@ instrumentation: interferometers -- methods: observational -- techniques: interf
 
 \section{Introduction}
 
-Observations from non-coplanar interferometric radio telescopes that image large fractions of the sky at once can not be imaged with simple imagers that are based on a two-dimensional Fast Fourier Transformation (FFT). Instead, the imaging algorithm needs to account for the ``w-term'' during inversion, which is the term that describes the deviation of the array from a perfect plane. This deviation is amplified for telescopes with wide field of view, making this especially an issue for low-frequency telescopes, that by nature are wide-field instruments \citep{perley-noncoplanar-arrays}.
+Observations from non-coplanar interferometric radio telescopes that image large fractions of the sky at once can not be imaged with simple imagers that are based on a two-dimensional Fast Fourier Transformation (FFT). Instead, the imaging algorithm needs to account for the ``w-term'' during inversion, which is the term that describes the deviation of the array from a perfect plane \citep{perley-noncoplanar-arrays}. This deviation is amplified for telescopes with wide field of view, making this especially an issue for low-frequency telescopes, that by nature are wide-field instruments.
 
-There are several methods to deal with the w-term during imaging: facetting \citep{facetting-cornwell}, three-dimensional Fourier transform \citep{perley-noncoplanar-arrays}, w-projection \citep{wprojection-cornwell}, w-stacking\footnote{TODO when/where was this first mentioned in literature?} \citep{widefield-imaging-ska-cornwell} and w-snapshots \citep{widefield-imaging-ska-cornwell}. The w-snapshot algorithm is a hybrid between snapshot imaging and one of the other w-term correcting techniques, most efficiently w-projection or w-stacking.
+There are several methods to deal with the w-term during imaging: facetting \citep{facetting-cornwell}, a three-dimensional Fourier transform \citep{perley-noncoplanar-arrays}, w-projection \citep{wprojection-cornwell}, w-stacking\footnote{TODO when/where was this first mentioned in literature?} \citep{widefield-imaging-ska-cornwell} and w-snapshots \citep{widefield-imaging-ska-cornwell}. The w-snapshots algorithm is a hybrid between snapshot imaging and one of the other w-term correcting techniques, most efficiently w-projection or w-stacking.
 
-Probably the most commonly used software implementation to image observations from non-coplanar arrays is the w-projection algorithm \citep{wprojection-cornwell} that has been implemented in the Common Astronomy Software Applications (CASA, \citealt{casa}), because of its many features, high quality and free availability. New generation of wide-field observatories are producing data sets that are orders of magnitude larger than before. Examples of such telescopes include the Murchison Widefield Array (MWA), the upgraded Jansky Very Large Array (JVLA) and the Low-Frequency Array (LOFAR). At the MWA we have seen that, when the observed field is at low elevation, it can take up to tens of hours with CASA's w-projection algorithm to image a two-minute MWA observation. The problem of wide-field imaging will become an even bigger challenge when the Square-Kilometre Array (SKA) begins its operation, and hence a considerable improvement in imaging techniques is required. In \citet{widefield-imaging-ska-cornwell}, it is shown that in theory the w-stacking algorithm is  the best approach for the SKA.
+New generation of wide-field observatories are producing data sets that are orders of magnitude larger than before. Examples of such telescopes include the Murchison Widefield Array (MWA, \citealt{mwa}), the upgraded Jansky Very Large Array (JVLA) and the Low-Frequency Array (LOFAR, \citealt{lofar-2013}). At the MWA, some of the data is reduced with the w-projection algorithm implementation of the Common Astronomy Software Applications (CASA, \citealt{casa}). This is an attractive option because of its many features, high quality and free availability. However, at the MWA we have seen that a 2-min snapshot observation at low-elevation can take up to tens of hours with CASA's w-projection algorithm. Another option for reducing MWA data is the Real-Time System (RTS), which has been designed as an efficient calibrating and imaging pipeline specifically for MWA data \citep{rts-mwa}. It can use GPUs for improving efficiency, and uses a w-projection kernel during imaging to correct for the w-term. The kernel can be kept small, because the data is processed in snapshots that have been phase-centered to Zenith. The RTS can not perform deconvolution as of yet.
 
-In this article, we present a new implementation of a generic wide-field imager that significantly improves upon the w-projection implementation. Currently it performs approximately an order of magnitude faster in all situations and even more for very large images, while it maintains equal accuracy and can handle MWA full-sky imaging. The implementation uses the ``w-stacking method'' for correcting the w-terms \citep{widefield-imaging-ska-cornwell} to obtain the increase in speed. Performance can be improved further by combination with another techniques: the MWA telescope splits observations in data products of typically a few minutes, and the w-terms can be kept small by phasing an observation to the orthogonal of the array's best-fitting plane. This is somewhat similar to the w-snapshot algorithm proposed in \citet{widefield-imaging-ska-cornwell}. Hence, we can describe the imager as a hybrid between w-stacking and a variation of the w-snapshot algorithm. It also implements the Clean deconvolution procedure (\citealt{hogbom-clean} and various variations). We named the new imager ``WSClean'', as an abbreviation for ``W-Stacking Clean''.
+For the MWA it can be assumed that the ionosphere has the same effect on all tiles, because the maximum baseline length is relatively small (2.9~km) and smaller than the typical size of ionospheric structure (TODO cite). This is not the case for LOFAR, making it necessary to correct the direction-dependent ionospheric effects per station before gridding the data. The \texttt{awimager} has been written to perform these corrections, and uses a hybrid of a-projection, w-projection and w-stacking \citep{awimager-2013}.
 
-TODO. After describing the new imaging implementation, we will test its performance using various MWA observations, including observations with varying elevation and fields (diffuse emission, point sources). GMRT data and -- if available -- LOFAR data will also be used. We will compare these results with the results from the w-projection implementation in CASA and to other non-w-projection algorithms, thereby focusing on accuracy and performance.
+Once the Square-Kilometre Array (SKA) begins its operation, the required computational power for wide-field imaging will become an even bigger challenge. In \citet{widefield-imaging-ska-cornwell}, it is shown that in theory the w-snapshots algorithm is an efficient approach for the SKA.
 
-\section{The w-stacking technique}
+In this article, we present a new implementation of a generic wide-field imager that is significantly faster than CASA's w-projection implementation. To obtain the increase in speed, the implementation uses the w-stacking method for correcting the w-terms \citep{widefield-imaging-ska-cornwell} combined with snapshot imaging. We named the new imager ``WSClean'', as an abbreviation for ``W-Stacking Clean''. This works improves the field of wide-field imaging in the following ways:
+\begin{itemize}
+ \item The performance of a w-stacking implementation is compared to a w-projection implementation.
+ \item The advantages of using the w-snapshots algorithm are analysed.
+ \item Details are described of how to efficiently implement the w-stacking and w-snapshots algorithms.
+ \item A new implementation is released, which we believe to be the fastest generic widefield imager available for many imaging scenarios.
+\end{itemize}
+
+The w-stacking algorithm is described in Sect.~\ref{sec:wstacking}. Details of implementing the w-stacking and w-snapshots algorithms are described in Sect.~\ref{sec:implementation}. Using various MWA observations, including observations with varying elevation, the performance will be analysed in Sect.~\ref{sec:analysis}.
+
+\section{The w-stacking technique} \label{sec:wstacking}
 In this section, we will describe the w-stacking algorithm from a mathematical point of view.
 
 An interferometer samples the complex visibility function
@@ -114,7 +124,7 @@ Integrating both sides over $w_0$ to $w_e$, the minimum and maximum value of $w$
 \end{align}
 The final step is to make the $u,v,w$ parameters discrete, so that the integration over $u$ and $v$ can become an inverse FFT and the integration over $w$ becomes a summation. This shows that the sky function can be reconstructed by i)~taking all samples that correspond to a specific value of $w$; ii)~grid those samples on a uniform grid; iii)~calculating the inverse FFT; iv)~apply the direction dependent phaseshift $e^{2\pi i w(\sqrt{1-l^2-m^2}-1)}$; v)~repeat this for all $w$-values and add the results together; vi)~apply the final scaling.
 
-In practice, the final scaling will be different from $\left(w_e - w_0\right)/\sqrt{1-l^2-m^2}$ suggested by Eq.~\eqref{eq:wstacking}, because the individual $w$-layers will not be completely filled with samples. Therefore, the number of added samples and their weight have to be taken into account. Additionally, it might be required to divide out the effect of a possible convolution kernel and/or primary beam. In XX, YY, LL or RR polarizations, a correlated baseline is the complex conjugate of the reversed baseline, and the relation $V(u,v,w)=\overline{V(-u,-v,-w)}$ holds. The right-hand side of Eq.\eqref{eq:wstacking} with only positive $w$-value samples then becomes the complex conjugate of the one with only negative $w$-values samples. In this case we can therefore calculate the image for $w<0$ from the image with $w>0$. That allows us to set $w_0$ to the minimum absolute $w$-value, which requires at least two times less layers. In any case, the input to the two-dimensional inverse FFT is not generally an Hermitian-symmetric function, and hence is always performed as a complex-to-complex transform. 
+In practice, the final scaling will be different from $\left(w_e - w_0\right)/\sqrt{1-l^2-m^2}$ suggested by Eq.~\eqref{eq:wstacking}, because the individual $w$-layers will not be completely filled with samples. Therefore, the number of added samples and their weight have to be taken into account. Additionally, it might be required to divide out the effect of a possible convolution kernel, the primary beam and correct for other direction dependent effects. In XX, YY, LL or RR polarizations, a correlated baseline is the complex conjugate of the reversed baseline, and the relation $V(u,v,w)=\overline{V(-u,-v,-w)}$ holds. The right-hand side of Eq.\eqref{eq:wstacking} with only positive $w$-value samples then becomes the complex conjugate of the one with only negative $w$-values samples. In this case we can therefore calculate the image for $w<0$ from the image with $w>0$. That allows us to set $w_0$ to the minimum absolute $w$-value, which requires at least two times less layers. In any case, the input to the two-dimensional inverse FFT is not generally an Hermitian-symmetric function, and hence is always performed as a complex-to-complex transform. 
 
 \subsection{Discretization of w} \label{sec:gridding-w}
 While the discretization of $u$ and $v$ is similar to conventional imaging, the discretization of $w$ defines the number of w-layers that need to be processed. For this, we can use a similar rule to \eqref{eq:when-2d-is-valid}, and make sure that for two subsequent discretized $w$-values, $w_A$ and $w_B$, the phase difference is less than one radian. This results in the constraint
@@ -127,7 +137,7 @@ This suggest that a uniform discretization in $w$ is optimal TODO in contrast to
 \end{equation}
 Actual values for the right-hand side can differ a lot. The value of $w_e - w_0$ is influenced by the coplanarity of the array, the zenith angle and the wavelength, while the value of the $\max_{l,m}$ term is influenced by the angular size of the image. For the MWA, a typical value of $w_e - w_0$ is $\sim 10$ at zenith, but is already $\sim 400$ at a zenith angle of $30^{\circ}$. [TODO table of arrays with $w$ values at zenith/more angles/more freq?] For a typical full-field-of-view image of a MWA observation of $3072\times 3072$ pixels of $0.75''$ size, the $\max_{l,m}$ term is $0.68$. This implies that, in the case of the MWA, tens of $w$-layers are required at zenith and hundreds at lower elevations. The number of $w$-layers has a large effect on the performance of the $w$-stacking algorithm, and will be discussed further in section TODO.
 
-TODO: Algorithm; plain w-stacking and further alterations such as w-snapshotting and full-sky imaging.
+TODO: Algorithm; plain w-stacking and further alterations such as w-snapshots and full-sky imaging.
 \subsection{Gridding}
 TODO
 
@@ -161,19 +171,30 @@ By comparing the time complexity between $w$-stacking and $w$-projection, we can
 
 \subsection{Cleaning a w-stacked image}
 TODO describe how to do
+TODO \citet{hogbom-clean}
 
 It is tempting to use a very low number of $w$-layers, and define the major clean iteration threshold such that it will never clean any $w$-aliasing artefacts. However, predicting the visibilities from an image with a similar low number of $w$-layers will cause similar aliased errors, and thus will subtract incorrect fluxes from the visibilities. In the end, even though the sources causing the $w$-aliasing effects are removed, aliasing artefacts will still remain.
 
 TODO: discuss low w-values means less-direction-invariant PSF.
 
-\section{The WSClean imager implementation}
+\subsection{W-snapshots}
+TODO discuss projecting visibilities onto different tangent plane, imaging by small change to algorithm, output standard fits file by using CPIXij keyword \citet{wcs-in-fits}.
+, and the w-terms can be kept small by phasing a snapshot to the orthogonal of the array's best-fitting plane
+
+\section{The WSClean imager implementation} \label{sec:implementation}
 We have implemented the $w$-stacking algorithm in the C++ language. Several steps are multi-threaded in this implementation: reading and writing, gridding from and to different $w$-layers, performing the Fast Fourier transforms and peak-finding and image subtraction during Cleaning. In addition, intrinsics were used for the latter. This speeds up a minor Cleaning iteration, 
 
-\section{Analysis}
+\subsection{Application of WSClean to the MWA}
+The MWA correlator splits observations in data products of typically a few minutes
+TODO
+
+\section{Analysis} \label{sec:analysis}
 TODO: Show image quality; show time-efficiency comparisons.
 
-\section{Discussion}
+\section{Discussion} \label{sec:discussion}
 TODO: describe hybrid between w-stacking, w-projection and w-snapshots (if not yet discussed in Cornwell's papers)
+
+TODO: A-projection makes the psf more invariant: therefore, truely ``joined'' deconvolution might be more accurate.
 
 \section*{Acknowledgments}
 ...
