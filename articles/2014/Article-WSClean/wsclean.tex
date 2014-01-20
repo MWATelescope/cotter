@@ -76,7 +76,7 @@ For the MWA it can be assumed that the ionosphere has the same effect on all til
 
 Once the Square-Kilometre Array (SKA) begins its operation, the required computational power for wide-field imaging will become an even bigger challenge. In \citet{widefield-imaging-ska-cornwell}, it is shown that in theory the w-snapshots algorithm is an efficient approach for the SKA.
 
-In this article, we present a new implementation of a generic wide-field imager that is significantly faster than CASA's w-projection implementation. To obtain the increase in speed, the implementation uses the w-stacking method for correcting the w-terms \citep{widefield-imaging-ska-cornwell} combined with snapshot imaging. We named the new imager ``WSClean'', as an abbreviation for ``W-Stacking Clean''. This works improves the field of wide-field imaging in the following ways:
+In this article, we present a new implementation of a generic wide-field imager that is significantly faster than CASA's w-projection implementation. To obtain the increase in speed, the implementation uses the w-stacking method for correcting the w-terms \citep{widefield-imaging-ska-cornwell} combined with snapshot imaging. We named the new imager ``WSClean'', as an abbreviation for ``W-Stacking Clean''. This work improves the field of wide-field imaging in the following ways:
 \begin{itemize}
  \item The performance of a w-stacking implementation is compared to a w-projection implementation.
  \item The advantages of using the w-snapshots algorithm are analysed.
