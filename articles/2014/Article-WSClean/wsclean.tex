@@ -127,7 +127,7 @@ The final step is to make the $u,v,w$ parameters discrete, so that the integrati
 In practice, the final scaling will be different from $\left(w_e - w_0\right)/\sqrt{1-l^2-m^2}$ suggested by Eq.~\eqref{eq:wstacking}, because the individual $w$-layers will not be completely filled with samples. Therefore, the number of added samples and their weight have to be taken into account. Additionally, it might be required to divide out the effect of a possible convolution kernel, the primary beam and correct for other direction dependent effects. In XX, YY, LL or RR polarizations, a correlated baseline is the complex conjugate of the reversed baseline, and the relation $V(u,v,w)=\overline{V(-u,-v,-w)}$ holds. The right-hand side of Eq.\eqref{eq:wstacking} with only positive $w$-value samples then becomes the complex conjugate of the one with only negative $w$-values samples. In this case we can therefore calculate the image for $w<0$ from the image with $w>0$. That allows us to set $w_0$ to the minimum absolute $w$-value, which requires at least two times less layers. In any case, the input to the two-dimensional inverse FFT is not generally an Hermitian-symmetric function, and hence is always performed as a complex-to-complex transform. 
 
 \subsection{Discretization of w} \label{sec:gridding-w}
-While the discretization of $u$ and $v$ is similar to conventional imaging, the discretization of $w$ defines the number of w-layers that need to be processed. For this, we can use a similar rule to \eqref{eq:when-2d-is-valid}, and make sure that for two subsequent discretized $w$-values, $w_A$ and $w_B$, the phase difference is less than one radian. This results in the constraint
+While the discretization of $u$ and $v$ is similar to conventional imaging, the discretization of $w$ defines the number of w-layers that need to be processed. For this, one can use a rule similar to \eqref{eq:when-2d-is-valid}, and make sure that the phase difference for two subsequent discretized $w$-values, $w_A$ and $w_B$,  is less than one radian. This results in the constraint
 \begin{equation} \label{eq:minimum-w-distance}
 \left|\left(w_A - w_B\right) 2\pi (\sqrt{1-l^2-m^2}-1)\right| \ll 1.
 \end{equation}
@@ -138,8 +138,6 @@ This suggest that a uniform discretization in $w$ is optimal TODO in contrast to
 Actual values for the right-hand side can differ a lot. The value of $w_e - w_0$ is influenced by the coplanarity of the array, the zenith angle and the wavelength, while the value of the $\max_{l,m}$ term is influenced by the angular size of the image. For the MWA, a typical value of $w_e - w_0$ is $\sim 10$ at zenith, but is already $\sim 400$ at a zenith angle of $30^{\circ}$. [TODO table of arrays with $w$ values at zenith/more angles/more freq?] For a typical full-field-of-view image of a MWA observation of $3072\times 3072$ pixels of $0.75''$ size, the $\max_{l,m}$ term is $0.68$. This implies that, in the case of the MWA, tens of $w$-layers are required at zenith and hundreds at lower elevations. The number of $w$-layers has a large effect on the performance of the $w$-stacking algorithm, and will be discussed further in section TODO.
 
 TODO: Algorithm; plain w-stacking and further alterations such as w-snapshots and full-sky imaging.
-\subsection{Gridding}
-TODO
 
 \subsection{Time complexity of w-stacking}
 We will now derive the time complexity of w-stacking. The time complexity is expressed in several parameters. The number of samples $N_\textrm{samples}$ in the image influences the amount of samples that need to be gridded. Each sample belongs to exactly one $w$-layer, and thus each sample is gridded exactly once. For gridding, a sample is convolved with a convolution kernel to suppress FFT aliasing as well as gridding aliasing. If the kernel has a diameter of $N_\textrm{kernel}$, the amount of operations involved in gridding all samples scales with $N_\textrm{samples}N^2_\textrm{kernel}$.
@@ -182,7 +180,7 @@ TODO discuss projecting visibilities onto different tangent plane, imaging by sm
 , and the w-terms can be kept small by phasing a snapshot to the orthogonal of the array's best-fitting plane
 
 \section{The WSClean imager implementation} \label{sec:implementation}
-We have implemented the $w$-stacking algorithm in the C++ language. Several steps are multi-threaded in this implementation: reading and writing, gridding from and to different $w$-layers, performing the Fast Fourier transforms and peak-finding and image subtraction during Cleaning. In addition, intrinsics were used for the latter. This speeds up a minor Cleaning iteration, 
+We have implemented the $w$-stacking algorithm in the C++ language. Several steps are multi-threaded in this implementation: reading and writing, gridding from and to different $w$-layers, performing the Fast Fourier transforms and peak-finding and image subtraction during Cleaning. In addition, intrinsics were used for the latter. This speeds up a minor Cleaning iterations, 
 
 \subsection{Application of WSClean to the MWA}
 The MWA correlator splits observations in data products of typically a few minutes
@@ -190,6 +188,21 @@ TODO
 
 \section{Analysis} \label{sec:analysis}
 TODO: Show image quality; show time-efficiency comparisons.
+
+\subsection{Gridding}
+During gridding of the visibilities in $uv$-space, it is useful to apply a gridding convolution kernel. A common kernel function is a windowed sinc function. A low-pass filter decreases the flux of sources outside the field of view, and thus helps to attenuate aliased ghost sources and sidelobes (see \citealt{post-correlation-filtering}) that arise because of the assumed periodicity during the inverse FFT. By supersampling, a convolution kernel also makes it possible to place samples more accurately at their $uv$ position, thereby lowering decorrelation.
+
+The prolate spheroidal wave function (PSWF) is generally considered to be the optimal windowing function for gridding (TODO cite). CASA convolves samples with a PSWF of 7 pixels total width during gridding. When using a variable kernel size, a PSWF is quite complicated and computational expensive to calculate\footnote{CASA uses pre-calculation tables for its fixed-size window function}. WSClean currently uses a Kaiser-Bessel (KB) window function, which is easy and fast to compute, and its properties are similar to a PSWF. The type of window function has no effect on the gridding performance, but gridding has a quadratic time dependency on the size of the kernel.
+
+\begin{table}
+ \caption{Parameter values during benchmarks (unless the effect of the parameter was tested).}
+ \begin{tabular}{lr}
+   \textbf{Parameter} & \textbf{Value} \\
+   Image size             & 3072 \\
+   Number of visibilities & $10^9$
+ \end{tabular}
+\end{table}
+
 
 \begin{figure}
 \begin{center}
