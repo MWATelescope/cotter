@@ -137,24 +137,24 @@ This suggest that a uniform discretization in $w$ is optimal TODO in contrast to
 \end{equation}
 Actual values for the right-hand side can differ a lot. The value of $w_e - w_0$ is influenced by the coplanarity of the array, the zenith angle and the wavelength, while the value of the $\max_{l,m}$ term is influenced by the angular size of the image. For the MWA, a typical value of $w_e - w_0$ is $\sim 10$ at zenith, but is already $\sim 400$ at a zenith angle of $30^{\circ}$. [TODO table of arrays with $w$ values at zenith/more angles/more freq?] For a typical full-field-of-view image of a MWA observation of $3072\times 3072$ pixels of $0.75''$ size, the $\max_{l,m}$ term is $0.68$. This implies that, in the case of the MWA, tens of $w$-layers are required at zenith and hundreds at lower elevations. The number of $w$-layers has a large effect on the performance of the $w$-stacking algorithm, and will be discussed further in section TODO.
 
-TODO: Algorithm; plain w-stacking and further alterations such as w-snapshots and full-sky imaging.
-
 \subsection{Time complexity of w-stacking}
 It is useful to analyse the time complexity of w-stacking and compare it with w-projection, to understand which algorithm performs better in a given situation. We will use the following symbols: $N_\textrm{wlay}$ is the number of w-layers for w-stacking, $N_\textrm{pix}$ is the number of pixels in the image along each dimension, $N_\textrm{vis}$ is the number of visibilities and $N_\textrm{kern}$ is the size of the antialiasing kernel (see \S\ref{sec:gridding}), $N_\textrm{wkern}$ is the size of the w-kernel for w-projection, $w_e$ is the maximum $w$ value and $\alpha_\textrm{FOV}$ is the imaging field of view.
 
 \begin{table}[h]
- \caption{Scaling of the computational cost for various operations} \label{tbl:computational-cost-per-operation}
+ \caption{Scaling of the computational cost for various imaging steps} \label{tbl:computational-cost-per-operation}
  \begin{tabular}{lll}
    \textbf{Operation} & \textbf{W-stacking} & \textbf{W-projection} \\
+   \hline\hline
    Fourier transform(s) & $N_\textrm{wlay} N^2_\textrm{pix} \log N_\textrm{pix}$ & $N^2_\textrm{pix} \log N_\textrm{pix}$ \\
    W-term corrections   & $N_\textrm{wlay} N^2_\textrm{pix}$ & $N_\textrm{vis} N^2_\textrm{wkern}$ \\
-   Gridding & $N_\textrm{vis}N^2_\textrm{kern}$ & $N_\textrm{vis} N_\textrm{kern}^2$
+   Gridding & $N_\textrm{vis}N^2_\textrm{kern}$ & $N_\textrm{vis} N_\textrm{kern}^2$ \\
+   \hline\hline
  \end{tabular}
 \end{table}
 
 Table~\ref{tbl:computational-cost-per-operation} shows how the computational costs scale for the operations that dominate the imaging in the w-stacking and w-projection algorithms. For comparison, we can assume the gridding kernel adds a constant term and the terms $N_\textrm{wlay}$ and $N_\textrm{wkern}$ follow approximately $w_e \sin \alpha_\textrm{FOV}$. The time complexity for w-stacking is then given by
 \begin{equation}
-\textrm{TC}_\textrm{wstacking}=\mathcal{O}\left(N^2_\textrm{pix} \log N_\textrm{pix} \sin \alpha_\textrm{FOV}+ N_\textrm{vis} \right),
+\textrm{TC}_\textrm{wstacking}=\mathcal{O}\left(N^2_\textrm{pix} \log N_\textrm{pix} w_e \sin \alpha_\textrm{FOV}+ N_\textrm{vis} \right),
 \end{equation}
 and for $w$-projection it is
 \begin{equation}
@@ -162,20 +162,15 @@ and for $w$-projection it is
 \end{equation}
 From these bounds it can be concluded that in the limiting behaviour, the $w$-stacking method will be faster when the gridding of the visibilities is the dominating cost of the algorithm. The $w$-projection algorithm will be faster when the inverse FFTs are dominating. In Sect.~\ref{sec:analysis} we will determine which method is faster in practice for different parameters.
 
-\subsection{Cleaning a w-stacked image}
-TODO describe how to do
-TODO \citet{hogbom-clean}
-
-It is tempting to use a very low number of $w$-layers, and define the major clean iteration threshold such that it will never clean any $w$-aliasing artefacts. However, predicting the visibilities from an image with a similar low number of $w$-layers will cause similar aliased errors, and thus will subtract incorrect fluxes from the visibilities. In the end, even though the sources causing the $w$-aliasing effects are removed, aliasing artefacts will still remain.
-
-TODO: discuss low w-values means less-direction-invariant PSF.
+\subsection{Full-sky imaging}
+For low-frequency telescopes, it can be very useful to do full-sky imaging. In the case of MWA, the tile beam can have strong sidelobes at a distance of more than 90 degrees from the pointing centre. Imaging these sidelobes can be useful because there might be science (e.g. when searching for transients), or for self-calibration or full-sky deconvolution. The latter is for example useful when a strong source in a sidelobe affects the sensitivity in the pointing centre.
 
 \subsection{W-snapshots}
 TODO discuss projecting visibilities onto different tangent plane, imaging by small change to algorithm, output standard fits file by using CPIXij keyword \citet{wcs-in-fits}.
 , and the w-terms can be kept small by phasing a snapshot to the orthogonal of the array's best-fitting plane
 
 \section{The WSClean imager implementation} \label{sec:implementation}
-We have implemented the $w$-stacking algorithm in the C++ language. Several steps are multi-threaded in this implementation: reading and writing, gridding from and to different $w$-layers, performing the Fast Fourier transforms and peak-finding and image subtraction during Cleaning. In addition, intrinsics were used for the latter. This speeds up a minor Cleaning iterations, 
+We have implemented the $w$-stacking algorithm in the C++ language. Several steps are multi-threaded in this implementation: reading and writing, gridding from and to different $w$-layers, performing the Fast Fourier transforms and peak-finding and image subtraction during Cleaning. For the latter, intrinsics were used as well. This speeds up a minor Cleaning iterations, 
 
 TODO discuss dealing with memory.
 
@@ -209,6 +204,14 @@ The type of window function has no effect on the gridding performance, but gridd
    Number of visibilities & $10^9$
  \end{tabular}
 \end{table}
+
+\subsection{Cleaning a w-stacked image}
+TODO describe how to do
+TODO \citet{hogbom-clean}
+
+It is tempting to use a very low number of $w$-layers, and define the major clean iteration threshold such that it will never clean any $w$-aliasing artefacts. However, predicting the visibilities from an image with a similar low number of $w$-layers will cause similar aliased errors, and thus will subtract incorrect fluxes from the visibilities. In the end, even though the sources causing the $w$-aliasing effects are removed, aliasing artefacts will still remain.
+
+TODO: discuss low w-values means less-direction-invariant PSF.
 
 
 \begin{figure}
