@@ -76,7 +76,7 @@ For the MWA it can be assumed that the ionosphere has the same effect on all til
 
 Once the Square-Kilometre Array (SKA) begins its operation, the required computational power for wide-field imaging will become an even bigger challenge. In \citet{widefield-imaging-ska-cornwell}, it is shown that in theory the w-snapshots algorithm is an efficient approach for the SKA.
 
-In this article, we present a new implementation of a generic wide-field imager that is significantly faster than CASA's w-projection implementation. To obtain the increase in speed, the implementation uses the w-stacking method for correcting the w-terms \citep{widefield-imaging-ska-cornwell} combined with snapshot imaging. We named the new imager ``WSClean'', as an abbreviation for ``W-Stacking Clean''. This work improves the field of wide-field imaging in the following ways:
+In this article, we present a new implementation of a generic wide-field imager that is significantly faster than CASA's w-projection implementation. To obtain the increase in speed, the implementation uses the w-stacking method for correcting the w-terms combined with snapshot imaging. We named the new imager ``WSClean'', as an abbreviation for ``W-Stacking Clean''. This work improves the field of wide-field imaging in the following ways:
 \begin{itemize}
  \item The performance of a w-stacking implementation is compared to a w-projection implementation.
  \item The advantages of using the w-snapshots algorithm are analysed.
@@ -132,7 +132,7 @@ While the discretization of $u$ and $v$ is similar to conventional imaging, the 
 \left|\left(w_A - w_B\right) 2\pi (\sqrt{1-l^2-m^2}-1)\right| \ll 1.
 \end{equation}
 This suggest that a uniform discretization in $w$ is optimal TODO in contrast to some article? -- could be explained by having more samples at smaller $w$s. From Eq.~\eqref{eq:minimum-w-distance}, the required number of layers can be derived and is given by
-\begin{equation}
+\begin{equation} \label{eq:nwlayers-bound}
  N_\textrm{wlayers} \gg 2\pi \left(w_e - w_0\right) \max_{l,m} \left(1 - \sqrt{1-l^2-m^2}\right).
 \end{equation}
 Actual values for the right-hand side can differ a lot. The value of $w_e - w_0$ is influenced by the coplanarity of the array, the zenith angle and the wavelength, while the value of the $\max_{l,m}$ term is influenced by the angular size of the image. For the MWA, a typical value of $w_e - w_0$ is $\sim 10$ at zenith, but is already $\sim 400$ at a zenith angle of $30^{\circ}$. [TODO table of arrays with $w$ values at zenith/more angles/more freq?] For a typical full-field-of-view image of a MWA observation of $3072\times 3072$ pixels of $0.75''$ size, the $\max_{l,m}$ term is $0.68$. This implies that, in the case of the MWA, tens of $w$-layers are required at zenith and hundreds at lower elevations. The number of $w$-layers has a large effect on the performance of the $w$-stacking algorithm, and will be discussed further in section TODO.
@@ -140,32 +140,27 @@ Actual values for the right-hand side can differ a lot. The value of $w_e - w_0$
 TODO: Algorithm; plain w-stacking and further alterations such as w-snapshots and full-sky imaging.
 
 \subsection{Time complexity of w-stacking}
-We will now derive the time complexity of w-stacking. The time complexity is expressed in several parameters. The number of samples $N_\textrm{samples}$ in the image influences the amount of samples that need to be gridded. Each sample belongs to exactly one $w$-layer, and thus each sample is gridded exactly once. For gridding, a sample is convolved with a convolution kernel to suppress FFT aliasing as well as gridding aliasing. If the kernel has a diameter of $N_\textrm{kernel}$, the amount of operations involved in gridding all samples scales with $N_\textrm{samples}N^2_\textrm{kernel}$.
+It is useful to analyse the time complexity of w-stacking and compare it with w-projection, to understand which algorithm performs better in a given situation. We will use the following symbols: $N_\textrm{wlay}$ is the number of w-layers for w-stacking, $N_\textrm{pix}$ is the number of pixels in the image along each dimension, $N_\textrm{vis}$ is the number of visibilities and $N_\textrm{kern}$ is the size of the antialiasing kernel (see \S\ref{sec:gridding}), $N_\textrm{wkern}$ is the size of the w-kernel for w-projection, $w_e$ is the maximum $w$ value and $\alpha_\textrm{FOV}$ is the imaging field of view.
 
-Due to memory constraints it is often necessary to perform multiple passes over the data set. The overhead caused by this is often negligable, but when both the number of passes and the number of samples is large, the algorithm will become dominated by seeking through the data set. Therefore, we add another term $(\eta+1) N_\textrm{samples}$, where $\eta$ defines the involved overhead. This overhead becomes higher when $N_\textrm{wlayers}$, $N_\textrm{pixels}$ and $N_\textrm{samples}$ are higher or when the available memory is lower, but is $\sim 0$ in common MWA cases.
+\begin{table}[h]
+ \caption{Scaling of the computational cost for various operations} \label{tbl:computational-cost-per-operation}
+ \begin{tabular}{lll}
+   \textbf{Operation} & \textbf{W-stacking} & \textbf{W-projection} \\
+   Fourier transform(s) & $N_\textrm{wlay} N^2_\textrm{pix} \log N_\textrm{pix}$ & $N^2_\textrm{pix} \log N_\textrm{pix}$ \\
+   W-term corrections   & $N_\textrm{wlay} N^2_\textrm{pix}$ & $N_\textrm{vis} N^2_\textrm{wkern}$ \\
+   Gridding & $N_\textrm{vis}N^2_\textrm{kern}$ & $N_\textrm{vis} N_\textrm{kern}^2$
+ \end{tabular}
+\end{table}
 
-For each $w$-layer, an inverse FFT operation is performed with a size equal to the image size. If we define $N_\textrm{pixels}$ the number of pixels in the image along each dimension, the number of operations involved in the inverse FFTs scales with $N_\textrm{wlayers} N^2_\textrm{pixels} \log N_\textrm{pixels}$. After each inverse FFT, the direction dependent phase shift needs to be applied, for which a number of operations $\sim$ $N_\textrm{wlayers} N^2_\textrm{pixels}$ is required, and the time spent on the inverse FFT normally dominates. Finally, the layers need to be added together and will be scaled, which adds a factor relative to $N_\textrm{pixels}$ operations, which also is insignificant relative to the inverse FFTs.
-
-This implies that the total number of operations $N_\textrm{op}$ scales in the following way:
-\begin{align} \notag
- N_\textrm{op} \sim & N_\textrm{wlayers} \left( N^2_\textrm{pixels} \log N_\textrm{pixels} + N^2_\textrm{pixels} \right) + \\
- & N^2_\textrm{pixels} + N_\textrm{samples} \left( N^2_\textrm{kernel} + {\eta} + 1 \right).
-\end{align}
-If we ignore the possible reading overhead, and assume that the number of $w$-layers scales with the image size, a strict bound in Big-O notation is given by
+Table~\ref{tbl:computational-cost-per-operation} shows how the computational costs scale for the operations that dominate the imaging in the w-stacking and w-projection algorithms. For comparison, we can assume the gridding kernel adds a constant term and the terms $N_\textrm{wlay}$ and $N_\textrm{wkern}$ follow approximately $w_e \sin \alpha_\textrm{FOV}$. The time complexity for w-stacking is then given by
 \begin{equation}
-\mathcal{O}\left(N^3_\textrm{pixels} \log N_\textrm{pixels} + N_\textrm{samples} N^2_\textrm{kernel}\right).
+\textrm{TC}_\textrm{wstacking}=\mathcal{O}\left(N^2_\textrm{pix} \log N_\textrm{pix} \sin \alpha_\textrm{FOV}+ N_\textrm{vis} \right),
 \end{equation}
-
-We can compare this to $w$-projection algorithm \citep{wprojection-cornwell}, for which the total number of operations scales as
-\begin{align} \notag
- N_\textrm{op-wproj} \sim & N^2_\textrm{pixels} \log N_\textrm{pixels} + N^2_\textrm{pixels} + \\
- & N_\textrm{samples} \left( N_\textrm{kernel} + N_\textrm{wkernel} \right)^2 + N_\textrm{wplanes},
-\end{align}
-where $N_\textrm{wkernel}$ is the size of the added kernel to correct the $w$-corrections in $uv$-space as a convolution, instead of as multiplication in $lm$-space. Each sample needs to be convolved with the combined kernel, hence the term $N_\textrm{samples} \left( N_\textrm{kernel} + N_\textrm{wkernel} \right)^2$. There is also time associated with calculating these kernels, and this can be substantial for the MWA. This scales with $N_\textrm{wplanes}$, the number of $w$-projection planes. The constraints on this number are equal to the constraints on $N_\textrm{wlayers}$ in the $w$-stacking algorithm, as described in \S\ref{sec:gridding-w}. The number of pixels in the $w$-kernel is depending on how quickly the kernel approaches zero. This kernel is a function in $u,v$, and hence the larger the angular size of the image, the smaller an individual $u,v$ pixel becomes, and the larger (in pixels) the kernel becomes. Hence, $N_\textrm{wkernel}$ scales with $N_\textrm{pixels}$. The resulting bound for $w$-projection is:
+and for $w$-projection it is
 \begin{equation}
-\mathcal{O}\left(N^2_\textrm{pixels} \log N_\textrm{pixels} + N_\textrm{samples} N^2_\textrm{pixels} + N_\textrm{planes} \right).
+\textrm{TC}_\textrm{wprojection}=\mathcal{O}\left(N^2_\textrm{pix} \log N_\textrm{pix} + N_\textrm{vis} w_e^2 \sin^2 \alpha_\textrm{FOV}\right).
 \end{equation}
-By comparing the time complexity between $w$-stacking and $w$-projection, we can conclude that in the limiting behaviour, the $w$-stacking method will be faster when the gridding of the visibilities is the dominating cost of the algorithm. The $w$-projection algorithm will be faster when the inverse FFTs are dominating. The main parameter that changes this balance is the number of visibilities to be gridded, i.e., the size of the dataset. For larger datasets, $w$-stacking becomes more favourable. In section TODO we will determine which method is faster in practice for different parameters.
+From these bounds it can be concluded that in the limiting behaviour, the $w$-stacking method will be faster when the gridding of the visibilities is the dominating cost of the algorithm. The $w$-projection algorithm will be faster when the inverse FFTs are dominating. In Sect.~\ref{sec:analysis} we will determine which method is faster in practice for different parameters.
 
 \subsection{Cleaning a w-stacked image}
 TODO describe how to do
@@ -182,6 +177,8 @@ TODO discuss projecting visibilities onto different tangent plane, imaging by sm
 \section{The WSClean imager implementation} \label{sec:implementation}
 We have implemented the $w$-stacking algorithm in the C++ language. Several steps are multi-threaded in this implementation: reading and writing, gridding from and to different $w$-layers, performing the Fast Fourier transforms and peak-finding and image subtraction during Cleaning. In addition, intrinsics were used for the latter. This speeds up a minor Cleaning iterations, 
 
+TODO discuss dealing with memory.
+
 \subsection{Application of WSClean to the MWA}
 The MWA correlator splits observations in data products of typically a few minutes
 TODO
@@ -189,10 +186,20 @@ TODO
 \section{Analysis} \label{sec:analysis}
 TODO: Show image quality; show time-efficiency comparisons.
 
-\subsection{Gridding}
+\subsection{Gridding} \label{sec:gridding}
 During gridding of the visibilities in $uv$-space, it is useful to apply a gridding convolution kernel. A common kernel function is a windowed sinc function. A low-pass filter decreases the flux of sources outside the field of view, and thus helps to attenuate aliased ghost sources and sidelobes (see \citealt{post-correlation-filtering}) that arise because of the assumed periodicity during the inverse FFT. By supersampling, a convolution kernel also makes it possible to place samples more accurately at their $uv$ position, thereby lowering decorrelation.
 
-The prolate spheroidal wave function (PSWF) is generally considered to be the optimal windowing function for gridding (TODO cite). CASA convolves samples with a PSWF of 7 pixels total width during gridding. When using a variable kernel size, a PSWF is quite complicated and computational expensive to calculate\footnote{CASA uses pre-calculation tables for its fixed-size window function}. WSClean currently uses a Kaiser-Bessel (KB) window function, which is easy and fast to compute, and its properties are similar to a PSWF. The type of window function has no effect on the gridding performance, but gridding has a quadratic time dependency on the size of the kernel.
+The prolate spheroidal wave function (PSWF) is generally considered to be the optimal windowing function for gridding (TODO cite). CASA convolves samples with a PSWF of 7 pixels total width during gridding. When using a variable kernel size, a PSWF is quite complicated and computational expensive to calculate. WSClean currently uses a Kaiser-Bessel (KB) window function, which is easy and fast to compute, and its properties are similar to a PSWF.
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=8cm]{img/benchmark-kernelsize/kernel}
+\caption{...}
+\label{fig:timing-kernelsize}
+\end{center}
+\end{figure}
+
+The type of window function has no effect on the gridding performance, but gridding has a quadratic time dependency on the size of the kernel. Fig.~\ref{fig:timing-kernelsize} shows that this quadratic dependency becomes apparent for kernel sizes $\ge 15$. Decreasing the kernel size to values below $7$ has little effect, because reading the samples takes more time than gridding with small kernels. We have not noticed much benefit of larger kernels except in rare cases where a bright source lies just outside the imaged field of view. Therefore, WSClean uses a default of 7 pixels for the gridding kernel. It can be increased when necessary.
 
 \begin{table}
  \caption{Parameter values during benchmarks (unless the effect of the parameter was tested).}
