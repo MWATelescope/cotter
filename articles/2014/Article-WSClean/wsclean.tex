@@ -165,9 +165,9 @@ and for $w$-projection it is
 From these bounds it can be concluded that in the limiting behaviour, the $w$-stacking method will be faster when the gridding of the visibilities is the dominating cost of the algorithm. The $w$-projection algorithm will be faster when the inverse FFTs are dominating. In Sect.~\ref{sec:analysis} we will determine which method is faster in practice for different parameters.
 
 \section{The WSClean imager implementation} \label{sec:implementation}
-We have implemented the $w$-stacking algorithm in the C++ language. Several steps are multi-threaded in this implementation: reading and writing; gridding from and to different $w$-layers; performing the Fast Fourier transforms; and minor Clean iterations (peak-finding and image subtraction). For the latter, intrinsics were used as well. Because of these optimizations, minor Cleaning iterations are so fast that performing the Clark Clean optimization \citep{clark-clean} of considering only a subset of pixels with a reduced PSF, is not so relevant. However, because the PSF varies for imaging with a non-zero w-value, major iterations are still required to fix the errors made by subtracting a constant PSF during minor iterations.
+We have implemented the $w$-stacking algorithm in the C++ language. Several steps are multi-threaded in this implementation: reading and writing; gridding from and to different $w$-layers; performing the Fast Fourier transforms; and minor Clean iterations (peak-finding and image subtraction). For the latter, intrinsics were used as well. Because of these optimizations, minor Cleaning iterations are so fast that performing the Clark Clean optimization \citep{clark-clean}, which consists of considering only a subset of pixels with a reduced PSF, is not so relevant. However, because the PSF varies for imaging with a non-zero w-value, major iterations are still required to fix the errors from using a constant PSF during minor iterations.
 
-TODO discuss dealing with memory.
+It will not be possible to store all $w$-layers in memory when creating large images or when many $w$-layers are used. For example, our 32-GB test machine can store 227 $w$-layers of $3072\times3072$ in memory. In more demanding imaging configurations, the implementation performs several passes over the measurement set and will grid a subset of $w$-layers in each pass.
 
 \subsection{Full-sky imaging}
 For low-frequency telescopes, it can be useful to do full-sky imaging. In the case of MWA, the tile beam can have strong sidelobes at a distance of more than 90 degrees from the pointing centre. Imaging these sidelobes might be relevant because it might either be scientifically interesting (e.g. when searching for transients), or be useful for self-calibration or full-sky deconvolution. For example, the latter is useful when a strong source in a sidelobe affects the sensitivity near the pointing centre.
@@ -177,6 +177,14 @@ To image the full sky, an observation is split into short snapshots, their phase
 (TODO: these $w$ values are in 2 min obses; need shorter time interval for correct values).
 
 \subsection{W-snapshots}
+\begin{figure*}
+\begin{center}
+\includegraphics[width=8cm]{img/vela-normal-projection}
+\includegraphics[width=8cm]{img/vela-zenith-projection}
+\caption{MWA imaging example of the Vela and Puppis A supernova remnants. Left: normal projection centred on Puppis A, right: zenith projection to reduce $w$-values, but recentred on Puppis A. TODO time difference and more discussion, replace with deeper images.}
+\label{fig:vela-projection-example}
+\end{center}
+\end{figure*}
 To get optimal imaging performance, the $w$-values can be kept small by phase-changing towards zenith. As shown, all-sky imaging can be quite efficient with this technique. However, if one is not interested in imaging the whole sky, and the direction of interest is far from zenith, the computational overhead of making all-sky images is undesirable.
 
 Instead of imaging the whole sky, the image can be recentred from $(l,m)$ to $(\hat{l},\hat{m})=(l+\Delta l,m+\Delta m)$ by performing the substitution $(l,m)\leftarrow(\hat{l},\hat{m})$ in Eq.~\eqref{eq:wstacking}:
@@ -187,15 +195,15 @@ Instead of imaging the whole sky, the image can be recentred from $(l,m)$ to $(\
 \end{align}
 In words, recentering an image involves accounting for the position shift during the $w$-correction and final scaling, and shifting the visibilities in phase by multiplication with $e^{2 \pi i \left(u\Delta l + v\Delta m\right)}$ prior to the imaging.
 
-A recentred image is in the projection of the zenith tangent plane, and will need an additional regridding step before multiple snapshots can be added together.
+A recentred image is in the projection of the zenith tangent plane, and will need an additional regridding step before multiple snapshots can be added together. An example of the difference in projection is given in Fig.~\ref{fig:vela-projection-example}. A recentred image can be stored in a Flexible Image Transport System (FITS) file, which allows setting the centre of tangent projection with the \texttt{CRPIXi} keyword \citep{wcs-in-fits}. Common viewers such as Kvis and DS9 support such FITS files and display their coordinates correctly. TODO show difference.
 
-Another method to shift an image, is by using the periodicity of the FFT function. Since sources outside the field of view will be aliased back into the field, the image can be regridded with the alias in the centre. This complicates gridding, because the antialiasing kernel needs to have a pass-band shape instead of a low-pass shape. Therefore, we chose to implement the former method.
-
-TODO discuss output standard fits file by using CPIXij keyword \citet{wcs-in-fits}.
+Another method to shift an image, is by using the periodicity of the FFT function. Since sources outside the field of view will be aliased back into the field, the image can be transformed to have the alias in the centre. This complicates gridding during imaging, because the antialiasing kernel needs to have a pass-band shape instead of a low-pass shape. Therefore, we chose to implement the former method.
 
 \subsection{Application of WSClean to the MWA}
 The MWA correlator splits observations in data products of typically a few minutes
 TODO
+
+TODO: mention full-polarization imaging
 
 \section{Analysis} \label{sec:analysis}
 TODO: Show image quality; show time-efficiency comparisons.
