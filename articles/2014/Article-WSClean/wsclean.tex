@@ -165,7 +165,9 @@ and for $w$-projection it is
 From these bounds it can be concluded that in the limiting behaviour, the $w$-stacking method will be faster when the gridding of the visibilities is the dominating cost of the algorithm. The $w$-projection algorithm will be faster when the inverse FFTs are dominating. In Sect.~\ref{sec:analysis} we will determine which method is faster in practice for different parameters.
 
 \section{The WSClean imager implementation} \label{sec:implementation}
-We have implemented the $w$-stacking algorithm in the C++ language. Several steps are multi-threaded in this implementation: reading and writing; gridding from and to different $w$-layers; performing the Fast Fourier transforms; and minor Clean iterations (peak-finding and image subtraction). For the latter, intrinsics were used as well. Because of these optimizations, minor Cleaning iterations are so fast that performing the Clark Clean optimization \citep{clark-clean}, which consists of considering only a subset of pixels with a reduced PSF, is not so relevant. However, because the PSF varies for imaging with a non-zero w-value, major iterations are still required to fix the errors from using a constant PSF during minor iterations.
+With the purpose of testing new algorithms for the imaging of MWA data, we have written a new imager around the $w$-stacking algorithm. Nevertheless, the imager is not specialized for the MWA, and has been succesfully used for other telescopes (TODO menton more).
+
+The new imager, called ``WSClean'', is written in the C++ language. It reads visibilities from CASA measurement sets and writes output images to Flexible Image Transport System (FITS) files. Several steps are multi-threaded: reading and writing; gridding from and to different $w$-layers; performing the Fast Fourier transforms; and minor Clean iterations (peak-finding and image subtraction). For the latter, intrinsics are used as well. Because of these optimizations, minor Cleaning iterations are so fast that performing the Clark Clean optimization \citep{clark-clean}, which consists of considering only a subset of pixels with a reduced PSF, is not so relevant. However, the PSF varies for imaging with a non-zero w-value, and subtracting a constant PSF image space leads to inaccuracies. After a number of these minor iterations, it is therefore beneficial to invert the model back to the visibilities and subtract the model directly from the visibilities. This is similar to the Cotton-Schwab cleaning method \citep{cotton-schwab-clean}.
 
 It will not be possible to store all $w$-layers in memory when creating large images or when many $w$-layers are used. For example, our 32-GB test machine can store 227 $w$-layers of $3072\times3072$ in memory. In more demanding imaging configurations, the implementation performs several passes over the measurement set and will grid a subset of $w$-layers in each pass.
 
@@ -176,12 +178,12 @@ To image the full sky, an observation is split into short snapshots, their phase
 
 (TODO: these $w$ values are in 2 min obses; need shorter time interval for correct values).
 
-\subsection{W-snapshots}
+\subsection{W-snapshots} \label{sec:snapshot-imaging}
 \begin{figure*}
 \begin{center}
 \includegraphics[width=8cm]{img/vela-normal-projection}
 \includegraphics[width=8cm]{img/vela-zenith-projection}
-\caption{MWA imaging example of the Vela and Puppis A supernova remnants. Left: normal projection centred on Puppis A, right: zenith projection to reduce $w$-values, but recentred on Puppis A. TODO time difference and more discussion, replace with deeper images.}
+\caption{13-min MWA observation of supernova remnants Vela and Puppis A. Left: normal projection centred on Puppis A, right: phase-rotated to zenith to reduce $w$-values, shifted towards Puppis A during imaging. Both images have been made with WSClean using the Cotton-Schwab clean algorithm. No beam correction was applied. TODO time difference and more discussion, replace with deeper images.}
 \label{fig:vela-projection-example}
 \end{center}
 \end{figure*}
@@ -193,9 +195,9 @@ Instead of imaging the whole sky, the image can be recentred from $(l,m)$ to $(\
 \frac{I'(\hat{l}, \hat{m})\left(w_e - w_0\right)}{\sqrt{1-\hat{l}^2-\hat{m}^2}} = \int\limits_{w_0}^{w_e} e^{2\pi i w(\sqrt{1-\hat{l}^2-\hat{m}^2}-1)} \cdot \\
 \iint e^{2 \pi i \left(u\Delta l + v\Delta m\right)} V(u,v,w) e^{2\pi i \left(ul + vm\right)} du dv dw.
 \end{align}
-In words, recentering an image involves accounting for the position shift during the $w$-correction and final scaling, and shifting the visibilities in phase by multiplication with $e^{2 \pi i \left(u\Delta l + v\Delta m\right)}$ prior to the imaging.
+In words, recentering an image involves accounting for the position shift during the $w$-correction and final scaling, and shifting the visibilities in phase by multiplication with $e^{2 \pi i \left(u\Delta l + v\Delta m\right)}$ prior to the imaging. By doing the inverse corrections during visibility prediction, a ``shifted'' visibility set can be cleaned with major iterations similar to a non-shifted set.
 
-A recentred image is in the projection of the zenith tangent plane, and will need an additional regridding step before multiple snapshots can be added together. An example of the difference in projection is given in Fig.~\ref{fig:vela-projection-example}. A recentred image can be stored in a Flexible Image Transport System (FITS) file, which allows setting the centre of tangent projection with the \texttt{CRPIXi} keyword \citep{wcs-in-fits}. Common viewers such as Kvis and DS9 support such FITS files and display their coordinates correctly. TODO show difference.
+A recentred image is in the projection of the zenith tangent plane, and will need an additional regridding step before multiple snapshots can be added together. An example of the difference in projection is given in Fig.~\ref{fig:vela-projection-example}, which displays a 13~min MWA observation imaged with WSClean. Cleaning an image that is in a different projection yields slightly different results, but qualitativily the two images are of equal accuracy. A recentred image can be stored in a Flexible Image Transport System (FITS) file, which allows setting the centre of tangent projection with the \texttt{CRPIXi} keyword \citep{wcs-in-fits}. Common viewers such as Kvis and DS9 support such FITS files and display their coordinates correctly. TODO show difference.
 
 Another method to shift an image, is by using the periodicity of the FFT function. Since sources outside the field of view will be aliased back into the field, the image can be transformed to have the alias in the centre. This complicates gridding during imaging, because the antialiasing kernel needs to have a pass-band shape instead of a low-pass shape. Therefore, we chose to implement the former method.
 
