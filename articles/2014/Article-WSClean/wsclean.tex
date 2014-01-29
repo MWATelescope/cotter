@@ -225,6 +225,7 @@ Max $w$-value for phase centre & 172 $\lambda$ (283 m) \\
 Nr. polarizations in set & 4 \\
 Imaged polarization & XX \\
 Imaging mode & multi-frequency synthesis \\
+TODO size \\
 \hline
 \end{tabular}\end{center}\end{table}
 
@@ -232,12 +233,12 @@ Imaging mode & multi-frequency synthesis \\
 \begin{figure}
 \begin{center}
 \includegraphics[width=8cm]{img/benchmark-nsamples/nsamples}
-\caption{Performance dependency on the number of imaged visibilities for imaging at zenith. Both methods are linearly dependent on the number of visibilities. WSClean is 2-3 times faster than CASA. Error bars show 10$\sigma$ level.}
+\caption{Effect of data volume on number of samples for imaging at 10\degree zenith angle (solid lines) and at zenith (dashed lines). Error bars show 5$\sigma$ level. Both methods are linearly dependent on the number of visibilities for large sets. The right-most points represents 112 seconds of data at MWA's nominal resolution of 0.5~s / 40~kHz. }
 \label{fig:timing-nsamples}
 \end{center}
 \end{figure}
 
-In Fig.~\ref{fig:timing-nsamples} shows the time it takes to image a 2-min MWA snapshot at zenith with varying time integration. Time integration affects the number of visibilities to be gridded without changing the maximum $w$-value. Both methods have a linear time dependency on the number of visibilities. Because of the small $w$-values at zenith, the two methods are expected to be almost identical. However, the two methods show a factor of 2-3 difference, which might be attributed to different choices in optimizations. The linear dependency implies that gridding is dominating the cost.
+Fig.~\ref{fig:timing-nsamples} shows the wall-clock time to image a 112-s MWA snapshot as a function of the size of the visibility set. Results for imaging at 10\degree zenith angle (ZA) and at zenith are shown. The size of the visibility set was varied by changing the time resolution. This affects the number of visibilities to be gridded without changing the maximum $w$-value. For larger sets, both methods show a linear time dependency on the number of visibilities. This implies that gridding or reading dominates the cost. In that situation, the $w$-stacking implementation is 7.9 times faster at $\textrm{ZA}=10\degree$ and 2.9 times faster at $\textrm{ZA}=0\degree$. At $\textrm{ZA}=10$\degree, the performance of WSClean is approximately constant for sets with less than about $10^8$ visibilities, which corresponds with a single polarization of 16~s of MWA data in multi-frequency synthesis mode. At that point, the FFTs are the dominant cost in the algorithm. At zenith, the two methods are expected to perform almost identical. The factor of 2-3 difference in Fig.~\ref{fig:timing-nsamples} could be due to different choices in optimizations.
 
 \begin{figure}
 \begin{center}
