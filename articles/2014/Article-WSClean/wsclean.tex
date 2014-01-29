@@ -233,7 +233,7 @@ TODO size \\
 \begin{figure}
 \begin{center}
 \includegraphics[width=8cm]{img/benchmark-nsamples/nsamples}
-\caption{Effect of data volume on number of samples for imaging at 10\degree zenith angle (solid lines) and at zenith (dashed lines). Error bars show 5$\sigma$ level. Both methods are linearly dependent on the number of visibilities for large sets. The right-most points represents 112 seconds of data at MWA's nominal resolution of 0.5~s / 40~kHz. }
+\caption{Effect of data volume on imaging performance for imaging at 10\degree zenith angle (solid lines) and at zenith (dashed lines). Error bars show 5$\sigma$ level. Both methods are linearly dependent on the number of visibilities for large sets. The right-most points represents 112 seconds of data at MWA's nominal resolution of 0.5~s / 40~kHz. }
 \label{fig:timing-nsamples}
 \end{center}
 \end{figure}
@@ -243,7 +243,7 @@ Fig.~\ref{fig:timing-nsamples} shows the wall-clock time to image a 112-s MWA sn
 \begin{figure}
 \begin{center}
 \includegraphics[width=8cm]{img/benchmark-zenith-angle/za}
-\caption{Effect of zenith angle (ZA) of the phase centre on performance. Image width and height are $2048$ for the dashed line and $3072$ for the solid line. For the latter, CASA fails to image observations with ZA $\ge 15$. ZA dramatically affects the computational cost of w-projection, and WSClean is more than an order of magnitude faster at ZA $\ge$ 10\degree with a $3072$ image size (or ZA $\ge$ 30\degree at $1536$.) }
+\caption{Effect of zenith angle (ZA) on imaging performance. Image width and height are $2048$ for the dashed line and $3072$ for the solid line. For the latter, CASA fails to image observations with ZA $\ge 15$. ZA dramatically affects the computational cost of w-projection, and WSClean is more than an order of magnitude faster at ZA $\ge$ 10\degree with a $3072$ image size (or ZA $\ge$ 30\degree at $1536$.) }
 \label{fig:timing-zenith-angle}
 \end{center}
 \end{figure}
