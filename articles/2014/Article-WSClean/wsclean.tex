@@ -8,6 +8,7 @@
 \usepackage{times}
 \usepackage{color}
 \usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+\usepackage{xspace}
 
 \usepackage{fixltx2e} % fixes placing of image positions
 
@@ -28,13 +29,14 @@
 
 %\newcommand{\editmark}[1]{#1}
 %\newcommand{\editmark}[1]{{\color{red}{\textbf{#1}}}}
+\newcommand{\degree}{\ensuremath{^{\circ}}\xspace}
 
 % To make Dutch ``tussenvoegsels'' work correctly in Latex such as ``de Bruyn'', we use this command
 % It fixes ordering and uppercases.
 % In text, it should be written with uppercase, as in ``De Bruyn''
 \DeclareRobustCommand{\TUSSEN}[3]{#2}
 
-\title[WSClean: a new imager]{WSClean: a new implementation of a fast, generic wide-field imager}
+\title[WSClean: a fast, generic wide-field imager]{WSClean: an implementation of a fast, generic wide-field imager}
 
 \author[A.~R.~Offringa et al.]{A.~R.~Offringa$^{1,2}$\thanks{E-mail:
 \url{andre.offringa@anu.edu.au}}, B.~McKinley$^{1,2}$, N.~Hurley-Walker, 
@@ -122,11 +124,11 @@ Integrating both sides over $w_0$ to $w_e$, the minimum and maximum value of $w$
 \frac{I'(l,m)\left(w_e - w_0\right)}{\sqrt{1-l^2-m^2}} = \int\limits_{w_0}^{w_e} e^{2\pi i w(\sqrt{1-l^2-m^2}-1)} \cdot \\ \label{eq:wstacking}
 \iint V(u,v,w)  e^{2\pi i \left(ul + vm\right)} du dv dw.
 \end{align}
-The final step is to make the $u,v,w$ parameters discrete, so that the integration over $u$ and $v$ can become an inverse FFT and the integration over $w$ becomes a summation. This shows that the sky function can be reconstructed by i)~taking all samples that correspond to a specific value of $w$; ii)~grid those samples on a uniform grid; iii)~calculating the inverse FFT; iv)~apply the direction dependent phaseshift $e^{2\pi i w(\sqrt{1-l^2-m^2}-1)}$; v)~repeat this for all $w$-values and add the results together; vi)~apply the final scaling.
+The final step is to make the $u,v,w$ parameters discrete, so that the integration over $u$ and $v$ can become an inverse FFT and the integration over $w$ becomes a summation. This shows that the sky function can be reconstructed by i)~grid samples with equal $w$-value on a uniform grid; ii)~calculating the inverse FFT; iii)~apply the direction dependent phaseshift $e^{2\pi i w(\sqrt{1-l^2-m^2}-1)}$; iv)~repeat this for all $w$-values and add the results together; v)~apply the final scaling.
 
 In practice, the final scaling will be different from $\left(w_e - w_0\right)/\sqrt{1-l^2-m^2}$ suggested by Eq.~\eqref{eq:wstacking}, because the individual $w$-layers will not be completely filled with samples. Therefore, the number of added samples and their weight have to be taken into account. Additionally, it might be required to divide out the effect of a possible convolution kernel, the primary beam and correct for other direction dependent effects. In XX, YY, LL or RR polarizations, a correlated baseline is the complex conjugate of the reversed baseline, and the relation $V(u,v,w)=\overline{V(-u,-v,-w)}$ holds. The right-hand side of Eq.\eqref{eq:wstacking} with only positive $w$-value samples then becomes the complex conjugate of the one with only negative $w$-values samples. In this case we can therefore calculate the image for $w<0$ from the image with $w>0$. That allows us to set $w_0$ to the minimum absolute $w$-value, which requires at least two times less layers. In any case, the input to the two-dimensional inverse FFT is not generally an Hermitian-symmetric function, and hence is always performed as a complex-to-complex transform. 
 
-TODO: discuss visibility prediction? (inverse of imaging)
+The inverse of imaging, i.e., to calculate the visibility from a model image, can be done by reversing the $w$-stacking algorithm: i)~inverse scale the image; ii)~copy the image to several layers; iii)~inverse apply the direction-dependent phaseshift for each layer; iv)~FFT each layer; and v)~sample a required visibility from the correct $w$-layer. We will refer to this operation as prediction.
 
 \subsection{Discretization of w} \label{sec:gridding-w}
 While the discretization of $u$ and $v$ is similar to conventional imaging, the discretization of $w$ defines the number of w-layers that need to be processed. For this, one can use a rule similar to \eqref{eq:when-2d-is-valid}, and make sure that the phase difference for two subsequent discretized $w$-values, $w_A$ and $w_B$,  is less than one radian. This results in the constraint
@@ -167,23 +169,21 @@ From these bounds it can be concluded that in the limiting behaviour, the $w$-st
 \section{The WSClean imager implementation} \label{sec:implementation}
 With the purpose of testing new algorithms for the imaging of MWA data, we have written a new imager around the $w$-stacking algorithm. Nevertheless, the imager is not specialized for the MWA, and has been succesfully used for other telescopes (TODO menton more).
 
-The new imager, called ``WSClean'', is written in the C++ language. It reads visibilities from CASA measurement sets and writes output images to Flexible Image Transport System (FITS) files. Several steps are multi-threaded: reading and writing; gridding from and to different $w$-layers; performing the Fast Fourier transforms; and minor Clean iterations (peak-finding and image subtraction). For the latter, intrinsics are used as well. Because of these optimizations, minor Cleaning iterations are so fast that performing the Clark Clean optimization \citep{clark-clean}, which consists of considering only a subset of pixels with a reduced PSF, is not so relevant. However, the PSF varies for imaging with a non-zero w-value, and subtracting a constant PSF image space leads to inaccuracies. After a number of these minor iterations, it is therefore beneficial to invert the model back to the visibilities and subtract the model directly from the visibilities. This is similar to the Cotton-Schwab cleaning method \citep{cotton-schwab-clean}.
+The new imager, called ``WSClean'', is written in the C++ language. It reads visibilities from CASA measurement sets and writes output images to Flexible Image Transport System (FITS) files. Several steps are multi-threaded: reading and writing; gridding from and to different $w$-layers; performing the Fast Fourier transforms; and minor Clean iterations (peak-finding and image subtraction). For the latter, intrinsics are used as well. Because of these optimizations, minor Cleaning iterations are so fast that performing the Clark Clean optimization \citep{clark-clean}, which consists of considering only a subset of pixels with a reduced PSF, is not so relevant. However, the PSF varies for imaging with a non-zero w-value, and subtracting a constant PSF in image space leads to inaccuracies. After a number of these minor iterations, it is therefore beneficial to invert the model back to the visibilities and subtract the model directly from the visibilities \citep{wprojection-cornwell}. This is similar to the Cotton-Schwab cleaning method \citep{cotton-schwab-clean}.
 
 It will not be possible to store all $w$-layers in memory when creating large images or when many $w$-layers are used. For example, our 32-GB test machine can store 227 $w$-layers of $3072\times3072$ in memory. In more demanding imaging configurations, the implementation performs several passes over the measurement set and will grid a subset of $w$-layers in each pass.
 
 \subsection{Full-sky imaging}
-For low-frequency telescopes, it can be useful to do full-sky imaging. In the case of MWA, the tile beam can have strong sidelobes at a distance of more than 90 degrees from the pointing centre. Imaging these sidelobes might be relevant because it might either be scientifically interesting (e.g. when searching for transients), or be useful for self-calibration or full-sky deconvolution. For example, the latter is useful when a strong source in a sidelobe affects the sensitivity near the pointing centre.
+For low-frequency telescopes, it can be useful to do full-sky imaging. In the case of MWA, the tile beam can have strong sidelobes at a distance of more than 90\degree from the pointing centre. Imaging these sidelobes might be relevant because it might either be scientifically interesting (e.g. when searching for transients), or be useful for self-calibration or full-sky deconvolution. For example, the latter is useful when a strong source in a sidelobe affects the sensitivity near the pointing centre.
 
-To image the full sky, an observation is split into short snapshots, their phase centre is changed to zenith and subsequently a suitable area is imaged. Depending on desired resolution and dynamic range, this might require very large images. To make an image at the MWA resolution, the image needs to have approximately 10K pixels in width and height. The $w$-values will be very small at zenith, because only the differential heights of the antennas will contribute to $w$-value at zenith. For the MWA, the maximum height difference between tiles is $9.3$m. The MWA tiles are in fact on a slight slope, and by fitting a plane to the antennas and changing the phase centre towards the normal of that plane, the $w$-value decreases to $7.2\textrm{m} / \lambda$.
-
-(TODO: these $w$ values are in 2 min obses; need shorter time interval for correct values).
+To image the full sky, an observation is split into short snapshots, their phase centre is changed to zenith and subsequently a suitable area is imaged. Depending on desired resolution and dynamic range, this might require very large images. To make an image at the MWA resolution, the image needs to have approximately 10K pixels in width and height. The $w$-values will be very small at zenith, because only the differential heights of the antennas will contribute to $w$-value at zenith. For the MWA, the maximum height difference between tiles is $8.5$m. The MWA tiles are in fact on a slight slope, and by fitting a plane to the antennas and changing the phase centre towards the normal of that plane, the maximum $w$-value decreases to $5.5\textrm{m} / \lambda$. In the following sections, when discussing MWA zenith direction we will refer to this optimal $w$-direction.
 
 \subsection{W-snapshots} \label{sec:snapshot-imaging}
 \begin{figure*}
 \begin{center}
 \includegraphics[width=8cm]{img/vela-normal-projection}
 \includegraphics[width=8cm]{img/vela-zenith-projection}
-\caption{13-min MWA observation of supernova remnants Vela and Puppis A. Left: normal projection centred on Puppis A, right: phase-rotated to zenith to reduce $w$-values, shifted towards Puppis A during imaging. Both images have been made with WSClean using the Cotton-Schwab clean algorithm. No beam correction was applied. TODO time difference and more discussion, replace with deeper images.}
+\caption{13-min MWA observation of supernova remnants Vela and Puppis A. Left: normal projection centred on Puppis A, right: phase-rotated to zenith to reduce $w$-values, shifted towards Puppis A during imaging. Both Stokes-I images have been made with WSClean using the Cotton-Schwab clean algorithm. No beam correction was applied. TODO time difference and more discussion, replace with deeper images.}
 \label{fig:vela-projection-example}
 \end{center}
 \end{figure*}
@@ -195,21 +195,70 @@ Instead of imaging the whole sky, the image can be recentred from $(l,m)$ to $(\
 \frac{I'(\hat{l}, \hat{m})\left(w_e - w_0\right)}{\sqrt{1-\hat{l}^2-\hat{m}^2}} = \int\limits_{w_0}^{w_e} e^{2\pi i w(\sqrt{1-\hat{l}^2-\hat{m}^2}-1)} \cdot \\
 \iint e^{2 \pi i \left(u\Delta l + v\Delta m\right)} V(u,v,w) e^{2\pi i \left(ul + vm\right)} du dv dw.
 \end{align}
-In words, recentering an image involves accounting for the position shift during the $w$-correction and final scaling, and shifting the visibilities in phase by multiplication with $e^{2 \pi i \left(u\Delta l + v\Delta m\right)}$ prior to the imaging. By doing the inverse corrections during visibility prediction, a ``shifted'' visibility set can be cleaned with major iterations similar to a non-shifted set.
+In words, recentering an image involves accounting for the position shift during the $w$-correction and final scaling, and shifting the visibilities in phase by multiplication with $e^{2 \pi i \left(u\Delta l + v\Delta m\right)}$ prior to the imaging. By doing the inverse corrections during visibility prediction, such a shifted visibility set can be cleaned with major iterations similar to a non-shifted set.
 
-A recentred image is in the projection of the zenith tangent plane, and will need an additional regridding step before multiple snapshots can be added together. An example of the difference in projection is given in Fig.~\ref{fig:vela-projection-example}, which displays a 13~min MWA observation imaged with WSClean. Cleaning an image that is in a different projection yields slightly different results, but qualitativily the two images are of equal accuracy. A recentred image can be stored in a Flexible Image Transport System (FITS) file, which allows setting the centre of tangent projection with the \texttt{CRPIXi} keyword \citep{wcs-in-fits}. Common viewers such as Kvis and DS9 support such FITS files and display their coordinates correctly. TODO show difference.
+A recentred image is in the projection of the zenith tangent plane, and will need an additional regridding step before multiple snapshots can be added together. A recentred image can be stored in a Flexible Image Transport System (FITS) file, which allows setting the centre of tangent projection with the \texttt{CRPIXi} keyword \citep{wcs-in-fits}. Common viewers such as Kvis and DS9 support such FITS files and display their coordinates correctly. An example of the difference in projection is given in Fig.~\ref{fig:vela-projection-example}, which displays a 13~min MWA observation imaged with WSClean. Cleaning an image that is in a different projection yields slightly different results, but qualitativily the two images are clearly of equal accuracy.
 
 Another method to shift an image, is by using the periodicity of the FFT function. Since sources outside the field of view will be aliased back into the field, the image can be transformed to have the alias in the centre. This complicates gridding during imaging, because the antialiasing kernel needs to have a pass-band shape instead of a low-pass shape. Therefore, we chose to implement the former method.
 
-\subsection{Application of WSClean to the MWA}
-The MWA correlator splits observations in data products of typically a few minutes
-TODO
-
-TODO: mention full-polarization imaging
-
 \section{Analysis} \label{sec:analysis}
-TODO: Show image quality; show time-efficiency comparisons.
+We will now analyse the performance and accuracy of our implementation, and compare it with the w-projection implementation in CASA. For the analysis, we use imaging parameters which are common for MWA Imaging. When a specific parameter value is not mentioned, the settings from Table~\ref{tbl:default-parameters} are used. The number of $w$-projection planes in w-projection is kept equal to the number of $w$-layers in w-stacking, and is set to the right hand side of Eq.~\eqref{eq:nwlayers-bound}. This yields 97 $w$-projection planes or $w$-layers at 10\degree zenith angle. Some configurations with high $w$-values fail to image with CASA, presumably because the $w$-kernels become to large.
 
+TODO discuss CASA version
+
+TODO discuss desktop computer specs
+\begin{table}%
+\caption{Parameter values used during benchmarks, unless otherwise mentioned.} \label{tbl:default-parameters}%
+\begin{center}\begin{tabular}{rl}%
+\hline
+Array & MWA 128T \\
+Image size & $3072 \times 3072$ \\
+Angular resolution & $0.72'$ \\
+Number of visibilities & $3.5 \times 10^8$ \\
+Time resolution & 2~s \\
+Frequency resolution & 40~kHz \\
+Observation duration & 112 s\\
+Bandwidth & 30.72 MHz (768 channels)\\
+Central frequency & 182 MHz \\
+Zenith angle at phase centre & 10\degree \\
+Max $w$-value for phase centre & 172 $\lambda$ (283 m) \\
+Nr. polarizations in set & 4 \\
+Imaged polarization & XX \\
+Imaging mode & multi-frequency synthesis \\
+\hline
+\end{tabular}\end{center}\end{table}
+
+\subsection{Performance}
+\begin{figure}
+\begin{center}
+\includegraphics[width=8cm]{img/benchmark-nsamples/nsamples}
+\caption{Performance dependency on the number of imaged visibilities for imaging at zenith. Both methods are linearly dependent on the number of visibilities. WSClean is 2-3 times faster than CASA. Error bars show 10$\sigma$ level.}
+\label{fig:timing-nsamples}
+\end{center}
+\end{figure}
+
+In Fig.~\ref{fig:timing-nsamples} shows the time it takes to image a 2-min MWA snapshot at zenith with varying time integration. Time integration affects the number of visibilities to be gridded without changing the maximum $w$-value. Both methods have a linear time dependency on the number of visibilities. Because of the small $w$-values at zenith, the two methods are expected to be almost identical. However, the two methods show a factor of 2-3 difference, which might be attributed to different choices in optimizations. The linear dependency implies that gridding is dominating the cost.
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=8cm]{img/benchmark-zenith-angle/za}
+\caption{Effect of zenith angle (ZA) of the phase centre on performance. Image width and height are $2048$ for the dashed line and $3072$ for the solid line. For the latter, CASA fails to image observations with ZA $\ge 15$. ZA dramatically affects the computational cost of w-projection, and WSClean is more than an order of magnitude faster at ZA $\ge$ 10\degree with a $3072$ image size (or ZA $\ge$ 30\degree at $1536$.) }
+\label{fig:timing-zenith-angle}
+\end{center}
+\end{figure}
+
+In Fig.~\ref{fig:timing-zenith-angle}, the computational cost as function of the zenith angle is plotted. 
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=8cm]{img/benchmark-channels/channels}
+\caption{...}
+\label{fig:timing-channels}
+\end{center}
+\end{figure}
+
+\subsection{Accuracy}
+TODO show aliasing errors for too few wlayers.
 \subsection{Gridding} \label{sec:gridding}
 During gridding of the visibilities in $uv$-space, it is useful to apply a gridding convolution kernel. A common kernel function is a windowed sinc function. A low-pass filter decreases the flux of sources outside the field of view, and thus helps to attenuate aliased ghost sources and sidelobes (see \citealt{post-correlation-filtering}) that arise because of the assumed periodicity during the inverse FFT. By supersampling, a convolution kernel also makes it possible to place samples more accurately at their $uv$ position, thereby lowering decorrelation.
 
@@ -225,15 +274,6 @@ The prolate spheroidal wave function (PSWF) is generally considered to be the op
 
 The type of window function has no effect on the gridding performance, but gridding has a quadratic time dependency on the size of the kernel. Fig.~\ref{fig:timing-kernelsize} shows that this quadratic dependency becomes apparent for kernel sizes $\ge 15$. Decreasing the kernel size to values below $7$ has little effect, because reading the samples takes more time than gridding with small kernels. We have not noticed much benefit of larger kernels except in rare cases where a bright source lies just outside the imaged field of view. Therefore, WSClean uses a default of 7 pixels for the gridding kernel. It can be increased when necessary.
 
-\begin{table}
- \caption{Parameter values during benchmarks (unless the effect of the parameter was tested).}
- \begin{tabular}{lr}
-   \textbf{Parameter} & \textbf{Value} \\
-   Image size             & 3072 \\
-   Number of visibilities & $10^9$
- \end{tabular}
-\end{table}
-
 \subsection{Cleaning a w-stacked image}
 TODO describe how to do
 TODO \citet{hogbom-clean}
@@ -243,21 +283,14 @@ It is tempting to use a very low number of $w$-layers, and define the major clea
 TODO: discuss low w-values means less-direction-invariant PSF.
 
 
-\begin{figure}
-\begin{center}
-\includegraphics[width=8cm]{img/benchmark-zenith-angle/za}
-\caption{...}
-\label{fig:timing-zenith-angle}
-\end{center}
-\end{figure}
+\section{Application of WSClean to the MWA}
+The MWA correlator splits observations in data products of typically a few minutes
+TODO
 
-\begin{figure}
-\begin{center}
-\includegraphics[width=8cm]{img/benchmark-nsamples/nsamples}
-\caption{...}
-\label{fig:timing-nsamples}
-\end{center}
-\end{figure}
+TODO: calculate when to use w-snapshots
+
+TODO: mention full-polarization imaging
+
 
 \section{Discussion} \label{sec:discussion}
 TODO: describe hybrid between w-stacking, w-projection and w-snapshots (if not yet discussed in Cornwell's papers)
