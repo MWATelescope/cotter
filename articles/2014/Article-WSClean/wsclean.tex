@@ -74,19 +74,20 @@ There are several methods to deal with the w-term during imaging: facetting \cit
 
 New generation of wide-field observatories are producing data sets that are orders of magnitude larger than before. Examples of such telescopes include the Murchison Widefield Array (MWA, \citealt{mwa}), the upgraded Jansky Very Large Array (JVLA) and the Low-Frequency Array (LOFAR, \citealt{lofar-2013}). At the MWA, some of the data is reduced with the w-projection algorithm implementation of the Common Astronomy Software Applications (CASA, \citealt{casa}). This is an attractive option because of its many features, high quality and free availability. However, at the MWA we have seen that a 2-min snapshot observation at low-elevation can take up to tens of hours with CASA's w-projection algorithm. Another option for reducing MWA data is the Real-Time System (RTS), which has been designed as an efficient calibrating and imaging pipeline specifically for MWA data \citep{rts-mwa}. It can use GPUs for improving efficiency, and uses a w-projection kernel during imaging to correct for the w-term. The kernel can be kept small, because the data is processed in snapshots that have been phase-centered to Zenith. The RTS can not perform deconvolution as of yet.
 
-For the MWA it can be assumed that the ionosphere has the same effect on all tiles, because the maximum baseline length is relatively small (2.9~km) and smaller than the typical size of ionospheric structure (TODO cite). This is not the case for LOFAR, making it necessary to correct the direction-dependent ionospheric effects per station before gridding the data. TODO: discuss A-Projection (CASA manual say: ``A-Projection is an algorithm to account for the effects of the antenna primary beam (PB) during imaging. The time-dependent effects of the PB are projected-out during the imaging phase and the PB is included in the prediction phase of the iterative image deconvolution (see Bhatnagar, Cornwell, Golap \& Uson 2008, A\&A, 487, 419'') The \texttt{awimager} has been written to perform these corrections, and uses a hybrid of a-projection, w-projection and w-stacking \citep{awimager-2013}.
+To reach high dynamic ranges, it can be necessary to deal with direction-dependent effects (DDEs). This is especially true for widefield telescopes. One way to handle DDEs is by using the a-projection technique, which convolves the data during gridding with a kernel that corrects the DDEs \citep{aprojection-2008}.
+One such DDE is the effect of the ionosphere. For the MWA it can be assumed that the ionosphere has the same effect on all tiles, because the maximum baseline length is relatively small (2.9~km) and smaller than the typical size of ionospheric structure (TODO cite). This is not the case for LOFAR, making it necessary to correct the direction-dependent ionospheric effects per station before gridding the data. The \texttt{awimager} has been written to perform these corrections, and uses a hybrid of a-projection, w-projection and w-stacking \citep{awimager-2013}.
 
-Once the Square-Kilometre Array (SKA) begins its operation, the required computational power for wide-field imaging will become an even bigger challenge. In \citet{widefield-imaging-ska-cornwell}, it is shown that in theory the w-snapshots algorithm is an efficient approach for the SKA.
+Once the Square-Kilometre Array (SKA) begins its operation, the required computational power for wide-field imaging will become an even bigger challenge. In \citet{widefield-imaging-ska-cornwell}, it is shown that in theory the w-snapshots algorithm is the most efficient approach for the SKA.
 
-In this article, we present a new implementation of a generic wide-field imager that is significantly faster than CASA's w-projection implementation. To obtain the increase in speed, the implementation uses the w-stacking method for correcting the w-terms combined with snapshot imaging. We named the new imager ``WSClean'', as an abbreviation for ``W-Stacking Clean''. This work improves the field of wide-field imaging in the following ways:
+In this article, we present a new implementation of a generic wide-field imager that is significantly faster than CASA's w-projection implementation. To obtain the increase in speed, the implementation uses the w-stacking method for correcting the w-terms, optionally combined with w-snapshot imaging. We named the new imager ``WSClean'', as an abbreviation for ``W-Stacking Clean''. This work improves the field of wide-field imaging in the following ways:
 \begin{itemize}
- \item The performance of a w-stacking implementation is compared to a w-projection implementation.
- \item The advantages of using the w-snapshots algorithm are analysed.
+ \item The performance of w-stacking is compared to w-projection.
+ \item Parameters that affect the w-snapshots algorithm are analysed.
  \item Details are described of how to efficiently implement the w-stacking and w-snapshots algorithms.
- \item A new implementation is released, which we believe to be the fastest generic widefield imager available for many imaging scenarios.
+ \item A new implementation is released, which we believe to be the fastest generic widefield imager available.
 \end{itemize}
 
-The w-stacking algorithm is described in Sect.~\ref{sec:wstacking}. Details of implementing the w-stacking and w-snapshots algorithms are described in Sect.~\ref{sec:implementation}. Using various MWA observations, including observations with varying elevation, the performance will be analysed in Sect.~\ref{sec:analysis}.
+The w-stacking algorithm is described in Sect.~\ref{sec:wstacking}. Details of implementing the w-stacking and w-snapshots algorithms are described in Sect.~\ref{sec:implementation}. The performance and accuracy will be analysed in Sect.~\ref{sec:analysis}.
 
 \section{The w-stacking technique} \label{sec:wstacking}
 In this section, we will describe the w-stacking algorithm from a mathematical point of view.
@@ -183,7 +184,7 @@ To image the full sky, an observation is split into short snapshots, their phase
 \begin{center}
 \includegraphics[width=8cm]{img/vela-normal-projection}
 \includegraphics[width=8cm]{img/vela-zenith-projection}
-\caption{13-min MWA observation of supernova remnants Vela and Puppis A. Left: normal projection centred on Puppis A, right: phase-rotated to zenith to reduce $w$-values, shifted towards Puppis A during imaging. Both Stokes-I images have been made with WSClean using the Cotton-Schwab clean algorithm. No beam correction was applied. TODO time difference and more discussion, replace with deeper images.}
+\caption{13-min MWA observation of supernova remnants Vela and Puppis A. Left: normal projection centred on Puppis A, right: phase-rotated to zenith to reduce $w$-values, recentred on Puppis A during imaging. Both Stokes-I images have been made with WSClean using the Cotton-Schwab clean algorithm. No beam correction was applied. TODO time difference and more discussion, replace with deeper images.}
 \label{fig:vela-projection-example}
 \end{center}
 \end{figure*}
@@ -195,7 +196,7 @@ Instead of imaging the whole sky, the image can be recentred from $(l,m)$ to $(\
 \frac{I'(\hat{l}, \hat{m})\left(w_e - w_0\right)}{\sqrt{1-\hat{l}^2-\hat{m}^2}} = \int\limits_{w_0}^{w_e} e^{2\pi i w(\sqrt{1-\hat{l}^2-\hat{m}^2}-1)} \cdot \\
 \iint e^{2 \pi i \left(u\Delta l + v\Delta m\right)} V(u,v,w) e^{2\pi i \left(ul + vm\right)} du dv dw.
 \end{align}
-In words, recentering an image involves accounting for the position shift during the $w$-correction and final scaling, and shifting the visibilities in phase by multiplication with $e^{2 \pi i \left(u\Delta l + v\Delta m\right)}$ prior to the imaging. By doing the inverse corrections during visibility prediction, such a shifted visibility set can be cleaned with major iterations similar to a non-shifted set.
+In words, recentering an image involves accounting for the position shift during the $w$-correction and final scaling, and shifting the visibilities in phase by multiplication with $e^{2 \pi i \left(u\Delta l + v\Delta m\right)}$ prior to the imaging. This is a method of implementing the $w$-snapshots algorithm as described by \citet{widefield-imaging-ska-cornwell}. By doing the inverse corrections during visibility prediction, such a shifted visibility set can be cleaned with Cotton-Schwab iterations similar to a non-shifted set.
 
 A recentred image is in the projection of the zenith tangent plane, and will need an additional regridding step before multiple snapshots can be added together. A recentred image can be stored in a Flexible Image Transport System (FITS) file, which allows setting the centre of tangent projection with the \texttt{CRPIXi} keyword \citep{wcs-in-fits}. Common viewers such as Kvis and DS9 support such FITS files and display their coordinates correctly. An example of the difference in projection is given in Fig.~\ref{fig:vela-projection-example}, which displays a 13~min MWA observation imaged with WSClean. Cleaning an image that is in a different projection yields slightly different results, but qualitativily the two images are clearly of equal accuracy.
 
@@ -238,10 +239,17 @@ Data size & 18 GB \\
 & \textbf{WSClean} & \textbf{WSClean}    & \textbf{CASA} \\
 &                  & \textbf{+ recentre} & \\
 \hline
+\multicolumn{1}{l}{\textit{Zenith angle 0\degree}} \\
+\hline
 Source flux standard error & 1.31\% & & 1.34\% \\
 RMS in residual image & 0.94 mJy & & 1.90 mJy \\
-Computational time & 8 min & & forever (TODO) \\
-TODO at ZA=10\degree & & \\
+Computational time & 8 min & & 19.3 min \\
+\hline
+\multicolumn{1}{l}{\textit{Zenith angle 10\degree}} \\
+\hline
+Source flux standard error & 1.75\% & & 2.41 \%\\
+RMS in residual image & 0.88 mJy & & 1.04 mJy \\
+Computational time & 15.3 min & & 178.2 min \\
 \hline\hline
 \end{tabular}\end{center}\end{table}
 
