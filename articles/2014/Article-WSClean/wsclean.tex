@@ -74,7 +74,7 @@ There are several methods to deal with the w-term during imaging: facetting \cit
 
 New generation of wide-field observatories are producing data sets that are orders of magnitude larger than before. Examples of such telescopes include the Murchison Widefield Array (MWA, \citealt{mwa}), the upgraded Jansky Very Large Array (JVLA) and the Low-Frequency Array (LOFAR, \citealt{lofar-2013}). At the MWA, some of the data is reduced with the w-projection algorithm implementation of the Common Astronomy Software Applications (CASA, \citealt{casa}). This is an attractive option because of its many features, high quality and free availability. However, at the MWA we have seen that a 2-min snapshot observation at low-elevation can take up to tens of hours with CASA's w-projection algorithm. Another option for reducing MWA data is the Real-Time System (RTS), which has been designed as an efficient calibrating and imaging pipeline specifically for MWA data \citep{rts-mwa}. It can use GPUs for improving efficiency, and uses a w-projection kernel during imaging to correct for the w-term. The kernel can be kept small, because the data is processed in snapshots that have been phase-centered to Zenith. The RTS can not perform deconvolution as of yet.
 
-For the MWA it can be assumed that the ionosphere has the same effect on all tiles, because the maximum baseline length is relatively small (2.9~km) and smaller than the typical size of ionospheric structure (TODO cite). This is not the case for LOFAR, making it necessary to correct the direction-dependent ionospheric effects per station before gridding the data. The \texttt{awimager} has been written to perform these corrections, and uses a hybrid of a-projection, w-projection and w-stacking \citep{awimager-2013}.
+For the MWA it can be assumed that the ionosphere has the same effect on all tiles, because the maximum baseline length is relatively small (2.9~km) and smaller than the typical size of ionospheric structure (TODO cite). This is not the case for LOFAR, making it necessary to correct the direction-dependent ionospheric effects per station before gridding the data. TODO: discuss A-Projection (CASA manual say: ``A-Projection is an algorithm to account for the effects of the antenna primary beam (PB) during imaging. The time-dependent effects of the PB are projected-out during the imaging phase and the PB is included in the prediction phase of the iterative image deconvolution (see Bhatnagar, Cornwell, Golap \& Uson 2008, A\&A, 487, 419'') The \texttt{awimager} has been written to perform these corrections, and uses a hybrid of a-projection, w-projection and w-stacking \citep{awimager-2013}.
 
 Once the Square-Kilometre Array (SKA) begins its operation, the required computational power for wide-field imaging will become an even bigger challenge. In \citet{widefield-imaging-ska-cornwell}, it is shown that in theory the w-snapshots algorithm is an efficient approach for the SKA.
 
@@ -224,12 +224,45 @@ Zenith angle at phase centre & 10\degree \\
 Max $w$-value for phase centre & 172 $\lambda$ (283 m) \\
 Nr. polarizations in set & 4 \\
 Imaged polarization & XX \\
-Imaging mode & multi-frequency synthesis \\
-TODO size \\
+Imaging mode & Multi-frequency synthesis \\
+Weighting & uniform \\
+Data size & 18 GB \\
 \hline
 \end{tabular}\end{center}\end{table}
 
+\subsection{Accuracy}
+\begin{table}%
+\caption{Results on imaging accuracy measurements.} \label{tbl:accuracy-measurements}%
+\begin{center}\begin{tabular}{llll}%
+\hline\hline
+& \textbf{WSClean} & \textbf{WSClean}    & \textbf{CASA} \\
+&                  & \textbf{+ recentre} & \\
+\hline
+Source flux standard error & 1.31\% & & 1.34\% \\
+RMS in residual image & 0.94 mJy & & 1.90 mJy \\
+Computational time & 8 min & & forever (TODO) \\
+TODO at ZA=10\degree & & \\
+\hline\hline
+\end{tabular}\end{center}\end{table}
+
+\begin{figure*}
+\begin{center}
+\includegraphics[width=8cm]{img/residual-casa}
+\includegraphics[width=8cm]{img/residual-wsclean}
+\caption{Residual images after Cotton-Schwab cleaning of a simulated MWA observation, using similar inversion and cleaning parameters. Left image: w-projection using CASA; right image: w-stacking using WSClean. The image has been zoomed in just above the image centre, with the image centre being displayed in the bottom-centre of the panels. Sources in the image produced with CASA are less accurately subtracted, leading to a residual noise level of 1.9 mJy, whereas WSClean reaches 0.94 mJy. Since the effect is stronger away from the phase centre, we believe this is caused by the finite size of the w-kernels used in w-projection, which leads to inaccuracies.}
+\label{fig:residuals}
+\end{center}
+\end{figure*}
+
+We performed a few measurements to validate that there are no major accuracy difference between WSClean and CASA. To do so, we have simulated a MWA observation with hundred sources of 1~Jy in a 20 degrees area. A unitary primary beam is assumed. We image the set both with WSClean and CASA, using Cotton-Schwab cleaning to a threshold of 10~mJy. The two imagers calculate slightly different restoring (synthesized) beams, hence to avoid bias the restoring beams are fixed. Other imaging parameters are given in Table~\ref{tbl:default-parameters}. Aegean (TODO discuss) was subsequently used to perform source detection on the produced images. Even though no noise is added to the visibilities, sidelobe noise of the residual 10~mJy noises triggers a few false detections, which are ignored.
+
+Table~\ref{tbl:accuracy-measurements} lists the measured standard error of the source brightnesses as detected by Aegean, as well as the RMS in the residual image.
+
+TODO show aliasing errors for too few wlayers.
+
 \subsection{Performance}
+We measured the performance of the imagers using several MWA data sets. Each specific configuration is run 5 times and standard deviations are calculated over these 5 runs. The variations between runs is typically a few seconds. In each benchmark, the wall-clock time is measured that is required to produce the synthesized point-spread function and the image itself. No cleaning or prediction was performed.
+
 \begin{figure}
 \begin{center}
 \includegraphics[width=8cm]{img/benchmark-nsamples/nsamples}
@@ -258,8 +291,8 @@ In Fig.~\ref{fig:timing-zenith-angle}, the computational cost as function of the
 \end{center}
 \end{figure}
 
-\subsection{Accuracy}
-TODO show aliasing errors for too few wlayers.
+TODO: for fairness, also check making 4 polarization images.
+
 \subsection{Gridding} \label{sec:gridding}
 During gridding of the visibilities in $uv$-space, it is useful to apply a gridding convolution kernel. A common kernel function is a windowed sinc function. A low-pass filter decreases the flux of sources outside the field of view, and thus helps to attenuate aliased ghost sources and sidelobes (see \citealt{post-correlation-filtering}) that arise because of the assumed periodicity during the inverse FFT. By supersampling, a convolution kernel also makes it possible to place samples more accurately at their $uv$ position, thereby lowering decorrelation.
 
