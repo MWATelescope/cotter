@@ -9,6 +9,7 @@
 \usepackage{color}
 \usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
 \usepackage{xspace}
+\usepackage{subcaption}
 
 \usepackage{fixltx2e} % fixes placing of image positions
 
@@ -285,46 +286,65 @@ WSClean is faster in all tested cases. WSClean and CASA determine a different ne
 
 Many parameters affect the accuracy more than the observed differences between the methods. These include the number of major iterations, $w$-planes/layers, restoring beam, image size, weighting, kernel size and grid oversampling. Therefore, the differences in accuracy are not very significant. The results do show that synthesis imaging using common imaging parameters results in an approximate flux-density standard error of at least $\sim1\%$.
 
-\subsection{Performance analysis}
-We measured the performance of the imagers using several MWA data sets. Each specific configuration is run 5 times and standard deviations are calculated over these 5 runs. The variations between runs is typically a few seconds. In each benchmark, the wall-clock time is measured that is required to produce the synthesized point-spread function and the image itself. No cleaning or prediction was performed.
-
-\begin{figure}
-\begin{center}
-\includegraphics[width=8cm]{img/benchmark-nsamples/nsamples}
-\caption{Effect of data volume on imaging performance for imaging at 10\degree zenith angle (solid lines) and at zenith (dashed lines). Error bars show 5$\sigma$ level. Both methods are linearly dependent on the number of visibilities for large sets. The right-most points represents 112 seconds of data at MWA's nominal resolution of 0.5~s / 40~kHz. }
-\label{fig:timing-nsamples}
-\end{center}
-\end{figure}
-
-Fig.~\ref{fig:timing-nsamples} shows the wall-clock time to image a 112-s MWA snapshot as a function of the size of the visibility set. Results for imaging at 10\degree zenith angle (ZA) and at zenith are shown. The size of the visibility set was varied by changing the time resolution. This affects the number of visibilities to be gridded without changing the maximum $w$-value. For larger sets, both methods show a linear time dependency on the number of visibilities. This implies that gridding or reading dominates the cost. In that situation, the $w$-stacking implementation is 7.9 times faster at $\textrm{ZA}=10\degree$ and 2.6 times faster at $\textrm{ZA}=0\degree$. With small data volumes, the FFTs start to dominate the cost. This is visible from Fig.~\ref{fig:timing-nsamples} by the flattening towards the left. At that point, WSClean is in both cases approximately 3 times faster. At zenith, the two methods are expected to perform almost identical. The factor of 2-3 difference in Fig.~\ref{fig:timing-nsamples} could be due to different choices in optimizations.
-
-\begin{figure}
-\begin{center}
-\includegraphics[width=8cm]{img/benchmark-zenith-angle/za}
-\caption{Effect of zenith angle (ZA) on imaging performance. Image pixel size is $2048$ for the dashed lines and $3072$ for the solid lines. CASA fails to image observations with ZA $\ge 15$ with a $3072$ pixel image size. }
-\label{fig:timing-zenith-angle}
-\end{center}
-\end{figure}
-
-In Fig.~\ref{fig:timing-zenith-angle}, the computational cost as function of zenith angle is plotted. It shows that, as expected from \S\ref{sec:time-complexity}, the $w$-projection algorithm is more affected by the increased $w$-values, leading to differences of more than an order of magnitude at zenith angles of $\gtrapprox 20$\degree. Additionally, at higher zenith angles, the $w$-kernels become too large to be able to make images of 3072 pixels or larger. Using the recentering technique to decrease the $w$-values makes the computational cost approximately constant. However, the additional time required to rephase and regrid the measurement set makes it only worthwhile for images $\ge3072$ pixels and $\textrm{ZA}\ge15\degree$. TODO: this is quite heavily depending on the speed of \texttt{chgcentre}, and that might still be improvable...
-
-\begin{figure}
-\begin{center}
-\includegraphics[width=8cm]{img/benchmark-channels/channels}
-\caption{...}
-\label{fig:timing-channels}
-\end{center}
-\end{figure}
-
-\begin{figure}
-\begin{center}
-\includegraphics[width=8cm]{img/benchmark-resolution/resolution}
-\caption{...}
+\begin{figure*}%
+\begin{subfigure}{.5\linewidth}%
+\includegraphics[width=\linewidth]{img/benchmark-nsamples/nsamples}%
+\caption{}\label{fig:timing-nsamples}%
+\end{subfigure}%
+\begin{subfigure}{.5\linewidth}%
+\includegraphics[width=\linewidth]{img/benchmark-zenith-angle/za}%
+\caption{}\label{fig:timing-zenith-angle}%
+\end{subfigure}\\
+\begin{subfigure}{.3\linewidth}%
+\includegraphics[width=\linewidth]{img/benchmark-resolution/resolution}
+\caption{}
 \label{fig:timing-resolution}
-\end{center}
-\end{figure}
+\end{subfigure}%
+\begin{subfigure}{.3\linewidth}%
+\includegraphics[width=\linewidth]{img/benchmark-channels/channels}
+\caption{}
+\label{fig:timing-channels}
+\end{subfigure}%
+\begin{subfigure}{.3\linewidth}%
+\includegraphics[width=\linewidth]{img/benchmark-fov/fov}
+\caption{}
+\label{fig:timing-fov}
+\end{subfigure}%
+\caption{Imaging performance as a function of several configuration parameters. Error bars show 5$\sigma$ level. }\label{fig:timings}
+\end{figure*}
+
+\subsection{Performance analysis}
+
+We measured the performance of the imagers using several MWA data sets. Each specific configuration is run 5 times and standard deviations are calculated. The variations between runs is typically a few seconds. In each benchmark, the wall-clock time is measured that is required to produce the synthesized point-spread function and the image itself. No cleaning or prediction was performed. The results are given in Fig.~\ref{fig:timings}.
+
+Panel~\ref{fig:timing-nsamples} shows the dependency on the size of the visibility set. Results for imaging at zenith and 10\degree zenith angle (ZA) are shown. The size of the visibility set was varied by changing the time resolution, which affects the number of visibilities to be gridded without changing the maximum $w$-value. For larger sets, both methods show a linear time dependency on the number of visibilities. This implies that gridding or reading dominates the cost. In that situation, the $w$-stacking implementation is 7.9 times faster at $\textrm{ZA}=10\degree$ and 2.6 times faster at $\textrm{ZA}=0\degree$. With small data volumes, the FFTs start to dominate the cost. This is visible from Fig.~\ref{fig:timing-nsamples} by the flattening towards the left. At that point, WSClean is in both cases approximately 3 times faster. At zenith, the two methods are expected to perform almost identical. The factor of 2-3 difference in Fig.~\ref{fig:timing-nsamples} could be due to different choices in optimizations.
+
+In Panel~\ref{fig:timing-zenith-angle}, the computational cost as function of zenith angle is plotted. It shows that, as expected from \S\ref{sec:time-complexity}, the $w$-projection algorithm is more affected by the increased $w$-values, leading to differences of more than an order of magnitude at zenith angles of $\gtrapprox 20$\degree. Additionally, at higher zenith angles, the $w$-kernels become too large to be able to make images of 3072 pixels or larger. Using the recentering technique to decrease the $w$-values makes the computational cost approximately constant. However, the additional time required to rephase and regrid the measurement set makes it only worthwhile for images $\ge3072$ pixels and $\textrm{ZA}\ge15\degree$. TODO: this is quite heavily depending on the speed of \texttt{chgcentre}, and that might still be improvable...
+
+In Panel~\ref{fig:timing-resolution}, the number of pixels in the image is changed without changing the field of view. The performance of $w$-stacking is more affected by the size of the image, but is still significantly faster in making 12.8K images at 10\degree ZA than $w$-projection. 
+
+Panel~\ref{fig:timing-channels} shows performance versus the output frequency resolution. The cost of imaging at multiple frequencies is the cost of making an images times the number of frequencies. However, each separate imaging contains a part of the total number of visibilities. As shown before, FFTs become the dominant cost for small visibility sets, and performance and number of frequency images therefore have a linear relation, which is clearly visible from the plot.
 
 TODO: for fairness, also check making 4 polarization images.
+
+\subsection{Derivation of computing cost formulae}
+Based on the expected cost terms described in Sec.~\ref{sec:time-complexity}, we fit analytical functions to the CASA and WSClean measurements. Several functions with different free parameters were tested, and formulae with minimum amount of parameters are selected that still follow the trend of the measurements and have reasonably small errors. The measurements are weighted with the inverse standard deviation. The single outlying measurement of CASA in Fig.~\ref{fig:timing-nsamples} is removed.
+
+For WSClean's time cost $t_\textrm{WSClean}$ we find 
+\begin{align}\notag
+t_\textrm{WSClean}& (w_e,N_\textrm{vis},N_\textrm{freq},N_\textrm{pix}) = \\ \notag
+& 0.000326 N_\textrm{pix}^2 \log N_\textrm{pix} (w_e + 0.000212) +\\
+& 0.252 N_\textrm{vis} - 7.64
+\end{align}
+and for CASA we find
+\begin{equation}
+t_\textrm{CASA}(w_e,N_\textrm{vis},N_\textrm{freq},N_\textrm{pix}) = .
+\end{equation}
+Parameter $w_e$ is the maximum $w$ value and is esimated with
+\begin{equation}
+ w_e = \frac{\max |\mathbf{x}| \sin za + \max z \cos za}{\lambda \max |\mathbf{x}|} \left(1.0 - \cos(\frac{1}{2}\textrm{FOV})\right),
+\end{equation}
+where $\max |\mathbf{x}|$ is the maximum baseline length, $\max z$ is the maximum height difference between antennas and $\lambda$ is the wavelength.
 
 \subsection{Gridding} \label{sec:gridding}
 A gridding convolution kernel improves the accuracy of gridding in $uv$-space. A common kernel function is a windowed sinc function, which acts as a low-pass filter. This decreases the flux of sources outside the field of view, and thus helps to attenuate aliased ghost sources and sidelobes that arise because of the assumed periodicity during the inverse FFT \citep{post-correlation-filtering}. By supersampling, a convolution kernel also makes it possible to place samples more accurately at their $uv$ position, thereby lowering decorrelation.
@@ -348,7 +368,6 @@ TODO
 TODO: calculate when to use w-snapshots
 
 TODO: mention full-polarization imaging
-
 
 \section{Discussion} \label{sec:discussion}
 WSClean has been build out of necessacity to be able to make images with the MWA. 

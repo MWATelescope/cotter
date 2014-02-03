@@ -9,7 +9,7 @@
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_multifit_nlin.h>
 
-bool fixDW = false, fixE = false;
+bool fixDW = false, fixConstant = false;
 
 double sinZA(double za)
 {
@@ -18,9 +18,8 @@ double sinZA(double za)
 
 double fovFact(double fov)
 {
-	double fovRad = 0.5 * fov * (M_PI/180.0);
-	double fov2 = fovRad * fovRad / 2.0;
-	// trueFov = 2.0 * atan(0.5*fov * (M_PI/180.0));
+	double fovRad = 0.5 * fov * (M_PI/180.0); // this is the max l
+	double fov2 = fovRad * fovRad;
 	return fov2 < 1.0 ? (1.0 - sqrt(1.0 - fov2)) : 1.0;
 }
 
@@ -99,15 +98,15 @@ struct FittingInfo
 	Sample *samples;
 };
 
-double eval(FittingFunc func, double za, double nVis, double nPix, double fov, double a, double b, double c, double d, double e)
+double eval(FittingFunc func, double za, double nVis, double nPix, double fov, double a, double b, double c, double d, double e, double f)
 {
 	if(func == WSCleanFunc) {
 		double we = sinZA(za) * fovFact(fov);
 		return a * (we+b)*nPix*nPix*log2(nPix) + c * nVis + d;
 	}
 	else {
-		double we = sinZA(za) * (fovFact(fov) + d);
-		return a * nPix*nPix*log2(nPix) + nVis * b * we*we + e;
+		double we = (sinZA(za) * fovFact(fov) + d);
+		return a * nPix*nPix*log2(nPix) + b * nVis * we * we + f;
 	}
 }
 
@@ -125,7 +124,7 @@ int fitFunc(const gsl_vector *xvec, void *data, gsl_vector *f)
 		double value, y, w;
 		if(fittingInfo.func == WSCleanFunc || fittingInfo.func == CASAFunc)
 		{
-			const double e = gsl_vector_get(xvec, 4);
+			const double e = gsl_vector_get(xvec, 4), f = gsl_vector_get(xvec, 5);
 			y = fittingInfo.samples[i].time;
 			w = fittingInfo.samples[i].weight;
 			const double
@@ -133,8 +132,7 @@ int fitFunc(const gsl_vector *xvec, void *data, gsl_vector *f)
 				nVis = fittingInfo.samples[i].nVis,
 				nPix = fittingInfo.samples[i].nPix,
 				fov = fittingInfo.samples[i].fov;
-			value = eval(fittingInfo.func, za, nVis, nPix, fov, a, b, c, d, e);
-				std::cout << "y=" << value << ", d=" << d << ", b=" << b << '\n';
+			value = eval(fittingInfo.func, za, nVis, nPix, fov, a, b, c, d, e, f);
 		}
 		else {
 			double x = fittingInfo.xs[i], za = x*(M_PI/180.0);
@@ -186,7 +184,7 @@ int fitFuncDeriv(const gsl_vector *xvec, void *data, gsl_matrix *J)
 	
 	for(size_t i=0; i!=fittingInfo.n; ++i)
 	{
-		double da = 0.0, db = 0.0, dc = 0.0, dd = 0.0, de = 0.0;
+		double da = 0.0, db = 0.0, dc = 0.0, dd = 0.0, de = 0.0, df = 0.0;
 		double value, y, w;
 		if(fittingInfo.func == WSCleanFunc || fittingInfo.func == CASAFunc)
 		{
@@ -204,18 +202,19 @@ int fitFuncDeriv(const gsl_vector *xvec, void *data, gsl_matrix *J)
 				da = (we+b)*nPix*nPix*log2(nPix);
 				db = fixDW ? 0.0 : a*nPix*nPix*log2(nPix);
 				dc = nVis;
-				dd = fixE ? 0.0 : 1.0;
+				dd = fixConstant ? 0.0 : 1.0;
 			}
-			else { // a * nPix*nPix*log2(nPix) + nVis * b * weAdd*weAdd + e
-				double we = sinZA(za) * (fovFact(fov) + d);
+			else { // a * nPix*nPix*log2(nPix) + b * nVis * we * we + e;
+				double we = sinZA(za) * fovFact(fov) + d;
 				da = nPix*nPix*log2(nPix);
-				db = nVis * we * we;
+				db = nVis * 2.0 * we * we;
 				dc = 0.0;
-				dd = fixDW ? 0.0 : nVis * b * sinZA(za)*sinZA(za) * 2.0*(d + fovFact(fov));
-				de = fixE ? 0.0 : 1.0;
+				dd = fixDW ? 0.0 : b * nVis * 2.0 * (d + sinZA(za) * fovFact(fov));
+				de = 0.0;
+				df = fixConstant ? 0.0 : 1.0;
 			}
-			std::cout << "d=" << d << ", b=" << b << ", dd=" << dd << '\n';
 			gsl_matrix_set(J, i, 4, de*w);
+			gsl_matrix_set(J, i, 5, df*w);
 		}
 		else {
 			double x = fittingInfo.xs[i], za = x*(M_PI/180.0);
@@ -274,10 +273,10 @@ int fitFuncBoth(const gsl_vector *x, void *data, gsl_vector *f, gsl_matrix *J)
 	return GSL_SUCCESS;
 }
 
-void fit(FittingInfo& info, double& a, double& b, double& c, double& d, double& e)
+void fit(FittingInfo& info, double& a, double& b, double& c, double& d, double& e, double& f)
 {
-	size_t p = 5;
-	if(info.n == 4)
+	size_t p = 6;
+	if(info.n < 6)
 		p = 4;
 	const gsl_multifit_fdfsolver_type *T = gsl_multifit_fdfsolver_lmsder;
 	gsl_multifit_fdfsolver *solver = gsl_multifit_fdfsolver_alloc(T, info.n, p);
@@ -295,10 +294,11 @@ void fit(FittingInfo& info, double& a, double& b, double& c, double& d, double& 
 	initialValsArray[1] = b;
 	initialValsArray[2] = c;
 	initialValsArray[3] = d;
-	if(p == 5)
+	if(p == 6)
 	{
 		initialValsArray[4] = e;
-		initialVals = gsl_vector_view_array (initialValsArray, 5);
+		initialValsArray[5] = f;
+		initialVals = gsl_vector_view_array (initialValsArray, 6);
 	}
 	else {
 		initialVals = gsl_vector_view_array (initialValsArray, 4);
@@ -323,15 +323,17 @@ void fit(FittingInfo& info, double& a, double& b, double& c, double& d, double& 
 	b = gsl_vector_get (solver->x, 1);
 	c = gsl_vector_get (solver->x, 2);
 	d = gsl_vector_get (solver->x, 3);
-	if(p == 5)
+	if(p == 6) {
 		e = gsl_vector_get (solver->x, 4);
+		f = gsl_vector_get (solver->x, 5);
+	}
 	gsl_multifit_fdfsolver_free(solver);
 }
 
 void fit(FittingInfo& info, double& a, double& b, double& c, double& d)
 {
-	double e = 0.0;
-	fit(info, a, b, c, d, e);
+	double e = 0.0, f = 0.0;
+	fit(info, a, b, c, d, e, f);
 }
 
 void readFile(std::vector<std::pair<double, TimingRecord>>& valueArray, const std::string& filename)
@@ -440,7 +442,7 @@ void readFOVFile(std::vector<Sample>& samples, const std::string& filename, doub
 	}
 }
 
-void writeNVisFit(const std::string& filename, FittingFunc func, double a, double b, double c, double d, double e, double za, double nPix, double fov)
+void writeNVisFit(const std::string& filename, FittingFunc func, double a, double b, double c, double d, double e, double f, double za, double nPix, double fov)
 {
 	std::ofstream file(filename);
 	double xStart = 25, xEnd = 1400.0;
@@ -448,11 +450,11 @@ void writeNVisFit(const std::string& filename, FittingFunc func, double a, doubl
 	while(nVis < xEnd)
 	{
 		nVis *= 1.01;
-		file << nVis << '\t' << eval(func, za, nVis, nPix, fov, a, b, c, d, e) << '\n';
+		file << nVis << '\t' << eval(func, za, nVis, nPix, fov, a, b, c, d, e, f) << '\n';
 	}
 }
 
-void writeNPixFit(const std::string& filename, FittingFunc func, double a, double b, double c, double d, double e,  double za, double nVis, double fov)
+void writeNPixFit(const std::string& filename, FittingFunc func, double a, double b, double c, double d, double e, double f, double za, double nVis, double fov)
 {
 	std::ofstream file(filename);
 	double xStart = 1024, xEnd = 12800.0;
@@ -460,11 +462,11 @@ void writeNPixFit(const std::string& filename, FittingFunc func, double a, doubl
 	while(nPix < xEnd)
 	{
 		nPix *= 1.01;
-		file << nPix << '\t' << eval(func, za, nVis, nPix, fov, a, b, c, d, e) << '\n';
+		file << nPix << '\t' << eval(func, za, nVis, nPix, fov, a, b, c, d, e, f) << '\n';
 	}
 }
 
-void writeZAFit(const std::string& filename, FittingFunc func, double a, double b, double c, double d, double e, double nPix, double nVis, double fov)
+void writeZAFit(const std::string& filename, FittingFunc func, double a, double b, double c, double d, double e, double f, double nPix, double nVis, double fov)
 {
 	std::ofstream file(filename);
 	double zaStart = 0.0, zaEnd = 90.0;
@@ -472,11 +474,11 @@ void writeZAFit(const std::string& filename, FittingFunc func, double a, double 
 	while(za < zaEnd)
 	{
 		za += 0.1;
-		file << za << '\t' << eval(func, za, nVis, nPix, fov, a, b, c, d, e) << '\n';
+		file << za << '\t' << eval(func, za, nVis, nPix, fov, a, b, c, d, e, f) << '\n';
 	}
 }
 
-void writeFOVFit(const std::string& filename, FittingFunc func, double a, double b, double c, double d, double e, double za, double nPix, double nVis)
+void writeFOVFit(const std::string& filename, FittingFunc func, double a, double b, double c, double d, double e, double f, double za, double nPix, double nVis)
 {
 	std::ofstream file(filename);
 	double fovStart = 4.608, fovEnd = 147.456;
@@ -484,8 +486,33 @@ void writeFOVFit(const std::string& filename, FittingFunc func, double a, double
 	while(fov < fovEnd)
 	{
 		fov += 0.1;
-		file << fov << '\t' << eval(func, za, nVis, nPix, fov, a, b, c, d, e) << '\n';
+		file << fov << '\t' << eval(func, za, nVis, nPix, fov, a, b, c, d, e, f) << '\n';
 	}
+}
+
+double stddev(double sum, double sumSq, double sumweight)
+{
+	double wAverage = sum / sumweight;
+	double sumMeanSquared = sum * sum / sumweight;
+	return sqrt((sumSq - sumMeanSquared) / sumweight);
+}
+
+void calculateStdError(std::vector<Sample>& samples, FittingFunc func, double a, double b, double c, double d, double e, double f)
+{
+	double weights = 0.0, weightedSum = 0.0, unweightedSum = 0.0, weightedSumSq = 0.0, unweightedSumSq = 0.0;
+	for(size_t i=0; i!=samples.size(); ++i)
+	{
+		const Sample& s = samples[i];
+		double y = eval(func, s.za, s.nVis, s.nPix, s.fov, a, b, c, d, e, f);
+		double dy = y - s.time, dwy = dy * s.weight;
+		weights += s.weight;
+		weightedSum += dwy;
+		weightedSumSq += dwy*dwy;
+		unweightedSum += dy;
+		unweightedSumSq += dy*dy;
+	}
+	std::cout << "Mean error: " << weightedSum/weights << "  standard error: " << stddev(weightedSum, weightedSumSq, weights) << '\n'
+		<< "Unweighted mean: " << unweightedSum/samples.size() << " unweighted stderr: " << stddev(unweightedSum, unweightedSumSq, samples.size()) << '\n';
 }
 
 void fitAllWSClean()
@@ -493,7 +520,7 @@ void fitAllWSClean()
 	std::vector<Sample> samples;
 	readNVisFile(samples, "benchmark-nsamples/timings-zenith-nsamples-wsc.txt", 0.0, 3072, 36.864, 1.0);
 	readNVisFile(samples, "benchmark-nsamples/timings-ZA010-nsamples-wsc.txt", 10.0, 3072, 36.864, 1.0);
-	readNPixFile(samples, "benchmark-resolution/timings-zenith-resolution-wsclean.txt", 0.0, 349.6, 36.864, 1.0);
+	readNPixFile(samples, "benchmark-resolution/timings-zenith-resolution-wsclean.txt", 0.0, 349.6, 36.864, 2.0);
 	readZAFile(samples, "benchmark-zenith-angle/timings-za3072-wsclean.txt", 3072, 349.6, 36.864, 1.0);
 	readZAFile(samples, "benchmark-zenith-angle/timings-za2048-wsclean.txt", 2048, 349.6, 24.576, 1.0);
 	readFOVFile(samples, "benchmark-fov/timings-zenith-fov-wsc.txt", 0.0, 3072, 349.6, 1.0);
@@ -502,15 +529,17 @@ void fitAllWSClean()
 	info.n = samples.size();
 	info.samples = samples.data();
 	info.func = WSCleanFunc;
-	double a = 1.0, b = 0.0, c = 1.0, d = 0.0, e = 0.0;
-	fit(info, a, b, c, d, e);
+	double a = 1.0, b = 0.0, c = 1.0, d = 0.0, e = 0.0, f = 0.0;
+	fit(info, a, b, c, d, e, f);
 	std::cout << a << " Npix^2 log Npix ((1-sqrt(1-tan(0.5fov)^2)) sin ZA + " << b << ") + " << c << " Nvis + " << d << '\n';
-	writeNVisFit("benchmark-nsamples/fit-zenith-wsc.txt", info.func, a, b, c, d, e, 0.0, 3072, 36.864);
-	writeNVisFit("benchmark-nsamples/fit-ZA010-wsc.txt", info.func, a, b, c, d, e, 10.0, 3072, 36.864);
-	writeNPixFit("benchmark-resolution/fit-wsclean.txt", info.func, a, b, c, d, e, 0.0, 349.6, 36.864);
-	writeZAFit("benchmark-zenith-angle/fit-za3072-wsclean.txt", info.func, a, b, c, d, e, 3072.0, 349.6, 36.864);
-	writeZAFit("benchmark-zenith-angle/fit-za2048-wsclean.txt", info.func, a, b, c, d, e, 2048.0, 349.6, 24.576);
-	writeFOVFit("benchmark-fov/fit-zenith-fov-wsc.txt", info.func, a, b, c, d, e, 0.0, 3072, 349.6);
+	writeNVisFit("benchmark-nsamples/fit-zenith-wsc.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 36.864);
+	writeNVisFit("benchmark-nsamples/fit-ZA010-wsc.txt", info.func, a, b, c, d, e, f, 10.0, 3072, 36.864);
+	writeNPixFit("benchmark-resolution/fit-wsclean.txt", info.func, a, b, c, d, e, f, 0.0, 349.6, 36.864);
+	writeZAFit("benchmark-zenith-angle/fit-za3072-wsclean.txt", info.func, a, b, c, d, e, f, 3072.0, 349.6, 36.864);
+	writeZAFit("benchmark-zenith-angle/fit-za2048-wsclean.txt", info.func, a, b, c, d, e, f, 2048.0, 349.6, 24.576);
+	writeFOVFit("benchmark-fov/fit-zenith-fov-wsc.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 349.6);
+	writeFOVFit("benchmark-fov/fit-ZA010-fov-wsc.txt", info.func, a, b, c, d, e, f, 10.0, 3072, 349.6);
+	calculateStdError(samples, info.func, a, b, c, d, e, f);
 }
 
 void fitAllCASA()
@@ -521,24 +550,26 @@ void fitAllCASA()
 	readNPixFile(samples, "benchmark-resolution/timings-zenith-resolution-casa-no-outlier.txt", 0.0, 349.6, 36.864, 1.0);
 	readZAFile(samples, "benchmark-zenith-angle/timings-za3072-casa.txt", 3072, 349.6, 36.864, 0.2);
 	readZAFile(samples, "benchmark-zenith-angle/timings-za2048-casa.txt", 2048, 349.6, 24.576, 0.2);
-	readFOVFile(samples, "benchmark-fov/timings-zenith-fov-casa.txt", 0.0, 3072, 349.6, 1.0);
+	readFOVFile(samples, "benchmark-fov/timings-zenith-fov-casa.txt", 0.0, 3072, 349.6, 0.2);
 	std::cout << "Read " << samples.size() << " values.\n";
 	FittingInfo info;
 	info.n = samples.size();
 	info.samples = samples.data();
 	info.func = CASAFunc;
-	double a = 1.0, b = 1.0, c = 1.0, d = 0.0, e = 0.0;
+	double a = 1.0, b = 1.0, c = 1.0, d = 0.0, e = 0.0, f = 0.0;
 	fixDW = true;
-	fit(info, a, b, c, d, e);
+	fit(info, a, b, c, d, e, f);
 	fixDW = false;
-	fit(info, a, b, c, d, e);
-	std::cout << "t = " << a << " Npix^2 log Npix + Nvis " << b << " (" << d << " + (1-sqrt(1-tan(0.5fov)^2)) sin ZA)^2 + " << e << '\n';
-	writeNVisFit("benchmark-nsamples/fit-zenith-casa.txt", info.func, a, b, c, d, e, 0.0, 3072, 36.864);
-	writeNVisFit("benchmark-nsamples/fit-ZA010-casa.txt", info.func, a, b, c, d, e, 10.0, 3072, 36.864);
-	writeNPixFit("benchmark-resolution/fit-casa.txt", info.func, a, b, c, d, e, 0.0, 349.6, 36.864);
-	writeZAFit("benchmark-zenith-angle/fit-za3072-casa.txt", info.func, a, b, c, d, e, 3072.0, 349.6, 36.864);
-	writeZAFit("benchmark-zenith-angle/fit-za2048-casa.txt", info.func, a, b, c, d, e, 2048.0, 349.6, 24.576);
-	writeFOVFit("benchmark-fov/fit-zenith-fov-casa.txt", info.func, a, b, c, d, e, 0.0, 3072, 349.6);
+	fit(info, a, b, c, d, e, f);
+	std::cout << "t = " << a << " Npix^2 log Npix + " << b << " Nvis (sin ZA * fov + " << d << ")^2 + " << f << '\n';
+	writeNVisFit("benchmark-nsamples/fit-zenith-casa.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 36.864);
+	writeNVisFit("benchmark-nsamples/fit-ZA010-casa.txt", info.func, a, b, c, d, e, f, 10.0, 3072, 36.864);
+	writeNPixFit("benchmark-resolution/fit-casa.txt", info.func, a, b, c, d, e, f, 0.0, 349.6, 36.864);
+	writeZAFit("benchmark-zenith-angle/fit-za3072-casa.txt", info.func, a, b, c, d, e, f, 3072.0, 349.6, 36.864);
+	writeZAFit("benchmark-zenith-angle/fit-za2048-casa.txt", info.func, a, b, c, d, e, f, 2048.0, 349.6, 24.576);//24.576
+	writeFOVFit("benchmark-fov/fit-zenith-fov-casa.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 349.6);
+	writeFOVFit("benchmark-fov/fit-ZA010-fov-casa.txt", info.func, a, b, c, d, e, f, 10.0, 3072, 349.6);
+	calculateStdError(samples, info.func, a, b, c, d, e, f);
 }
 
 int main(int argc, char* argv[])
