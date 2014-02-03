@@ -515,6 +515,11 @@ void calculateStdError(std::vector<Sample>& samples, FittingFunc func, double a,
 		<< "Unweighted mean: " << unweightedSum/samples.size() << " unweighted stderr: " << stddev(unweightedSum, unweightedSumSq, samples.size()) << '\n';
 }
 
+double optimalDeltaW(FittingFunc func, double a, double b, double c, double d, double e, double f, double za, double nPix, double nVis, double fov)
+{
+	
+}
+
 void fitAllWSClean()
 {
 	std::vector<Sample> samples;

@@ -287,25 +287,25 @@ WSClean is faster in all tested cases. WSClean and CASA determine a different ne
 Many parameters affect the accuracy more than the observed differences between the methods. These include the number of major iterations, $w$-planes/layers, restoring beam, image size, weighting, kernel size and grid oversampling. Therefore, the differences in accuracy are not very significant. The results do show that synthesis imaging using common imaging parameters results in an approximate flux-density standard error of at least $\sim1\%$.
 
 \begin{figure*}%
-\begin{subfigure}{.5\linewidth}%
+\begin{subfigure}{.36\linewidth}%
 \includegraphics[width=\linewidth]{img/benchmark-nsamples/nsamples}%
 \caption{}\label{fig:timing-nsamples}%
 \end{subfigure}%
-\begin{subfigure}{.5\linewidth}%
+\begin{subfigure}{.36\linewidth}%
 \includegraphics[width=\linewidth]{img/benchmark-zenith-angle/za}%
 \caption{}\label{fig:timing-zenith-angle}%
 \end{subfigure}\\
-\begin{subfigure}{.3\linewidth}%
+\begin{subfigure}{.36\linewidth}%
 \includegraphics[width=\linewidth]{img/benchmark-resolution/resolution}
 \caption{}
 \label{fig:timing-resolution}
 \end{subfigure}%
-\begin{subfigure}{.3\linewidth}%
+\hspace{-.05\linewidth}\begin{subfigure}{.36\linewidth}%
 \includegraphics[width=\linewidth]{img/benchmark-channels/channels}
 \caption{}
 \label{fig:timing-channels}
 \end{subfigure}%
-\begin{subfigure}{.3\linewidth}%
+\hspace{-.05\linewidth}\begin{subfigure}{.36\linewidth}%
 \includegraphics[width=\linewidth]{img/benchmark-fov/fov}
 \caption{}
 \label{fig:timing-fov}
@@ -340,7 +340,7 @@ and for CASA we find
 \begin{equation}
 t_\textrm{CASA}(w_e,N_\textrm{vis},N_\textrm{freq},N_\textrm{pix}) = .
 \end{equation}
-Parameter $w_e$ is the maximum $w$ value and is esimated with
+Parameter $w_e$ is the maximum $w$ value and is estimated with
 \begin{equation}
  w_e = \frac{\max |\mathbf{x}| \sin za + \max z \cos za}{\lambda \max |\mathbf{x}|} \left(1.0 - \cos(\frac{1}{2}\textrm{FOV})\right),
 \end{equation}
