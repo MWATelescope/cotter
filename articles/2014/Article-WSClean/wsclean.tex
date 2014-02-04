@@ -337,11 +337,13 @@ For WSClean's time cost $t_\textrm{WSClean}$ we find
 \begin{align}\notag
 t_\textrm{WSClean}& (w_e,N_\textrm{vis},N_\textrm{freq},N_\textrm{pix}) = \\ \notag
 & 0.000326 N_\textrm{pix}^2 \log N_\textrm{pix} (w_e + 0.000212) +\\
+\label{eq:wsclean-computing-cost}%
 & 0.252 N_\textrm{vis} - 7.64
 \end{align}
 and for CASA we find
 \begin{equation}
 t_\textrm{CASA}(w_e,N_\textrm{vis},N_\textrm{freq},N_\textrm{pix}) = .
+\label{eq:casa-computing-cost}%
 \end{equation}
 Parameter $w_e$ is the maximum $w$ value and is estimated with
 \begin{equation}
@@ -350,6 +352,12 @@ Parameter $w_e$ is the maximum $w$ value and is estimated with
 where $\max |\mathbf{x}|$ is the maximum baseline length, $\max z$ is the maximum height difference between antennas and $\lambda$ is the wavelength.
 
 TODO: actually, $w_e$ should not be normalized by baseline length $\max z$: fix in fits too.
+
+It is possible to combine the $w$-projection and $w$-stacking algorithms by gridding on several $w$-layers to which the large $w$-terms are corrected after the FFT, and using a $w$-correcting kernel for making small $w$-corrections, thereby projecting them on the nearest $w$-layer. This allows using small $w$-kernels and limits at the same time the number of FFTs and required memory. The AWImager has been applied like this, which let to better results compared to $w$-projection without $w$-stacking \citep{awimager-2013}. For this scenario, Eq.~\eqref{eq:casa-computing-cost} can be used to determine the optimal number of $w$-layers, or more general the optimal distance between layers, by assuming that the cost of calculating a single $w$-layer equals the cost of imaging the data set with correspondingly smaller $w_e$ value and smaller $N_\textrm{vis}$. If $\Delta w$ is the distance between $w$-layers, then 
+\begin{equation}
+t(\Delta w) = \frac{w_e}{\Delta w} t_\textrm{CASA}(w'_e,N'_\textrm{vis},N_\textrm{freq},N_\textrm{pix}),
+\end{equation}
+with $N'_\textrm{vis} = \frac{N_\textrm{vis}\Delta w}{w_e}$ and $w'_e = \Delta w$.
 
 \section{Application of WSClean to the MWA}
 The MWA correlator splits observations in data products of typically a few minutes
