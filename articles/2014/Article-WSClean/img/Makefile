@@ -21,6 +21,7 @@ fit-za:	fit
 
 fit-all:	fit
 	./fit all-wsclean
+	./fit all-wssclean
 	./fit all-casa
 
 plots:	benchmark-zenith-angle/za.plt benchmark-nsamples/nsamples.plt benchmark-resolution/resolution.plt
@@ -28,4 +29,5 @@ plots:	benchmark-zenith-angle/za.plt benchmark-nsamples/nsamples.plt benchmark-r
 	cd benchmark-nsamples ; gnuplot nsamples.plt ; cd ..
 	cd benchmark-zenith-angle ; gnuplot za.plt ; cd ..
 	cd benchmark-fov ; gnuplot fov.plt ; cd ..
+	cd benchmark-fov ; gnuplot fov-fit.plt ; cd ..
 	cd benchmark-channels ; gnuplot channels.plt ; cd ..

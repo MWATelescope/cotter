@@ -212,6 +212,11 @@ A recentred image is in the projection of the zenith tangent plane, and will nee
 
 Another method to shift an image is by using the periodicity of the FFT function. Since sources outside the field of view will be aliased back into the field, the image can be transformed to have the alias in the centre. This complicates gridding during imaging, because the antialiasing kernel needs to have a pass-band shape instead of a low-pass shape. Therefore, we chose to implement the former method.
 
+\subsection{Gridding} \label{sec:gridding}
+A gridding convolution kernel improves the accuracy of gridding in $uv$-space. A common kernel function is a windowed sinc function, which acts as a low-pass filter. This decreases the flux of sources outside the field of view, and thus helps to attenuate aliased ghost sources and sidelobes that arise because of the assumed periodicity during the inverse FFT \citep{post-correlation-filtering}. By supersampling, a convolution kernel also makes it possible to place samples more accurately at their $uv$ position, thereby lowering decorrelation.
+
+The prolate spheroidal wave function (PSWF) is generally considered to be the optimal windowing function for gridding \citep{fourier-kernel-selection-1991}. CASA convolves samples with a PSWF of 7 pixels total width during gridding. When using a variable kernel size, a PSWF is quite complicated and computational expensive to calculate. WSClean currently uses a Kaiser-Bessel (KB) window function, which is easy and fast to compute, and is a good approximation for the PSWF \citep{fourier-kernel-selection-1991}. After some benchmarks (see Appendix~\ref{sec:gridding-appendix}) we found that 7 pixels is a good compromise between performance and accuracy, and selected this as the default for WSClean.
+
 \section{Analysis} \label{sec:analysis}
 We will now analyse the performance and accuracy of our implementation, and compare it with the w-projection implementation in CASA. For the analysis, we use imaging parameters which are common for MWA Imaging. When a specific parameter value is not mentioned, the settings from Table~\ref{tbl:default-parameters} are used. The number of $w$-projection planes in w-projection is kept equal to the number of $w$-layers in w-stacking, and is set to the right hand side of Eq.~\eqref{eq:nwlayers-bound}. This yields 195 $w$-planes/layers at 10\degree zenith angle. Some configurations with high $w$-values fail to image with CASA, presumably because the $w$-kernels become to large.
 
@@ -297,13 +302,11 @@ Many parameters affect the accuracy more than the observed differences between t
 \end{subfigure}\\
 \begin{subfigure}{.36\linewidth}%
 \includegraphics[width=\linewidth]{img/benchmark-resolution/resolution}
-\caption{}
-\label{fig:timing-resolution}
+\caption{}\label{fig:timing-resolution}%
 \end{subfigure}%
 \hspace{-.05\linewidth}\begin{subfigure}{.36\linewidth}%
 \includegraphics[width=\linewidth]{img/benchmark-channels/channels}
-\caption{}
-\label{fig:timing-channels}
+\caption{}\label{fig:timing-channels}%
 \end{subfigure}%
 \hspace{-.05\linewidth}\begin{subfigure}{.36\linewidth}%
 \includegraphics[width=\linewidth]{img/benchmark-fov/fov}
@@ -328,7 +331,7 @@ Panel~\ref{fig:timing-channels} shows performance versus the output frequency re
 TODO: for fairness, also check making 4 polarization images.
 
 \subsection{Derivation of computing cost formulae}
-Based on the expected cost terms described in Sec.~\ref{sec:time-complexity}, we fit analytical functions to the CASA and WSClean measurements. Several functions with different free parameters were tested, and formulae with minimum amount of parameters are selected that still follow the trend of the measurements and have reasonably small errors. The measurements are weighted with the inverse standard deviation. The single outlying measurement of CASA in Fig.~\ref{fig:timing-nsamples} is removed.
+Based on the expected cost terms described in Sec.~\ref{sec:time-complexity}, we derive analytical functions for the CASA and WSClean measurements using least-squares fitting. Several functions with different free parameters were tested, and formulae with minimum amount of parameters are selected that still follow the trend of the measurements and have reasonably small errors. The measurements are weighted with the inverse standard deviation. The single outlying measurement of CASA in Fig.~\ref{fig:timing-nsamples} is removed.
 
 For WSClean's time cost $t_\textrm{WSClean}$ we find 
 \begin{align}\notag
@@ -345,21 +348,6 @@ Parameter $w_e$ is the maximum $w$ value and is estimated with
  w_e = \frac{\max |\mathbf{x}| \sin za + \max z \cos za}{\lambda \max |\mathbf{x}|} \left(1.0 - \cos(\frac{1}{2}\textrm{FOV})\right),
 \end{equation}
 where $\max |\mathbf{x}|$ is the maximum baseline length, $\max z$ is the maximum height difference between antennas and $\lambda$ is the wavelength.
-
-\subsection{Gridding} \label{sec:gridding}
-A gridding convolution kernel improves the accuracy of gridding in $uv$-space. A common kernel function is a windowed sinc function, which acts as a low-pass filter. This decreases the flux of sources outside the field of view, and thus helps to attenuate aliased ghost sources and sidelobes that arise because of the assumed periodicity during the inverse FFT \citep{post-correlation-filtering}. By supersampling, a convolution kernel also makes it possible to place samples more accurately at their $uv$ position, thereby lowering decorrelation.
-
-The prolate spheroidal wave function (PSWF) is generally considered to be the optimal windowing function for gridding \citep{fourier-kernel-selection-1991}. CASA convolves samples with a PSWF of 7 pixels total width during gridding. When using a variable kernel size, a PSWF is quite complicated and computational expensive to calculate. WSClean currently uses a Kaiser-Bessel (KB) window function, which is easy and fast to compute, and is a good approximation for the PSWF \citep{fourier-kernel-selection-1991}.
-
-\begin{figure}
-\begin{center}
-\includegraphics[width=8cm]{img/benchmark-kernelsize/kernel}
-\caption{...}
-\label{fig:timing-kernelsize}
-\end{center}
-\end{figure}
-
-The type of window function has no effect on the gridding performance, but gridding has a quadratic time dependency on the size of the kernel. Fig.~\ref{fig:timing-kernelsize} shows that this quadratic dependency becomes apparent for kernel sizes $\gtrapprox 15$. Decreasing the kernel size to values below $7$ has little effect on performance, because with small kernels reading the samples takes more time than gridding. We have not noticed much benefit of larger kernels except in rare cases where a bright source lies just outside the imaged field of view. Therefore, WSClean uses a default of 7 pixels for the gridding kernel. It can be increased when necessary.
 
 \section{Application of WSClean to the MWA}
 The MWA correlator splits observations in data products of typically a few minutes
@@ -382,6 +370,17 @@ TODO: discuss low w-values means less-direction-invariant PSF.
 
 \section*{Acknowledgments}
 ...
+\appendix
+
+\section{Optimal gridding kernel size} \label{sec:gridding-appendix}
+\begin{figure}
+\begin{center}
+\includegraphics[width=8cm]{img/benchmark-kernelsize/kernel}
+\caption{...}
+\label{fig:timing-kernelsize}
+\end{center}
+\end{figure}
+As discussed in \S\ref{sec:gridding}, WSClean uses a Kaiser-Bessel window against aliasing. The type of window function has no effect on the gridding performance, but the size of the kernel affects gridding performance quadratically. Fig.~\ref{fig:timing-kernelsize} shows that this quadratic relation becomes significant for kernel sizes $\gtrapprox 10$. Decreasing the kernel size to values below $7$ has little effect on performance, because for small kernels the visibility-reading rate is lower than the gridding rate. We have not noticed much benefit of larger kernels except in rare cases where a bright source lies just outside the imaged field of view. Therefore, WSClean uses a default of 7 pixels for the gridding kernel. It can be increased when necessary. Different hardware might have a slightly different optimum because of different reading and calculation performance.
 
 % To make Dutch ``tussenvoegsels'' work correctly in Latex such as ``de Bruyn'', we use this command
 % In bibliography, it should be written with lowercase, as in ``de Bruyn''

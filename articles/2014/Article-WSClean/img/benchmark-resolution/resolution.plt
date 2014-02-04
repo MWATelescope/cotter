@@ -1,4 +1,4 @@
-set terminal postscript enhanced color font 'Helvetica,20'
+set terminal postscript enhanced color font 'Helvetica,24'
 set logscale xy
 set xrange [1000:12800]
 set yrange [50:]
@@ -12,6 +12,7 @@ plot "timings-zenith-resolution-wsclean.txt" using 2:3 with lines lw 2.0 lt 1 lc
      "timings-zenith-resolution-casa.txt" using 2:3 with lines lw 2.0 lt 1 lc 3 title "Casa", \
 		 "timings-zenith-resolution-casa.txt" using 2:3:(column(3)-column(4)*5):(column(3)+column(4)*5) with errorbars lt 1 lc 3 title "", \
 		 "fit-wsclean.txt" with lines lt 1 lc rgb "#808080" title "Fit", \
+		 "fit-wssclean.txt" with lines lt 1 lc rgb "#808080" title "", \
 		 "fit-casa.txt" with lines lt 1 lc rgb "#808080" title ""
 #(x/1000)**3 with lines lw 2.0 title "x^3"
 #(x/1000)**4 with lines lw 2.0 title "x^4"

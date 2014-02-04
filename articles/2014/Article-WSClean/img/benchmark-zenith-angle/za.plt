@@ -1,4 +1,4 @@
-set terminal postscript enhanced color font 'Helvetica,20'
+set terminal postscript enhanced color font 'Helvetica,24'
 set logscale y
 set xrange [:90]
 set yrange [:200]
@@ -19,6 +19,8 @@ plot "timings-za3072-wsclean.txt" using 2:(column(3)/60) with lines lw 2.0 lt 1 
      "timings-za2048-casa.txt" using 2:(column(3)/60) with lines lw 2.0 lt 2 lc 3 title "", \
      "timings-za2048-casa.txt" using 2:(column(3)/60):(column(4)/60*5) with errorbars lt 1 lc 3 title "", \
      "fit-za3072-wsclean.txt" using 1:(column(2)/60) with lines lc rgb "#808080" lt 1 title "Fit", \
+     "fit-za3072-wssclean.txt" using 1:(column(2)/60) with lines lc rgb "#808080" lt 1 title "Fit", \
      "fit-za3072-casa.txt" using 1:(column(2)/60) with lines lc rgb "#808080" lt 1 title "", \
      "fit-za2048-wsclean.txt" using 1:(column(2)/60) with lines lc rgb "#808080" lt 1 title "", \
+     "fit-za2048-wssclean.txt" using 1:(column(2)/60) with lines lc rgb "#808080" lt 1 title "", \
      "fit-za2048-casa.txt" using 1:(column(2)/60) with lines lc rgb "#808080" lt 1 title ""

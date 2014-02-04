@@ -5,6 +5,8 @@
 #include <sstream>
 #include <cstdlib>
 #include <vector>
+#include <stdexcept>
+#include <limits>
 
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_multifit_nlin.h>
@@ -82,12 +84,13 @@ enum FittingFunc
 	NZASqFunc2,
 	NZASqFunc3,
 	WSCleanFunc,
+	WSSCleanFunc,
 	CASAFunc
 };
 
 struct Sample
 {
-	double time, weight, za, nPix, nVis, fov;
+	double time, weight, za, nPix, nVis, fov, nChan;
 };
 
 struct FittingInfo
@@ -98,15 +101,45 @@ struct FittingInfo
 	Sample *samples;
 };
 
-double eval(FittingFunc func, double za, double nVis, double nPix, double fov, double a, double b, double c, double d, double e, double f)
+double eval(FittingFunc func, double za, double nVis, double nPix, double fov, double nChan, double a, double b, double c, double d, double e, double f)
 {
 	if(func == WSCleanFunc) {
 		double we = sinZA(za) * fovFact(fov);
-		return a * (we+b)*nPix*nPix*log2(nPix) + c * nVis + d;
+		return nChan * (a * (we+b)*nPix*nPix*log2(nPix) + c * nVis/nChan) + d;
+	}
+	else if(func == WSSCleanFunc) {
+		return nChan * (a *nPix*nPix*log2(nPix) + b * nVis/nChan) + c;
 	}
 	else {
 		double we = (sinZA(za) * fovFact(fov) + d);
-		return a * nPix*nPix*log2(nPix) + b * nVis * we * we + f;
+		return nChan * (a * nPix*nPix*log2(nPix) + b * nVis/nChan * we * we) + f;
+	}
+}
+
+double eval(FittingFunc func, double za, double nVis, double nPix, double fov, double nChan)
+{
+	switch(func)
+	{
+		case WSCleanFunc:
+			return eval(func, za, nVis, nPix, fov, nChan, 0.00013703, 0.000432297, 0.241851, 0.0, 0.0, 0.0);
+		case CASAFunc:
+			return eval(func, za, nVis, nPix, fov, nChan, 1.97854e-07, 47825.5, 0.0, 0.000473665, 0.0, 235.922);
+		default:
+			return 0.0;
+	}
+}
+
+double evalWE(FittingFunc func, double we, double nVis, double nPix, double nChan, double a, double b, double c, double d, double e, double f)
+{
+	if(func == WSCleanFunc) {
+		return nChan * (a * (we+b)*nPix*nPix*log2(nPix) + c * nVis/nChan) + d;
+	}
+	else if(func == WSSCleanFunc) {
+		return nChan * (a *nPix*nPix*log2(nPix) + b * nVis/nChan) + c;
+	}
+	else {
+		we = we + d;
+		return nChan * (a * nPix*nPix*log2(nPix) + b * nVis/nChan * we * we) + f;
 	}
 }
 
@@ -122,7 +155,7 @@ int fitFunc(const gsl_vector *xvec, void *data, gsl_vector *f)
 	for(size_t i=0; i!=fittingInfo.n; ++i)
 	{
 		double value, y, w;
-		if(fittingInfo.func == WSCleanFunc || fittingInfo.func == CASAFunc)
+		if(fittingInfo.func == WSCleanFunc || fittingInfo.func == WSSCleanFunc || fittingInfo.func == CASAFunc)
 		{
 			const double e = gsl_vector_get(xvec, 4), f = gsl_vector_get(xvec, 5);
 			y = fittingInfo.samples[i].time;
@@ -131,8 +164,9 @@ int fitFunc(const gsl_vector *xvec, void *data, gsl_vector *f)
 				za = fittingInfo.samples[i].za,
 				nVis = fittingInfo.samples[i].nVis,
 				nPix = fittingInfo.samples[i].nPix,
-				fov = fittingInfo.samples[i].fov;
-			value = eval(fittingInfo.func, za, nVis, nPix, fov, a, b, c, d, e, f);
+				fov = fittingInfo.samples[i].fov,
+				nChan = fittingInfo.samples[i].nChan;
+			value = eval(fittingInfo.func, za, nVis, nPix, fov, nChan, a, b, c, d, e, f);
 		}
 		else {
 			double x = fittingInfo.xs[i], za = x*(M_PI/180.0);
@@ -186,7 +220,7 @@ int fitFuncDeriv(const gsl_vector *xvec, void *data, gsl_matrix *J)
 	{
 		double da = 0.0, db = 0.0, dc = 0.0, dd = 0.0, de = 0.0, df = 0.0;
 		double value, y, w;
-		if(fittingInfo.func == WSCleanFunc || fittingInfo.func == CASAFunc)
+		if(fittingInfo.func == WSCleanFunc || fittingInfo.func == CASAFunc || fittingInfo.func == WSSCleanFunc)
 		{
 			y = fittingInfo.samples[i].time;
 			w = fittingInfo.samples[i].weight;
@@ -194,22 +228,29 @@ int fitFuncDeriv(const gsl_vector *xvec, void *data, gsl_matrix *J)
 				za = fittingInfo.samples[i].za,
 				nVis = fittingInfo.samples[i].nVis,
 				nPix = fittingInfo.samples[i].nPix,
-				fov = fittingInfo.samples[i].fov;
+				fov = fittingInfo.samples[i].fov,
+				nChan = fittingInfo.samples[i].nChan;
 			
 			if(fittingInfo.func == WSCleanFunc)
-			{ // a * (we+b)*nPix*nPix*log2(nPix) + c * nVis + d;
+			{ // nChan * (a * (we+b)*nPix*nPix*log2(nPix) + c * nVis) + d;
 				double we = sinZA(za) * fovFact(fov);
-				da = (we+b)*nPix*nPix*log2(nPix);
-				db = fixDW ? 0.0 : a*nPix*nPix*log2(nPix);
+				da = nChan * (we+b)*nPix*nPix*log2(nPix);
+				db = fixDW ? 0.0 : nChan * a*nPix*nPix*log2(nPix);
 				dc = nVis;
 				dd = fixConstant ? 0.0 : 1.0;
 			}
-			else { // a * nPix*nPix*log2(nPix) + b * nVis * we * we + e;
+			else if(fittingInfo.func == WSSCleanFunc)
+			{ // nChan * (a *nPix*nPix*log2(nPix) + b * nVis/nChan) + c;
+				da = nChan * nPix*nPix*log2(nPix);
+				db = nVis;
+				dc = fixConstant ? 0.0 : 1.0;
+			}
+			else { // nChan * (a * nPix*nPix*log2(nPix) + b * nVis/nChan * we * we) + f;
 				double we = sinZA(za) * fovFact(fov) + d;
-				da = nPix*nPix*log2(nPix);
-				db = nVis * 2.0 * we * we;
+				da = nChan * nPix*nPix*log2(nPix);
+				db = nChan * 2.0 * we * we;
 				dc = 0.0;
-				dd = fixDW ? 0.0 : b * nVis * 2.0 * (d + sinZA(za) * fovFact(fov));
+				dd = fixDW ? 0.0 : nChan * b * 2.0 * (d + sinZA(za) * fovFact(fov));
 				de = 0.0;
 				df = fixConstant ? 0.0 : 1.0;
 			}
@@ -341,6 +382,8 @@ void readFile(std::vector<std::pair<double, TimingRecord>>& valueArray, const st
 	std::cout << "Reading " << filename << ".\n";
 	std::ifstream file(filename);
 	std::string line;
+	if(file.bad())
+		throw std::runtime_error("Could not read file " + filename);
 	while(file.good())
 	{
 		std::getline(file, line);
@@ -362,7 +405,7 @@ void addSample(std::vector<Sample>& samples, const Sample& sample)
 		samples.push_back(sample);
 }
 
-void readNVisFile(std::vector<Sample>& samples, const std::string& filename, double za, double nPix, double fov, double w)
+void readNVisFile(std::vector<Sample>& samples, const std::string& filename, double za, double nPix, double fov, double nChan, double w)
 {
 	std::vector<std::pair<double, TimingRecord>> valueArray;
 	readFile(valueArray, filename);
@@ -375,6 +418,7 @@ void readNVisFile(std::vector<Sample>& samples, const std::string& filename, dou
 		sample.nPix = nPix;
 		sample.nVis = valueArray[i].first;
 		sample.fov = fov;
+		sample.nChan = nChan;
 		const TimingRecord& record = valueArray[i].second;
 		sample.time = record.average;
 		sample.weight = w / record.stddev;
@@ -382,7 +426,7 @@ void readNVisFile(std::vector<Sample>& samples, const std::string& filename, dou
 	}
 }
 
-void readNPixFile(std::vector<Sample>& samples, const std::string& filename, double za, double nVis, double fov, double w)
+void readNPixFile(std::vector<Sample>& samples, const std::string& filename, double za, double nVis, double fov, double nChan, double w)
 {
 	std::vector<std::pair<double, TimingRecord>> valueArray;
 	readFile(valueArray, filename);
@@ -395,6 +439,7 @@ void readNPixFile(std::vector<Sample>& samples, const std::string& filename, dou
 		sample.nPix = valueArray[i].first;
 		sample.nVis = nVis;
 		sample.fov = fov;
+		sample.nChan = nChan;
 		const TimingRecord& record = valueArray[i].second;
 		sample.time = record.average;
 		sample.weight = w / record.stddev;
@@ -402,7 +447,7 @@ void readNPixFile(std::vector<Sample>& samples, const std::string& filename, dou
 	}
 }
 
-void readZAFile(std::vector<Sample>& samples, const std::string& filename, double nPix, double nVis, double fov, double w)
+void readZAFile(std::vector<Sample>& samples, const std::string& filename, double nPix, double nVis, double fov, double nChan, double w)
 {
 	std::vector<std::pair<double, TimingRecord>> valueArray;
 	readFile(valueArray, filename);
@@ -415,6 +460,7 @@ void readZAFile(std::vector<Sample>& samples, const std::string& filename, doubl
 		sample.nPix = nPix;
 		sample.nVis = nVis;
 		sample.fov = fov;
+		sample.nChan = nChan;
 		const TimingRecord& record = valueArray[i].second;
 		sample.time = record.average;
 		sample.weight = w / record.stddev;
@@ -422,7 +468,7 @@ void readZAFile(std::vector<Sample>& samples, const std::string& filename, doubl
 	}
 }
 
-void readFOVFile(std::vector<Sample>& samples, const std::string& filename, double za, double nPix, double nVis, double w)
+void readFOVFile(std::vector<Sample>& samples, const std::string& filename, double za, double nPix, double nVis, double nChan, double w)
 {
 	std::vector<std::pair<double, TimingRecord>> valueArray;
 	readFile(valueArray, filename);
@@ -435,6 +481,7 @@ void readFOVFile(std::vector<Sample>& samples, const std::string& filename, doub
 		sample.nPix = nPix;
 		sample.nVis = nVis;
 		sample.fov = valueArray[i].first;
+		sample.nChan = nChan;
 		const TimingRecord& record = valueArray[i].second;
 		sample.time = record.average;
 		sample.weight = w / record.stddev;
@@ -442,7 +489,28 @@ void readFOVFile(std::vector<Sample>& samples, const std::string& filename, doub
 	}
 }
 
-void writeNVisFit(const std::string& filename, FittingFunc func, double a, double b, double c, double d, double e, double f, double za, double nPix, double fov)
+void readNChanFile(std::vector<Sample>& samples, const std::string& filename, double za, double nPix, double nVis, double fov, double w)
+{
+	std::vector<std::pair<double, TimingRecord>> valueArray;
+	readFile(valueArray, filename);
+	
+	size_t n = valueArray.size();
+	for(size_t i=0; i!=n; ++i)
+	{
+		Sample sample;
+		sample.za = za;
+		sample.nPix = nPix;
+		sample.nVis = nVis;
+		sample.fov = fov;
+		sample.nChan = valueArray[i].first;
+		const TimingRecord& record = valueArray[i].second;
+		sample.time = record.average;
+		sample.weight = w / record.stddev;
+		addSample(samples, sample);
+	}
+}
+
+void writeNVisFit(const std::string& filename, FittingFunc func, double a, double b, double c, double d, double e, double f, double za, double nPix, double fov, double nChan)
 {
 	std::ofstream file(filename);
 	double xStart = 25, xEnd = 1400.0;
@@ -450,11 +518,11 @@ void writeNVisFit(const std::string& filename, FittingFunc func, double a, doubl
 	while(nVis < xEnd)
 	{
 		nVis *= 1.01;
-		file << nVis << '\t' << eval(func, za, nVis, nPix, fov, a, b, c, d, e, f) << '\n';
+		file << nVis << '\t' << eval(func, za, nVis, nPix, fov, nChan, a, b, c, d, e, f) << '\n';
 	}
 }
 
-void writeNPixFit(const std::string& filename, FittingFunc func, double a, double b, double c, double d, double e, double f, double za, double nVis, double fov)
+void writeNPixFit(const std::string& filename, FittingFunc func, double a, double b, double c, double d, double e, double f, double za, double nVis, double fov, double nChan)
 {
 	std::ofstream file(filename);
 	double xStart = 1024, xEnd = 12800.0;
@@ -462,11 +530,11 @@ void writeNPixFit(const std::string& filename, FittingFunc func, double a, doubl
 	while(nPix < xEnd)
 	{
 		nPix *= 1.01;
-		file << nPix << '\t' << eval(func, za, nVis, nPix, fov, a, b, c, d, e, f) << '\n';
+		file << nPix << '\t' << eval(func, za, nVis, nPix, fov, nChan, a, b, c, d, e, f) << '\n';
 	}
 }
 
-void writeZAFit(const std::string& filename, FittingFunc func, double a, double b, double c, double d, double e, double f, double nPix, double nVis, double fov)
+void writeZAFit(const std::string& filename, FittingFunc func, double a, double b, double c, double d, double e, double f, double nPix, double nVis, double fov, double nChan)
 {
 	std::ofstream file(filename);
 	double zaStart = 0.0, zaEnd = 90.0;
@@ -474,11 +542,11 @@ void writeZAFit(const std::string& filename, FittingFunc func, double a, double 
 	while(za < zaEnd)
 	{
 		za += 0.1;
-		file << za << '\t' << eval(func, za, nVis, nPix, fov, a, b, c, d, e, f) << '\n';
+		file << za << '\t' << eval(func, za, nVis, nPix, fov, nChan, a, b, c, d, e, f) << '\n';
 	}
 }
 
-void writeFOVFit(const std::string& filename, FittingFunc func, double a, double b, double c, double d, double e, double f, double za, double nPix, double nVis)
+void writeFOVFit(const std::string& filename, FittingFunc func, double a, double b, double c, double d, double e, double f, double za, double nPix, double nVis, double nChan)
 {
 	std::ofstream file(filename);
 	double fovStart = 4.608, fovEnd = 147.456;
@@ -486,7 +554,19 @@ void writeFOVFit(const std::string& filename, FittingFunc func, double a, double
 	while(fov < fovEnd)
 	{
 		fov += 0.1;
-		file << fov << '\t' << eval(func, za, nVis, nPix, fov, a, b, c, d, e, f) << '\n';
+		file << fov << '\t' << eval(func, za, nVis, nPix, fov, nChan, a, b, c, d, e, f) << '\n';
+	}
+}
+
+void writeNChanFit(const std::string& filename, FittingFunc func, double a, double b, double c, double d, double e, double f, double za, double nPix, double nVis, double fov)
+{
+	std::ofstream file(filename);
+	double nChanStart = 1, nChanEnd = 768;
+	double nChan=nChanStart - 0.1;
+	while(nChan < nChanEnd)
+	{
+		nChan += 0.1;
+		file << nChan << '\t' << eval(func, za, nVis, nPix, fov, nChan, a, b, c, d, e, f) << '\n';
 	}
 }
 
@@ -503,7 +583,7 @@ void calculateStdError(std::vector<Sample>& samples, FittingFunc func, double a,
 	for(size_t i=0; i!=samples.size(); ++i)
 	{
 		const Sample& s = samples[i];
-		double y = eval(func, s.za, s.nVis, s.nPix, s.fov, a, b, c, d, e, f);
+		double y = eval(func, s.za, s.nVis, s.nPix, s.fov, s.nChan, a, b, c, d, e, f);
 		double dy = y - s.time, dwy = dy * s.weight;
 		weights += s.weight;
 		weightedSum += dwy;
@@ -515,47 +595,136 @@ void calculateStdError(std::vector<Sample>& samples, FittingFunc func, double a,
 		<< "Unweighted mean: " << unweightedSum/samples.size() << " unweighted stderr: " << stddev(unweightedSum, unweightedSumSq, samples.size()) << '\n';
 }
 
-double optimalDeltaW(FittingFunc func, double a, double b, double c, double d, double e, double f, double za, double nPix, double nVis, double fov)
+void optimalDeltaW(FittingFunc func, double a, double b, double c, double d, double e, double f, double za, double nVis, double nPix, double fov, double nChan, bool zeroConstant, double& dw, double& casaGain, double& wscleanGain)
 {
+	double we = sinZA(za) * fovFact(fov);
+	// Find min dw such that t: nVis=nVis*dw/we, we=dw
 	
+	double minY = std::numeric_limits<double>::max(), minDW = 0.0;
+	double i = 1;
+	double fz = zeroConstant ? 0.0 : f;
+	while(i < 100.0)
+	{
+		double dw = we / double(i);
+		double y = double(i) * evalWE(func, dw, nVis / double(i), nPix, nChan, a, b, c, d, e, fz);
+		if(y < minY) {
+			minDW = dw;
+			minY = y;
+		}
+		i *= 1.1;
+	}
+	
+	if(minDW == we)
+		dw = std::numeric_limits<double>::quiet_NaN();
+	else
+		dw = minDW*2900.0;
+	casaGain = eval(CASAFunc, za, nVis, nPix, fov, nChan)/minY;
+	wscleanGain = eval(WSCleanFunc, za, nVis, nPix, fov, nChan)/minY;
+}
+
+void optimalDeltaW(const std::vector<Sample>& samples, FittingFunc func, double a, double b, double c, double d, double e, double f)
+{
+	double maxDW = 0.0, minDW = std::numeric_limits<double>::max(), sumDW = 0.0;
+	size_t count = 0;
+	double minCG, minWSCG, maxCG, maxWSCG;
+	for(std::vector<Sample>::const_iterator s=samples.begin(); s!=samples.end(); ++s)
+	{
+		double dw, cg, wscg;
+		optimalDeltaW(func, a, b, c, d, e, f, s->za, s->nVis, s->nPix, s->fov, s->nChan, false, dw, cg, wscg);
+		if(std::isfinite(dw))
+		{
+			if(dw < minDW) { minDW = dw; minCG = cg; minWSCG = wscg; }
+			if(dw > maxDW) { maxDW = dw; maxCG = cg; maxWSCG = wscg; }
+			sumDW += dw;
+			count ++;
+		}
+		optimalDeltaW(func, a, b, c, d, e, f, s->za, s->nVis, s->nPix, s->fov, s->nChan, true, dw, cg, wscg);
+		if(std::isfinite(dw))
+		{
+			if(dw < minDW) { minDW = dw; minCG = cg; minWSCG = wscg; }
+			if(dw > maxDW) { maxDW = dw; maxCG = cg; maxWSCG = wscg; }
+			sumDW += dw;
+			count ++;
+		}
+	}
+	std::cout << "Min dw=" << minDW << " (CASA gain: " << minCG << ", WSClean gain: " << minWSCG << ")";
+	std::cout << ", max dw=" << maxDW << " (CASA gain: " << maxCG << ", WSClean gain: " << maxWSCG << ")";
+	std::cout << ", mean dw=" << sumDW/count << '\n';
 }
 
 void fitAllWSClean()
 {
 	std::vector<Sample> samples;
-	readNVisFile(samples, "benchmark-nsamples/timings-zenith-nsamples-wsc.txt", 0.0, 3072, 36.864, 1.0);
-	readNVisFile(samples, "benchmark-nsamples/timings-ZA010-nsamples-wsc.txt", 10.0, 3072, 36.864, 1.0);
-	readNPixFile(samples, "benchmark-resolution/timings-zenith-resolution-wsclean.txt", 0.0, 349.6, 36.864, 2.0);
-	readZAFile(samples, "benchmark-zenith-angle/timings-za3072-wsclean.txt", 3072, 349.6, 36.864, 1.0);
-	readZAFile(samples, "benchmark-zenith-angle/timings-za2048-wsclean.txt", 2048, 349.6, 24.576, 1.0);
-	readFOVFile(samples, "benchmark-fov/timings-zenith-fov-wsc.txt", 0.0, 3072, 349.6, 1.0);
+	readNVisFile(samples, "benchmark-nsamples/timings-zenith-nsamples-wsc.txt", 0.0, 3072, 36.864, 1, 2.0);
+	readNVisFile(samples, "benchmark-nsamples/timings-ZA010-nsamples-wsc.txt", 10.0, 3072, 36.864, 1, 2.0);
+	readNPixFile(samples, "benchmark-resolution/timings-zenith-resolution-wsclean.txt", 0.0, 349.6, 36.864, 1, 2.0);
+	readZAFile(samples, "benchmark-zenith-angle/timings-za3072-wsclean.txt", 3072, 349.6, 36.864, 1, 1.0);
+	readZAFile(samples, "benchmark-zenith-angle/timings-za2048-wsclean.txt", 2048, 349.6, 24.576, 1, 1.0);
+	readFOVFile(samples, "benchmark-fov/timings-zenith-fov-wsc.txt", 0.0, 3072, 349.6, 1, 1.0);
+	readNChanFile(samples, "benchmark-channels/timings-channels-wsc.txt", 0.0, 3072, 349.6, 24.576, 1.0);
 	std::cout << "Read " << samples.size() << " values.\n";
 	FittingInfo info;
 	info.n = samples.size();
 	info.samples = samples.data();
 	info.func = WSCleanFunc;
+	fixConstant = true;
 	double a = 1.0, b = 0.0, c = 1.0, d = 0.0, e = 0.0, f = 0.0;
 	fit(info, a, b, c, d, e, f);
-	std::cout << a << " Npix^2 log Npix ((1-sqrt(1-tan(0.5fov)^2)) sin ZA + " << b << ") + " << c << " Nvis + " << d << '\n';
-	writeNVisFit("benchmark-nsamples/fit-zenith-wsc.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 36.864);
-	writeNVisFit("benchmark-nsamples/fit-ZA010-wsc.txt", info.func, a, b, c, d, e, f, 10.0, 3072, 36.864);
-	writeNPixFit("benchmark-resolution/fit-wsclean.txt", info.func, a, b, c, d, e, f, 0.0, 349.6, 36.864);
-	writeZAFit("benchmark-zenith-angle/fit-za3072-wsclean.txt", info.func, a, b, c, d, e, f, 3072.0, 349.6, 36.864);
-	writeZAFit("benchmark-zenith-angle/fit-za2048-wsclean.txt", info.func, a, b, c, d, e, f, 2048.0, 349.6, 24.576);
-	writeFOVFit("benchmark-fov/fit-zenith-fov-wsc.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 349.6);
-	writeFOVFit("benchmark-fov/fit-ZA010-fov-wsc.txt", info.func, a, b, c, d, e, f, 10.0, 3072, 349.6);
+	std::cout << "Nchan (" << a << " Npix^2 log Npix ((1-sqrt(1-tan(0.5fov)^2)) sin ZA + " << b << ") + " << c << " Nvis) + " << d << "\n";
+	writeNVisFit("benchmark-nsamples/fit-zenith-wsc.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 36.864, 1);
+	writeNVisFit("benchmark-nsamples/fit-ZA010-wsc.txt", info.func, a, b, c, d, e, f, 10.0, 3072, 36.864, 1);
+	writeNPixFit("benchmark-resolution/fit-wsclean.txt", info.func, a, b, c, d, e, f, 0.0, 349.6, 36.864, 1);
+	writeZAFit("benchmark-zenith-angle/fit-za3072-wsclean.txt", info.func, a, b, c, d, e, f, 3072.0, 349.6, 36.864, 1);
+	writeZAFit("benchmark-zenith-angle/fit-za2048-wsclean.txt", info.func, a, b, c, d, e, f, 2048.0, 349.6, 24.576, 1);
+	writeFOVFit("benchmark-fov/fit-zenith-fov-wsc.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 349.6, 1);
+	writeFOVFit("benchmark-fov/fit-ZA010-fov-wsc.txt", info.func, a, b, c, d, e, f, 10.0, 3072, 349.6, 1);
+	writeNChanFit("benchmark-channels/fit-zenith-wsc.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 349.6, 36.864);
+	calculateStdError(samples, info.func, a, b, c, d, e, f);
+}
+
+void fitAllWSSClean()
+{
+	const double CHGCENTRE_RUNTIME = 132.6; //seconds for Nvis = 349.6
+	
+	std::vector<Sample> samples;
+	readNVisFile(samples, "benchmark-nsamples/timings-ZA010-nsamples-wsc.txt", 10.0, 3072, 36.864, 1, 1.0);
+	readNPixFile(samples, "benchmark-resolution/timings-zenith-resolution-wsclean.txt", 0.0, 349.6, 36.864, 1, 1.0);
+	readZAFile(samples, "benchmark-zenith-angle/timings-za3072-wssclean.txt", 3072, 349.6, 36.864, 1, 5.0);
+	readZAFile(samples, "benchmark-zenith-angle/timings-za2048-wssclean.txt", 2048, 349.6, 24.576, 1, 5.0);
+	readFOVFile(samples, "benchmark-fov/timings-zenith-fov-wssc.txt", 0.0, 3072, 349.6, 1, 5.0);
+	readFOVFile(samples, "benchmark-fov/timings-ZA010-fov-wssc.txt", 10.0, 3072, 349.6, 1, 5.0);
+	readNChanFile(samples, "benchmark-channels/timings-channels-wssc.txt", 0.0, 3072, 349.6, 24.576, 1.0);
+	for(std::vector<Sample>::iterator i=samples.begin(); i!=samples.end(); ++i)
+		i->time += CHGCENTRE_RUNTIME * i->nVis / 349.6;
+	std::cout << "Read " << samples.size() << " values.\n";
+	FittingInfo info;
+	info.n = samples.size();
+	info.samples = samples.data();
+	info.func = WSSCleanFunc;
+	double a = 1.0, b = 0.0, c = 1.0, d = 0.0, e = 0.0, f = 0.0;
+	fit(info, a, b, c, d, e, f);
+	std::cout << "Nchan (" << a << " Npix^2 log Npix + " << b << " Nvis) + " << c << "\n";
+	writeNVisFit("benchmark-nsamples/fit-zenith-wssc.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 36.864, 1);
+	writeNVisFit("benchmark-nsamples/fit-ZA010-wssc.txt", info.func, a, b, c, d, e, f, 10.0, 3072, 36.864, 1);
+	writeNPixFit("benchmark-resolution/fit-wssclean.txt", info.func, a, b, c, d, e, f, 0.0, 349.6, 36.864, 1);
+	writeZAFit("benchmark-zenith-angle/fit-za3072-wssclean.txt", info.func, a, b, c, d, e, f, 3072.0, 349.6, 36.864, 1);
+	writeZAFit("benchmark-zenith-angle/fit-za2048-wssclean.txt", info.func, a, b, c, d, e, f, 2048.0, 349.6, 24.576, 1);
+	writeFOVFit("benchmark-fov/fit-zenith-fov-wssc.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 349.6, 1);
+	writeFOVFit("benchmark-fov/fit-ZA010-fov-wssc.txt", info.func, a, b, c, d, e, f, 10.0, 3072, 349.6, 1);
+	writeNChanFit("benchmark-channels/fit-zenith-wssc.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 349.6, 36.864);
 	calculateStdError(samples, info.func, a, b, c, d, e, f);
 }
 
 void fitAllCASA()
 {
 	std::vector<Sample> samples;
-	readNVisFile(samples, "benchmark-nsamples/timings-zenith-nsamples-casa.txt", 0.0, 3072, 36.864, 1.0);
-	readNVisFile(samples, "benchmark-nsamples/timings-ZA010-nsamples-casa.txt", 10.0, 3072, 36.864, 1.0);
-	readNPixFile(samples, "benchmark-resolution/timings-zenith-resolution-casa-no-outlier.txt", 0.0, 349.6, 36.864, 1.0);
-	readZAFile(samples, "benchmark-zenith-angle/timings-za3072-casa.txt", 3072, 349.6, 36.864, 0.2);
-	readZAFile(samples, "benchmark-zenith-angle/timings-za2048-casa.txt", 2048, 349.6, 24.576, 0.2);
-	readFOVFile(samples, "benchmark-fov/timings-zenith-fov-casa.txt", 0.0, 3072, 349.6, 0.2);
+	readNVisFile(samples, "benchmark-nsamples/timings-zenith-nsamples-casa.txt", 0.0, 3072, 36.864, 1, 1.0);
+	readNVisFile(samples, "benchmark-nsamples/timings-ZA010-nsamples-casa.txt", 10.0, 3072, 36.864, 1, 1.0);
+	readNPixFile(samples, "benchmark-resolution/timings-zenith-resolution-casa-no-outlier.txt", 0.0, 349.6, 36.864, 1, 1.0);
+	readZAFile(samples, "benchmark-zenith-angle/timings-za3072-casa.txt", 3072, 349.6, 36.864, 1, 0.2);
+	readZAFile(samples, "benchmark-zenith-angle/timings-za2048-casa.txt", 2048, 349.6, 24.576, 1, 0.2);
+	readFOVFile(samples, "benchmark-fov/timings-zenith-fov-casa.txt", 0.0, 3072, 349.6, 1, 0.2);
+	readNChanFile(samples, "benchmark-channels/timings-channels-casa.txt", 0.0, 3072, 349.6, 24.576, 1.0);
 	std::cout << "Read " << samples.size() << " values.\n";
 	FittingInfo info;
 	info.n = samples.size();
@@ -566,15 +735,17 @@ void fitAllCASA()
 	fit(info, a, b, c, d, e, f);
 	fixDW = false;
 	fit(info, a, b, c, d, e, f);
-	std::cout << "t = " << a << " Npix^2 log Npix + " << b << " Nvis (sin ZA * fov + " << d << ")^2 + " << f << '\n';
-	writeNVisFit("benchmark-nsamples/fit-zenith-casa.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 36.864);
-	writeNVisFit("benchmark-nsamples/fit-ZA010-casa.txt", info.func, a, b, c, d, e, f, 10.0, 3072, 36.864);
-	writeNPixFit("benchmark-resolution/fit-casa.txt", info.func, a, b, c, d, e, f, 0.0, 349.6, 36.864);
-	writeZAFit("benchmark-zenith-angle/fit-za3072-casa.txt", info.func, a, b, c, d, e, f, 3072.0, 349.6, 36.864);
-	writeZAFit("benchmark-zenith-angle/fit-za2048-casa.txt", info.func, a, b, c, d, e, f, 2048.0, 349.6, 24.576);//24.576
-	writeFOVFit("benchmark-fov/fit-zenith-fov-casa.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 349.6);
-	writeFOVFit("benchmark-fov/fit-ZA010-fov-casa.txt", info.func, a, b, c, d, e, f, 10.0, 3072, 349.6);
+	std::cout << "t = Nchan (" << a << " Npix^2 log Npix + " << b << " Nvis (sin ZA * fov + " << d << ")^2) + " << f << '\n';
+	writeNVisFit("benchmark-nsamples/fit-zenith-casa.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 36.864, 1);
+	writeNVisFit("benchmark-nsamples/fit-ZA010-casa.txt", info.func, a, b, c, d, e, f, 10.0, 3072, 36.864, 1);
+	writeNPixFit("benchmark-resolution/fit-casa.txt", info.func, a, b, c, d, e, f, 0.0, 349.6, 36.864, 1);
+	writeZAFit("benchmark-zenith-angle/fit-za3072-casa.txt", info.func, a, b, c, d, e, f, 3072.0, 349.6, 36.864, 1);
+	writeZAFit("benchmark-zenith-angle/fit-za2048-casa.txt", info.func, a, b, c, d, e, f, 2048.0, 349.6, 24.576, 1);//24.576
+	writeFOVFit("benchmark-fov/fit-zenith-fov-casa.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 349.6, 1);
+	writeFOVFit("benchmark-fov/fit-ZA010-fov-casa.txt", info.func, a, b, c, d, e, f, 10.0, 3072, 349.6, 1);
+	writeNChanFit("benchmark-channels/fit-zenith-casa.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 349.6, 36.864);
 	calculateStdError(samples, info.func, a, b, c, d, e, f);
+	optimalDeltaW(samples, info.func, a, b, c, d, e, f);
 }
 
 int main(int argc, char* argv[])
@@ -583,6 +754,8 @@ int main(int argc, char* argv[])
 		fitAllWSClean();
 	else if(argc == 2 && std::string(argv[1]) == "all-casa")
 		fitAllCASA();
+	else if(argc == 2 && std::string(argv[1]) == "all-wssclean")
+		fitAllWSSClean();
 	else {
 		if(argc < 4)
 		{
