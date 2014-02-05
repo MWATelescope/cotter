@@ -91,6 +91,8 @@ enum FittingFunc
 struct Sample
 {
 	double time, weight, za, nPix, nVis, fov, nChan;
+	
+	bool sameConfiguration(const Sample& s) const { return s.za==za && s.nPix==nPix && s.nVis==nVis && s.fov==fov && s.nChan==nChan; }
 };
 
 struct FittingInfo
@@ -595,6 +597,19 @@ void calculateStdError(std::vector<Sample>& samples, FittingFunc func, double a,
 		<< "Unweighted mean: " << unweightedSum/samples.size() << " unweighted stderr: " << stddev(unweightedSum, unweightedSumSq, samples.size()) << '\n';
 }
 
+void printDuplicates(const std::vector<Sample>& samples)
+{
+	for(std::vector<Sample>::const_iterator s1=samples.begin(); s1!=samples.end(); ++s1)
+	{
+		for(std::vector<Sample>::const_iterator s2=s1+1; s2!=samples.end(); ++s2)
+		{
+			if(s1->sameConfiguration(*s2))
+				std::cout << "Duplicate configuration: " << s1->za << ", " << s1->nVis << ", " << s1->nPix << ", " << s1->fov << ", " << s1->nChan <<
+					"\n Timings: " << s1->time << " vs " << s2->time << '\n';
+		}
+	}
+}
+
 void optimalDeltaW(FittingFunc func, double a, double b, double c, double d, double e, double f, double za, double nVis, double nPix, double fov, double nChan, bool zeroConstant, double& dw, double& casaGain, double& wscleanGain)
 {
 	double we = sinZA(za) * fovFact(fov);
@@ -663,6 +678,7 @@ void fitAllWSClean()
 	readFOVFile(samples, "benchmark-fov/timings-zenith-fov-wsc.txt", 0.0, 3072, 349.6, 1, 1.0);
 	readNChanFile(samples, "benchmark-channels/timings-channels-wsc.txt", 0.0, 3072, 349.6, 24.576, 1.0);
 	std::cout << "Read " << samples.size() << " values.\n";
+	printDuplicates(samples);
 	FittingInfo info;
 	info.n = samples.size();
 	info.samples = samples.data();
@@ -687,16 +703,17 @@ void fitAllWSSClean()
 	const double CHGCENTRE_RUNTIME = 132.6; //seconds for Nvis = 349.6
 	
 	std::vector<Sample> samples;
-	readNVisFile(samples, "benchmark-nsamples/timings-ZA010-nsamples-wsc.txt", 10.0, 3072, 36.864, 1, 1.0);
+	//readNVisFile(samples, "benchmark-nsamples/timings-ZA010-nsamples-wsc.txt", 10.0, 3072, 36.864, 1, 1.0);
 	readNPixFile(samples, "benchmark-resolution/timings-zenith-resolution-wsclean.txt", 0.0, 349.6, 36.864, 1, 1.0);
-	readZAFile(samples, "benchmark-zenith-angle/timings-za3072-wssclean.txt", 3072, 349.6, 36.864, 1, 5.0);
-	readZAFile(samples, "benchmark-zenith-angle/timings-za2048-wssclean.txt", 2048, 349.6, 24.576, 1, 5.0);
-	readFOVFile(samples, "benchmark-fov/timings-zenith-fov-wssc.txt", 0.0, 3072, 349.6, 1, 5.0);
-	readFOVFile(samples, "benchmark-fov/timings-ZA010-fov-wssc.txt", 10.0, 3072, 349.6, 1, 5.0);
+	readZAFile(samples, "benchmark-zenith-angle/timings-za3072-wssclean.txt", 3072, 349.6, 36.864, 1, 1.0);
+	readZAFile(samples, "benchmark-zenith-angle/timings-za2048-wssclean.txt", 2048, 349.6, 24.576, 1, 1.0);
+	readFOVFile(samples, "benchmark-fov/timings-zenith-fov-wssc.txt", 0.0, 3072, 349.6, 1, 1.0);
+	readFOVFile(samples, "benchmark-fov/timings-ZA010-fov-wssc.txt", 10.0, 3072, 349.6, 1, 1.0);
 	readNChanFile(samples, "benchmark-channels/timings-channels-wssc.txt", 0.0, 3072, 349.6, 24.576, 1.0);
+	std::cout << "Read " << samples.size() << " values.\n";
+	printDuplicates(samples);
 	for(std::vector<Sample>::iterator i=samples.begin(); i!=samples.end(); ++i)
 		i->time += CHGCENTRE_RUNTIME * i->nVis / 349.6;
-	std::cout << "Read " << samples.size() << " values.\n";
 	FittingInfo info;
 	info.n = samples.size();
 	info.samples = samples.data();
@@ -726,6 +743,7 @@ void fitAllCASA()
 	readFOVFile(samples, "benchmark-fov/timings-zenith-fov-casa.txt", 0.0, 3072, 349.6, 1, 0.2);
 	readNChanFile(samples, "benchmark-channels/timings-channels-casa.txt", 0.0, 3072, 349.6, 24.576, 1.0);
 	std::cout << "Read " << samples.size() << " values.\n";
+	printDuplicates(samples);
 	FittingInfo info;
 	info.n = samples.size();
 	info.samples = samples.data();

@@ -220,7 +220,7 @@ The prolate spheroidal wave function (PSWF) is generally considered to be the op
 \section{Analysis} \label{sec:analysis}
 We will now analyse the performance and accuracy of our implementation, and compare it with the w-projection implementation in CASA. For the analysis, we use imaging parameters which are common for MWA Imaging. When a specific parameter value is not mentioned, the settings from Table~\ref{tbl:default-parameters} are used. The number of $w$-projection planes in w-projection is kept equal to the number of $w$-layers in w-stacking, and is set to the right hand side of Eq.~\eqref{eq:nwlayers-bound}. This yields 195 $w$-planes/layers at 10\degree zenith angle. Some configurations with high $w$-values fail to image with CASA, presumably because the $w$-kernels become to large.
 
-The used software version of CASA is ``stable release 42.0, revision 26465'', which was released September 2013. It includes performance improvements to the \texttt{clean} task which have recently been made. For WSClean, the latest version as of February 2014 was used. The tests were run on a high-end desktop, with a 3.20-GHz Intel Core i7-3930K processor with 6 cores and 32 GB of memory. The data are stored on a multi-disk array with 5 spinning hard disks, which has a combined read rate of about 450 MB/s. 
+The used software version of CASA is ``stable release 42.0, revision 26465'', which was released September 2013. It includes performance improvements to the \texttt{clean} task which have recently been made. For WSClean, the latest version as of February 2014 was used. The tests were run on a high-end desktop, with a 3.20-GHz Intel Core i7-3930K processor with 6 cores and 32 GB of memory. The data are stored on a multi-disk array with 5 spinning hard disks, which has a combined read rate of about 450 MB/s.
 \begin{table}%
 \caption{Parameter values used during benchmarks, unless otherwise mentioned.} \label{tbl:default-parameters}%
 \begin{center}\begin{tabular}{rl}%
@@ -353,6 +353,8 @@ where $\max |\mathbf{x}|$ is the maximum baseline length, $\max z$ is the maximu
 
 TODO: actually, $w_e$ should not be normalized by baseline length $\max z$: fix in fits too.
 
+TODO: derive function for $t_\textrm{CASA} = t_\textrm{WSClean}$.
+
 It is possible to combine the $w$-projection and $w$-stacking algorithms by gridding on several $w$-layers to which the large $w$-terms are corrected after the FFT, and using a $w$-correcting kernel for making small $w$-corrections, thereby projecting them on the nearest $w$-layer. This allows using small $w$-kernels and limits at the same time the number of FFTs and required memory. The AWImager has been applied like this, which let to better results compared to $w$-projection without $w$-stacking \citep{awimager-2013}. For this scenario, Eq.~\eqref{eq:casa-computing-cost} can be used to determine the optimal number of $w$-layers, or more general the optimal distance between layers, by assuming that the cost of calculating a single $w$-layer equals the cost of imaging the data set with correspondingly smaller $w_e$ value and smaller $N_\textrm{vis}$. If $\Delta w$ is the distance between $w$-layers, then 
 \begin{equation}
 t(\Delta w) = \frac{w_e}{\Delta w} t_\textrm{CASA}(w'_e,N'_\textrm{vis},N_\textrm{freq},N_\textrm{pix}),
@@ -360,15 +362,20 @@ t(\Delta w) = \frac{w_e}{\Delta w} t_\textrm{CASA}(w'_e,N'_\textrm{vis},N_\textr
 with $N'_\textrm{vis} = \frac{N_\textrm{vis}\Delta w}{w_e}$ and $w'_e = \Delta w$.
 
 \section{Application of WSClean to the MWA}
-The MWA correlator splits observations in data products of typically a few minutes
-TODO
+For technical reasons, the MWA correlator splits observations in data products of typically a few minutes. This simplifies $w$-snapshot imaging, which can be done by phase rotating each snapshot to zenith with a possibly additional phase-centre shift. 
 
 TODO: calculate when to use w-snapshots
+TODO: calculate optimum splitting time?
 
-TODO: mention full-polarization imaging
+\subsection{Beam correction}
+Because the MWA consists of fixed, beamformed dipole antennas, the voltage beam of a MWA tile is described by a complex, non-diagonal Jones matrix. Alternatively, Mueller matrices can be used as well, but in general these result in more computations \citep{revisiting-me-i}. When assuming all individual antennas of the tiles are working properly, all tiles have the same beam. The beam can then be corrected in image space for all tiles at once with
+\begin{equation}\label{eq:beam-correction}
+ I(l, m) = J(l,m)^{-1} I'(l, m) \left(J(l,m)^*\right)^{-1},
+\end{equation}
+where each term is a $2\times2$ complex matrices, with $J$ the voltage beam and $^*$ denoting the conjugate transpose. Because $J$ is complex and non-diagonal, all 4 combinations of the cross-correlated polarizations $p$ and $q$\footnote{The instrumental polarizations of the MWA are often referred to as $X$ and $Y$ because many software treats the two polarizations as such. However, this is not correct because $X$ is officially defined as being parallel to the celestial equator.} including the imaginary part of the $pq$ and $qp$ are required to calculate any of the Stokes parameters. The $pp$ and $qq$ have no imaginary part due to the $uv$-symmetry. To make proper MWA beam correction possible, WSClean can output real valued $pp$, $pq$, $qp$, $qq$ images and imaginary $pq$ and $qp$ images. Each polarization requires a separate run of the $w$-stacking algorithm. Once these six images are created, a separate program is used to perform the correction of Eq.~\eqref{eq:beam-correction}. This method avoids expensive beam-correcting kernels during gridding, but only works because all tiles have the same beam. To apply the same method on heterogeneous arrays such as LOFAR, each set of correlations with a different combination of station beams will have to be imaged separately, which will increase the cost of the algorithm. The AWImager uses an intermediate method, and corrects a common dipole factor in image space and the phased-array beam factor in $uv$-space, which allows the gridding kernel to be smaller compared to correcting both in $uv$-space \citep{awimager-2013}.
 
 \section{Discussion} \label{sec:discussion}
-WSClean has been build out of necessacity to be able to make images with the MWA. 
+WSClean has been build out of necessacity to be able to make images with the MWA, because no 
 
 TODO: describe hybrid between w-stacking, w-projection and w-snapshots (if not yet discussed in Cornwell's papers)
 
@@ -386,11 +393,11 @@ TODO: discuss low w-values means less-direction-invariant PSF.
 \begin{figure}
 \begin{center}
 \includegraphics[width=8cm]{img/benchmark-kernelsize/kernel}
-\caption{...}
+\caption{Effect of antialiasing kernel size on performance.}
 \label{fig:timing-kernelsize}
 \end{center}
 \end{figure}
-As discussed in \S\ref{sec:gridding}, WSClean uses a Kaiser-Bessel window against aliasing. The type of window function has no effect on the gridding performance, but the size of the kernel affects gridding performance quadratically. Fig.~\ref{fig:timing-kernelsize} shows that this quadratic relation becomes significant for kernel sizes $\gtrapprox 10$. Decreasing the kernel size to values below $7$ has little effect on performance, because for small kernels the visibility-reading rate is lower than the gridding rate. We have not noticed much benefit of larger kernels except in rare cases where a bright source lies just outside the imaged field of view. Therefore, WSClean uses a default of 7 pixels for the gridding kernel. It can be increased when necessary. Different hardware might have a slightly different optimum because of different reading and calculation performance.
+As discussed in \S\ref{sec:gridding}, WSClean uses a Kaiser-Bessel window against aliasing. The type of window function has no effect on the gridding performance, but the size of the kernel affects gridding performance quadratically. Fig.~\ref{fig:timing-kernelsize} shows that this quadratic relation becomes significant for kernel sizes $\gtrapprox 10$. Decreasing the kernel size to values below $7$ has little effect on performance, because for small kernels the visibility-reading rate is lower than the gridding rate. We have not noticed much benefit of larger kernels except in rare cases where a bright source lies just outside the imaged field of view. Therefore, WSClean uses a default of 7 pixels for the gridding kernel. It can be increased when necessary. Of course, different hardware might give slightly different results because of different reading and calculation performance.
 
 % To make Dutch ``tussenvoegsels'' work correctly in Latex such as ``de Bruyn'', we use this command
 % In bibliography, it should be written with lowercase, as in ``de Bruyn''

@@ -13,7 +13,7 @@ plot \
 \
      "timings-ZA010-fov-wsc.txt" using (2*asin(column(2)/2*(3.1415926535/180.0))*(180.0/3.1415926535)):(column(3)/60):(column(4)*5/60) with points lw 2 lc 1 lt 1 title "", \
      "timings-ZA010-fov-casa.txt" using (2*asin(column(2)/2*(3.1415926535/180.0))*(180.0/3.1415926535)):(column(3)/60) with points lw 2.0 lt 1 lc 3 title "", \
-     "timings-ZA010-fov-wssc.txt" using (2*asin(column(2)/2*(3.1415926535/180.0))*(180.0/3.1415926535)):(column(3)/60) with points lw 2.0 lc rgb "#008000" lt 1 title "", \
+     "timings-ZA010-fov-wssc.txt" using (2*asin(column(2)/2*(3.1415926535/180.0))*(180.0/3.1415926535)):((column(3)+132.6)/60) with points lw 2.0 lc rgb "#008000" lt 1 title "", \
 \
      "fit-zenith-fov-wsc.txt" using (2*asin(column(1)/2*(3.1415926535/180.0))*(180.0/3.1415926535)):(column(2)/60) with lines lt 3 lc 1 title "WSClean", \
      "fit-ZA010-fov-wsc.txt" using (2*asin(column(1)/2*(3.1415926535/180.0))*(180.0/3.1415926535)):(column(2)/60) with lines lt 1 lc 1 title "", \
