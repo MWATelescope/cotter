@@ -289,6 +289,30 @@ MDirection ZenithDirection(MeasurementSet& set)
 	return casa::MDirection::Convert(zenithAzEl, j2000Ref)();
 }
 
+MDirection ZenithDirectionStart(MeasurementSet& set)
+{
+	casa::MPosition arrayPos = ArrayCentroid(set);
+	casa::MEpoch::ROScalarColumn timeColumn(set, set.columnName(casa::MSMainEnums::TIME));
+	casa::MEpoch time = timeColumn(0);
+	casa::MeasFrame frame(arrayPos, time);
+	const casa::MDirection::Ref azelgeoRef(casa::MDirection::AZELGEO, frame);
+	const casa::MDirection::Ref j2000Ref(casa::MDirection::J2000, frame);
+	casa::MDirection zenithAzEl(casa::MVDirection(0.0, 0.0, 1.0), azelgeoRef);
+	return casa::MDirection::Convert(zenithAzEl, j2000Ref)();
+}
+
+MDirection ZenithDirectionEnd(MeasurementSet& set)
+{
+	casa::MPosition arrayPos = ArrayCentroid(set);
+	casa::MEpoch::ROScalarColumn timeColumn(set, set.columnName(casa::MSMainEnums::TIME));
+	casa::MEpoch time = timeColumn(set.nrow()-1);
+	casa::MeasFrame frame(arrayPos, time);
+	const casa::MDirection::Ref azelgeoRef(casa::MDirection::AZELGEO, frame);
+	const casa::MDirection::Ref j2000Ref(casa::MDirection::J2000, frame);
+	casa::MDirection zenithAzEl(casa::MVDirection(0.0, 0.0, 1.0), azelgeoRef);
+	return casa::MDirection::Convert(zenithAzEl, j2000Ref)();
+}
+
 MDirection MinWDirection(MeasurementSet& set)
 {
 	MPosition centroid = ArrayCentroid(set);
@@ -353,7 +377,7 @@ void printPhaseDir(const std::string &filename)
 		std::cout << dirToString(phaseDirection) << '\n';
 	}
 	
-	std::cout << "Zenith is at:\n  " << dirToString(zenith) << '\n';
+	std::cout << "Zenith is at:\n  " << dirToString(zenith) << " (" << dirToString(ZenithDirectionStart(set)) << " - " << dirToString(ZenithDirectionEnd(set)) << '\n';
 	std::cout << "Min-w direction is at:\n  " << dirToString(MinWDirection(set)) << '\n';
 }
 

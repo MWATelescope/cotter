@@ -667,6 +667,28 @@ void optimalDeltaW(const std::vector<Sample>& samples, FittingFunc func, double 
 	std::cout << ", mean dw=" << sumDW/count << '\n';
 }
 
+void optimalDeltaT(FittingFunc func, double a, double b, double c, double d, double e, double f, double za, double nVis, double nPix, double fov, double nChan, bool zeroConstant, double& dt)
+{
+	double minY = std::numeric_limits<double>::max(), minDT = 0.0;
+	double dtTrial = 1.0;
+	double fz = zeroConstant ? 0.0 : f;
+	while(dtTrial < 300000.0)
+	{
+		double trialFOV = fov + 2.0 * (dtTrial - 112.0) * (360.0 / 60.0 / 60.0 / 24.0);
+		if(trialFOV < 0.0) trialFOV = 0.0;
+		double y = (112.0/dtTrial) * eval(func, za, nVis * dtTrial/112.0, nPix, trialFOV, nChan, a, b, c, d, e, fz);
+		//std::cout << "za=" << trialFOV<< ", dt=" << dtTrial << ", y=" << y << '\n';
+		if(y < minY) {
+			minDT = dtTrial;
+			minY = y;
+		}
+		dtTrial *= 1.01;
+	}
+	dt = minDT;
+	double tNormal = eval(func, za, nVis, nPix, fov, nChan, a, b, c, d, e, fz);
+	std::cout << "Optimal snapshot time: " << minDT << " (time=" << minY << " vs " << tNormal << ")\n";
+}
+
 void fitAllWSClean()
 {
 	std::vector<Sample> samples;
@@ -696,6 +718,9 @@ void fitAllWSClean()
 	writeFOVFit("benchmark-fov/fit-ZA010-fov-wsc.txt", info.func, a, b, c, d, e, f, 10.0, 3072, 349.6, 1);
 	writeNChanFit("benchmark-channels/fit-zenith-wsc.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 349.6, 36.864);
 	calculateStdError(samples, info.func, a, b, c, d, e, f);
+	double dt;
+	optimalDeltaT(info.func, a, b, c, d, e, f, 10.0, 349.6, 3072, 36.864, 1, false, dt);
+	optimalDeltaT(info.func, a, b, c, d, e, f, 0.0, 349.6, 3072, 36.864, 1, false, dt);
 }
 
 void fitAllWSSClean()
@@ -764,6 +789,9 @@ void fitAllCASA()
 	writeNChanFit("benchmark-channels/fit-zenith-casa.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 349.6, 36.864);
 	calculateStdError(samples, info.func, a, b, c, d, e, f);
 	optimalDeltaW(samples, info.func, a, b, c, d, e, f);
+	double dt;
+	optimalDeltaT(info.func, a, b, c, d, e, f, 10.0, 349.6, 3072, 36.864, 1, false, dt);
+	optimalDeltaT(info.func, a, b, c, d, e, f, 0.0, 349.6, 3072, 36.864, 1, false, dt);
 }
 
 int main(int argc, char* argv[])
