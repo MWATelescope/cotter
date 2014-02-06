@@ -15,7 +15,7 @@ bool fixDW = false, fixConstant = false;
 
 double sinZA(double za)
 {
-	return (2900.0*sin(za*(M_PI/180.0)) + 5.5*cos(za*(M_PI/180.0))) / 2900.0;
+	return (2900.0*sin(za*(M_PI/180.0)) + 5.5*cos(za*(M_PI/180.0)));
 }
 
 double fovFact(double fov)
@@ -403,8 +403,10 @@ void addSample(std::vector<Sample>& samples, const Sample& sample)
 {
 	if(!std::isfinite(sample.weight) || sample.weight==0.0)
 		std::cout << "Removing sample with 0 stddev\n";
-	else
+	else {
 		samples.push_back(sample);
+		samples.back().nPix *= 0.001;
+	}
 }
 
 void readNVisFile(std::vector<Sample>& samples, const std::string& filename, double za, double nPix, double fov, double nChan, double w)
@@ -532,7 +534,7 @@ void writeNPixFit(const std::string& filename, FittingFunc func, double a, doubl
 	while(nPix < xEnd)
 	{
 		nPix *= 1.01;
-		file << nPix << '\t' << eval(func, za, nVis, nPix, fov, nChan, a, b, c, d, e, f) << '\n';
+		file << nPix << '\t' << eval(func, za, nVis, nPix/1000.0, fov, nChan, a, b, c, d, e, f) << '\n';
 	}
 }
 
@@ -632,7 +634,7 @@ void optimalDeltaW(FittingFunc func, double a, double b, double c, double d, dou
 	if(minDW == we)
 		dw = std::numeric_limits<double>::quiet_NaN();
 	else
-		dw = minDW*2900.0;
+		dw = minDW;
 	casaGain = eval(CASAFunc, za, nVis, nPix, fov, nChan)/minY;
 	wscleanGain = eval(WSCleanFunc, za, nVis, nPix, fov, nChan)/minY;
 }
@@ -709,18 +711,18 @@ void fitAllWSClean()
 	double a = 1.0, b = 0.0, c = 1.0, d = 0.0, e = 0.0, f = 0.0;
 	fit(info, a, b, c, d, e, f);
 	std::cout << "Nchan (" << a << " Npix^2 log Npix ((1-sqrt(1-tan(0.5fov)^2)) sin ZA + " << b << ") + " << c << " Nvis) + " << d << "\n";
-	writeNVisFit("benchmark-nsamples/fit-zenith-wsc.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 36.864, 1);
-	writeNVisFit("benchmark-nsamples/fit-ZA010-wsc.txt", info.func, a, b, c, d, e, f, 10.0, 3072, 36.864, 1);
+	writeNVisFit("benchmark-nsamples/fit-zenith-wsc.txt", info.func, a, b, c, d, e, f, 0.0, 3.072, 36.864, 1);
+	writeNVisFit("benchmark-nsamples/fit-ZA010-wsc.txt", info.func, a, b, c, d, e, f, 10.0, 3.072, 36.864, 1);
 	writeNPixFit("benchmark-resolution/fit-wsclean.txt", info.func, a, b, c, d, e, f, 0.0, 349.6, 36.864, 1);
-	writeZAFit("benchmark-zenith-angle/fit-za3072-wsclean.txt", info.func, a, b, c, d, e, f, 3072.0, 349.6, 36.864, 1);
-	writeZAFit("benchmark-zenith-angle/fit-za2048-wsclean.txt", info.func, a, b, c, d, e, f, 2048.0, 349.6, 24.576, 1);
-	writeFOVFit("benchmark-fov/fit-zenith-fov-wsc.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 349.6, 1);
-	writeFOVFit("benchmark-fov/fit-ZA010-fov-wsc.txt", info.func, a, b, c, d, e, f, 10.0, 3072, 349.6, 1);
-	writeNChanFit("benchmark-channels/fit-zenith-wsc.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 349.6, 36.864);
+	writeZAFit("benchmark-zenith-angle/fit-za3072-wsclean.txt", info.func, a, b, c, d, e, f, 3.072, 349.6, 36.864, 1);
+	writeZAFit("benchmark-zenith-angle/fit-za2048-wsclean.txt", info.func, a, b, c, d, e, f, 2.048, 349.6, 24.576, 1);
+	writeFOVFit("benchmark-fov/fit-zenith-fov-wsc.txt", info.func, a, b, c, d, e, f, 0.0, 3.072, 349.6, 1);
+	writeFOVFit("benchmark-fov/fit-ZA010-fov-wsc.txt", info.func, a, b, c, d, e, f, 10.0, 3.072, 349.6, 1);
+	writeNChanFit("benchmark-channels/fit-zenith-wsc.txt", info.func, a, b, c, d, e, f, 0.0, 3.072, 349.6, 36.864);
 	calculateStdError(samples, info.func, a, b, c, d, e, f);
 	double dt;
-	optimalDeltaT(info.func, a, b, c, d, e, f, 10.0, 349.6, 3072, 36.864, 1, false, dt);
-	optimalDeltaT(info.func, a, b, c, d, e, f, 0.0, 349.6, 3072, 36.864, 1, false, dt);
+	optimalDeltaT(info.func, a, b, c, d, e, f, 10.0, 349.6, 3.072, 36.864, 1, false, dt);
+	optimalDeltaT(info.func, a, b, c, d, e, f, 0.0, 349.6, 3.072, 36.864, 1, false, dt);
 }
 
 void fitAllWSSClean()
@@ -746,14 +748,14 @@ void fitAllWSSClean()
 	double a = 1.0, b = 0.0, c = 1.0, d = 0.0, e = 0.0, f = 0.0;
 	fit(info, a, b, c, d, e, f);
 	std::cout << "Nchan (" << a << " Npix^2 log Npix + " << b << " Nvis) + " << c << "\n";
-	writeNVisFit("benchmark-nsamples/fit-zenith-wssc.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 36.864, 1);
-	writeNVisFit("benchmark-nsamples/fit-ZA010-wssc.txt", info.func, a, b, c, d, e, f, 10.0, 3072, 36.864, 1);
+	writeNVisFit("benchmark-nsamples/fit-zenith-wssc.txt", info.func, a, b, c, d, e, f, 0.0, 3.072, 36.864, 1);
+	writeNVisFit("benchmark-nsamples/fit-ZA010-wssc.txt", info.func, a, b, c, d, e, f, 10.0, 3.072, 36.864, 1);
 	writeNPixFit("benchmark-resolution/fit-wssclean.txt", info.func, a, b, c, d, e, f, 0.0, 349.6, 36.864, 1);
-	writeZAFit("benchmark-zenith-angle/fit-za3072-wssclean.txt", info.func, a, b, c, d, e, f, 3072.0, 349.6, 36.864, 1);
-	writeZAFit("benchmark-zenith-angle/fit-za2048-wssclean.txt", info.func, a, b, c, d, e, f, 2048.0, 349.6, 24.576, 1);
-	writeFOVFit("benchmark-fov/fit-zenith-fov-wssc.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 349.6, 1);
-	writeFOVFit("benchmark-fov/fit-ZA010-fov-wssc.txt", info.func, a, b, c, d, e, f, 10.0, 3072, 349.6, 1);
-	writeNChanFit("benchmark-channels/fit-zenith-wssc.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 349.6, 36.864);
+	writeZAFit("benchmark-zenith-angle/fit-za3072-wssclean.txt", info.func, a, b, c, d, e, f, 3.072, 349.6, 36.864, 1);
+	writeZAFit("benchmark-zenith-angle/fit-za2048-wssclean.txt", info.func, a, b, c, d, e, f, 2.048, 349.6, 24.576, 1);
+	writeFOVFit("benchmark-fov/fit-zenith-fov-wssc.txt", info.func, a, b, c, d, e, f, 0.0, 3.072, 349.6, 1);
+	writeFOVFit("benchmark-fov/fit-ZA010-fov-wssc.txt", info.func, a, b, c, d, e, f, 10.0, 3.072, 349.6, 1);
+	writeNChanFit("benchmark-channels/fit-zenith-wssc.txt", info.func, a, b, c, d, e, f, 0.0, 3.072, 349.6, 36.864);
 	calculateStdError(samples, info.func, a, b, c, d, e, f);
 }
 
@@ -779,19 +781,19 @@ void fitAllCASA()
 	fixDW = false;
 	fit(info, a, b, c, d, e, f);
 	std::cout << "t = Nchan (" << a << " Npix^2 log Npix + " << b << " Nvis (sin ZA * fov + " << d << ")^2) + " << f << '\n';
-	writeNVisFit("benchmark-nsamples/fit-zenith-casa.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 36.864, 1);
-	writeNVisFit("benchmark-nsamples/fit-ZA010-casa.txt", info.func, a, b, c, d, e, f, 10.0, 3072, 36.864, 1);
+	writeNVisFit("benchmark-nsamples/fit-zenith-casa.txt", info.func, a, b, c, d, e, f, 0.0, 3.072, 36.864, 1);
+	writeNVisFit("benchmark-nsamples/fit-ZA010-casa.txt", info.func, a, b, c, d, e, f, 10.0, 3.072, 36.864, 1);
 	writeNPixFit("benchmark-resolution/fit-casa.txt", info.func, a, b, c, d, e, f, 0.0, 349.6, 36.864, 1);
-	writeZAFit("benchmark-zenith-angle/fit-za3072-casa.txt", info.func, a, b, c, d, e, f, 3072.0, 349.6, 36.864, 1);
-	writeZAFit("benchmark-zenith-angle/fit-za2048-casa.txt", info.func, a, b, c, d, e, f, 2048.0, 349.6, 24.576, 1);//24.576
-	writeFOVFit("benchmark-fov/fit-zenith-fov-casa.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 349.6, 1);
-	writeFOVFit("benchmark-fov/fit-ZA010-fov-casa.txt", info.func, a, b, c, d, e, f, 10.0, 3072, 349.6, 1);
-	writeNChanFit("benchmark-channels/fit-zenith-casa.txt", info.func, a, b, c, d, e, f, 0.0, 3072, 349.6, 36.864);
+	writeZAFit("benchmark-zenith-angle/fit-za3072-casa.txt", info.func, a, b, c, d, e, f, 3.072, 349.6, 36.864, 1);
+	writeZAFit("benchmark-zenith-angle/fit-za2048-casa.txt", info.func, a, b, c, d, e, f, 2.048, 349.6, 24.576, 1);//24.576
+	writeFOVFit("benchmark-fov/fit-zenith-fov-casa.txt", info.func, a, b, c, d, e, f, 0.0, 3.072, 349.6, 1);
+	writeFOVFit("benchmark-fov/fit-ZA010-fov-casa.txt", info.func, a, b, c, d, e, f, 10.0, 3.072, 349.6, 1);
+	writeNChanFit("benchmark-channels/fit-zenith-casa.txt", info.func, a, b, c, d, e, f, 0.0, 3.072, 349.6, 36.864);
 	calculateStdError(samples, info.func, a, b, c, d, e, f);
 	optimalDeltaW(samples, info.func, a, b, c, d, e, f);
 	double dt;
-	optimalDeltaT(info.func, a, b, c, d, e, f, 10.0, 349.6, 3072, 36.864, 1, false, dt);
-	optimalDeltaT(info.func, a, b, c, d, e, f, 0.0, 349.6, 3072, 36.864, 1, false, dt);
+	optimalDeltaT(info.func, a, b, c, d, e, f, 10.0, 349.6, 3.072, 36.864, 1, false, dt);
+	optimalDeltaT(info.func, a, b, c, d, e, f, 0.0, 349.6, 3.072, 36.864, 1, false, dt);
 }
 
 int main(int argc, char* argv[])

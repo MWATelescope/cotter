@@ -136,7 +136,7 @@ The inverse of imaging, i.e., to calculate the visibility from a model image, ca
 \begin{figure}
 \begin{center}
 \includegraphics[width=8cm]{img/aliasing-example-annotated}
-\caption{Aliasing artefacts caused by insufficient $w$-layers in a simulated field. WSClean was set to use 12 $w$-layers. The centre of the image is at 10\degree zenith angle, which would normally require $\sim195$ $w$-layers. Original sources are 1~Jy, ghost sources are approximately 20\%. Each source produces two ghost sources, but because they re-appear after a major cleaning cycle, they are eventually cleaned and produce more ghost sources. }
+\caption{Aliasing artefacts caused by insufficient $w$-layers in a simulated field. WSClean was set to use 12 $w$-layers. The centre of the image is at 10\degree zenith angle, which would normally require $\sim195$ $w$-layers. Sources are 1~Jy (red circles), ghost sources are approximately 0.2~Jy. Each source produces two ghost sources, but because they re-appear after a major cleaning cycle, they are eventually cleaned and produce more ghost sources. }
 \label{fig:aliasing-example}
 \end{center}
 \end{figure}
@@ -185,7 +185,7 @@ The new imager, called ``WSClean'', is written in the C++ language. It reads vis
 It will not be possible to store all $w$-layers in memory when creating large images or when many $w$-layers are used. For example, our 32-GB test machine can store 227 $w$-layers of $3072\times3072$ in memory. In more demanding imaging configurations, the implementation performs several passes over the measurement set and will grid a subset of $w$-layers in each pass.
 
 \subsection{Full-sky imaging}
-For low-frequency telescopes, it can be of interest to do full-sky imaging. In the case of MWA, the tile beam can have strong sidelobes at a distance of more than 90\degree from the pointing centre. Imaging these sidelobes might be relevant because it might either be scientifically interesting (e.g. when searching for transients), or be useful for self-calibration or full-sky deconvolution. For example, the latter is useful when a strong source in a sidelobe affects the sensitivity near the pointing centre.
+For low-frequency telescopes, it can be of interest to do full-sky (i.e., horizon to horizon) imaging. In the case of MWA, the tile beam can have strong sidelobes at a distance of more than 90\degree from the pointing centre. Imaging these sidelobes might be relevant because they are scientifically of interest (e.g. when searching for transients). Full-sky imaging can also be useful for self-calibration or deconvolution. For example, self-calibration using full-sky clean components has been found to give good results in imaging the resolved FR-II radio source Fornax~A (McKinley et al., in prep.).
 
 To efficiently image the full sky, an observation is split into short snapshots, their phase centre is changed to zenith and subsequently a suitable area is imaged. Depending on desired resolution and dynamic range, this might require very large images. To make an image at the MWA resolution, the image needs to have approximately 10K pixels in width and height. The $w$-values will be very small at zenith, because at zenith only the vertical offsets of the antennas will contribute to the $w$-value. For the MWA, the maximum height difference between tiles is $8.5$m. The MWA tiles are in fact on a slight slope, and by fitting a plane to the antennas and changing the phase centre towards the normal of that plane, the maximum $w$-value decreases to $5.5\textrm{m} / \lambda$. In the following sections, when discussing the MWA zenith direction we are referring to this optimal $w$-direction.
 
@@ -215,7 +215,7 @@ Another method to shift an image is by using the periodicity of the FFT function
 \subsection{Gridding} \label{sec:gridding}
 A gridding convolution kernel improves the accuracy of gridding in $uv$-space. A common kernel function is a windowed sinc function, which acts as a low-pass filter. This decreases the flux of sources outside the field of view, and thus helps to attenuate aliased ghost sources and sidelobes that arise because of the assumed periodicity during the inverse FFT \citep{post-correlation-filtering}. By supersampling, a convolution kernel also makes it possible to place samples more accurately at their $uv$ position, thereby lowering decorrelation.
 
-The prolate spheroidal wave function (PSWF) is generally considered to be the optimal windowing function for gridding \citep{fourier-kernel-selection-1991}. CASA convolves samples with a PSWF of 7 pixels total width during gridding. When using a variable kernel size, a PSWF is quite complicated and computational expensive to calculate. WSClean currently uses a Kaiser-Bessel (KB) window function, which is easy and fast to compute, and is a good approximation for the PSWF \citep{fourier-kernel-selection-1991}. After some benchmarks (see Appendix~\ref{sec:gridding-appendix}) we found that 7 pixels is a good compromise between performance and accuracy, and selected this as the default for WSClean.
+The prolate spheroidal wave function (PSWF) is generally considered to be the optimal windowing function for gridding \citep{fourier-kernel-selection-1991}. CASA convolves samples with a PSWF of 7 pixels total width during gridding. When using a variable kernel size, a PSWF is quite complicated and computational expensive to calculate. WSClean currently uses a Kaiser-Bessel (KB) window function, which is easy and fast to compute, and is a good approximation for the PSWF \citep{fourier-kernel-selection-1991}. After some benchmarks (see Appendix~\ref{sec:gridding-appendix}) we found that 7 pixels is a good compromise between performance and accuracy, and this is the default for WSClean.
 
 \section{Analysis} \label{sec:analysis}
 We will now analyse the performance and accuracy of our implementation, and compare it with the w-projection implementation in CASA. For the analysis, we use imaging parameters which are common for MWA Imaging. When a specific parameter value is not mentioned, the settings from Table~\ref{tbl:default-parameters} are used. The number of $w$-projection planes in w-projection is kept equal to the number of $w$-layers in w-stacking, and is set to the right hand side of Eq.~\eqref{eq:nwlayers-bound}. This yields 195 $w$-planes/layers at 10\degree zenith angle. Some configurations with high $w$-values fail to image with CASA, presumably because the $w$-kernels become to large.
@@ -328,43 +328,40 @@ In Panel~\ref{fig:timing-resolution}, the number of pixels in the image is chang
 
 Panel~\ref{fig:timing-channels} shows performance versus the output frequency resolution. The cost of imaging at multiple frequencies is the cost of making an images times the number of frequencies. However, each separate imaging contains a part of the total number of visibilities. As shown before, FFTs become the dominant cost for small visibility sets, and performance and number of frequency images therefore have a linear relation, which is clearly visible from the plot.
 
-TODO: for fairness, also check making 4 polarization images.
+It is important to point out that all these measurement were performed by imaging a single polarization. Making full-polarization images with WSClean currently requires four runs. Imaging four Stokes parameters with CASA costs slightly less than four times the time of imaging a single polarization. With the settings of Table~\ref{tbl:default-parameters}, the difference is a factor of $3.5$, and imaging XX and YY together costs $1.9$ times imaging just XX.
 
 \subsection{Derivation of computing cost formulae}
-Based on the expected cost terms described in Sec.~\ref{sec:time-complexity}, we derive analytical functions for the CASA and WSClean measurements using least-squares fitting. Several functions with different free parameters were tested, and formulae with minimum amount of parameters are selected that still follow the trend of the measurements and have reasonably small errors. The measurements are weighted with the inverse standard deviation. The single outlying measurement of CASA in Fig.~\ref{fig:timing-nsamples} is removed.
+Based on the expected cost terms described in Sec.~\ref{sec:time-complexity}, we derive analytical functions for the CASA and WSClean measurements using least-squares fitting. Several functions with different free parameters were tested, and formulae with minimum amount of parameters are selected that still follow the trend of the measurements and have reasonably small errors. Measurements are weighted with the inverse standard deviation. The single outlying measurement of CASA in Fig.~\ref{fig:timing-nsamples} is removed.
 
-For WSClean's time cost $t_\textrm{WSClean}$ we find 
-\begin{align}\notag
-t_\textrm{WSClean}& (w_e,N_\textrm{vis},N_\textrm{freq},N_\textrm{pix}) = \\ \notag
-& 0.000326 N_\textrm{pix}^2 \log N_\textrm{pix} (w_e + 0.000212) +\\
-\label{eq:wsclean-computing-cost}%
-& 0.252 N_\textrm{vis} - 7.64
+For the WSClean time cost function $t_\textrm{WSClean}$ we find 
+\begin{align}\label{eq:wsclean-computing-cost}
+& t_\textrm{WSClean} (w_e,N_\textrm{Mvis},N_\textrm{freq},N_\textrm{kpix}) = \\ \notag%
+& N_\textrm{chan} \left( 0.452 N_\textrm{kpix}^2 \log_2 N_\textrm{kpix} (w_e + 0.611) + 244 N_\textrm{Mvis} \right)
 \end{align}
 and for CASA we find
-\begin{equation}
-t_\textrm{CASA}(w_e,N_\textrm{vis},N_\textrm{freq},N_\textrm{pix}) = .
+\begin{align}\label{eq:casa-computing-cost}
+& t_\textrm{CASA}(w_e,N_\textrm{vis},N_\textrm{freq},N_\textrm{pix}) = \\ \notag%
+& N_\textrm{chan} \left(1.03 N_\textrm{kpix}^2 \log_2 N_\textrm{kpix} + 5.93 N_\textrm{Mvis} (w_e + 1.71)^2\right) + 172.
 \label{eq:casa-computing-cost}%
-\end{equation}
+\end{align}
 Parameter $w_e$ is the maximum $w$ value and is estimated with
 \begin{equation}
- w_e = \frac{\max |\mathbf{x}| \sin za + \max z \cos za}{\lambda \max |\mathbf{x}|} \left(1.0 - \cos(\frac{1}{2}\textrm{FOV})\right),
+ w_e = \frac{1}{\lambda}\left[\max |\mathbf{x}| \sin \textrm{ZA} + \max z \cos \textrm{ZA} \left(1.0 - \cos(\frac{1}{2}\textrm{FOV})\right)\right],
 \end{equation}
 where $\max |\mathbf{x}|$ is the maximum baseline length, $\max z$ is the maximum height difference between antennas and $\lambda$ is the wavelength.
 
-TODO: actually, $w_e$ should not be normalized by baseline length $\max z$: fix in fits too.
-
-TODO: derive function for $t_\textrm{CASA} = t_\textrm{WSClean}$.
-
-It is possible to combine the $w$-projection and $w$-stacking algorithms by gridding onto several $w$-layers to which large $w$-terms are corrected after the FFT, and using a $w$-correcting kernel for making small $w$-corrections. This allows using small $w$-kernels and limits at the same time the number of FFTs and required memory. The AWImager has been applied like this, which let to better results compared to $w$-projection without $w$-stacking \citep{awimager-2013}. For this scenario, Eq.~\eqref{eq:casa-computing-cost} can be used to determine the optimal number of $w$-layers, or more general the optimal distance between layers, by assuming that the cost of calculating a single $w$-layer equals the cost of imaging the data set with correspondingly smaller $w_e$ value and smaller $N_\textrm{vis}$. If $\Delta w$ is the distance between $w$-layers, then 
+The $w$-projection and $w$-stacking algorithms can be combined by gridding onto several $w$-layers to which large $w$-terms are corrected after the FFTs, and using a $w$-correcting kernel for making small $w$-corrections before the FFTs. This allows using small $w$-kernels and limits at the same time the number of FFTs and required memory. The AWImager has been applied like this, which let to better results compared to $w$-projection without $w$-stacking \citep{awimager-2013}. For this scenario, Eq.~\eqref{eq:casa-computing-cost} can be used to determine the optimal number of $w$-layers, or more generally the optimal distance between layers, by assuming that the cost of calculating a single $w$-layer equals the cost of imaging the data set with correspondingly smaller $w_e$ value and smaller $N_\textrm{vis}$. If $\Delta w$ is the distance between $w$-layers, then 
 \begin{equation}
 t(\Delta w) = \frac{w_e}{\Delta w} t_\textrm{CASA}(w'_e,N'_\textrm{vis},N_\textrm{freq},N_\textrm{pix}),
 \end{equation}
 with $N'_\textrm{vis} = \frac{N_\textrm{vis}\Delta w}{w_e}$ and $w'_e = \Delta w$.
 
+TODO fill in formulae for common surveys, e.g. ESKAP and LOFAR.
+
 \section{Application of WSClean to the MWA}
 For technical reasons, the MWA correlator splits observations in data products of typically a few minutes. This simplifies $w$-snapshot imaging, which can be done by phase rotating each snapshot to zenith with a possibly additional phase-centre shift. 
 
-TODO: calculate when to use w-snapshots
+TODO: calculate when to use w-snapshots: discuss at what is the optimal time to split measurement sets into when using recentering technique.
 TODO: calculate optimum splitting time?
 
 \subsection{Beam correction}
@@ -372,18 +369,12 @@ Because the MWA consists of fixed, beamformed dipole antennas, the voltage beam 
 \begin{equation}\label{eq:beam-correction}
  I(l, m) = J(l,m)^{-1} I'(l, m) \left(J(l,m)^*\right)^{-1},
 \end{equation}
-where each term is a $2\times2$ complex matrices, with $J$ the voltage beam and $^*$ denoting the conjugate transpose. Because $J$ is complex and non-diagonal, all 4 combinations of the cross-correlated polarizations $p$ and $q$\footnote{The instrumental polarizations of the MWA are often referred to as $X$ and $Y$ because many software treats the two polarizations as such. However, this is not correct because $X$ is officially defined as being parallel to the celestial equator.} including the imaginary part of the $pq$ and $qp$ are required to calculate any of the Stokes parameters. The $pp$ and $qq$ have no imaginary part due to the $uv$-symmetry. To make proper MWA beam correction possible, WSClean can output real valued $pp$, $pq$, $qp$, $qq$ images and imaginary $pq$ and $qp$ images. Each polarization requires a separate run of the $w$-stacking algorithm. Once these six images are created, a separate program is used to perform the correction of Eq.~\eqref{eq:beam-correction}. This method avoids expensive beam-correcting kernels during gridding, but only works because all tiles have the same beam. To apply the same method on heterogeneous arrays such as LOFAR, each set of correlations with a different combination of station beams will have to be imaged separately, which will increase the cost of the algorithm. The AWImager uses an intermediate method, and corrects a common dipole factor in image space and the phased-array beam factor in $uv$-space, which allows the gridding kernel to be smaller compared to correcting both in $uv$-space \citep{awimager-2013}.
+where each term is a $2\times2$ complex matrices, with $J$ the voltage beam and $^*$ denoting the conjugate transpose. Because $J$ is complex and non-diagonal, all 4 combinations of the cross-correlated polarizations $p$ and $q$\footnote{The instrumental polarizations of the MWA are informally often referred to as $X$ and $Y$, mainly because many software treats the two polarizations as such. However, this is not correct, because $X$ is defined as being parallel to the celestial equator.} including the imaginary part of the $pq$ and $qp$ are required to calculate any of the Stokes parameters. The $pp$ and $qq$ have no imaginary part due to the $uv$-symmetry. To make proper MWA beam correction possible, WSClean can output both real $pp$, $pq$, $qp$, $qq$ images and imaginary $pq$ and $qp$ images. Each polarization requires a separate run of the $w$-stacking algorithm. Once these six images are created, a separate program is used to perform the correction of Eq.~\eqref{eq:beam-correction}. This method avoids expensive beam-correcting kernels during gridding, but only works because all tiles have the same beam. To apply the same method on heterogeneous arrays such as LOFAR, each set of correlations with a different combination of station beams will have to be imaged separately, which will increase the cost of the algorithm. The AWImager uses an intermediate method, and corrects a common dipole factor in image space and the phased-array beam factor in $uv$-space, which allows the gridding kernel to be smaller compared to correcting both in $uv$-space \citep{awimager-2013}.
 
-\section{Discussion} \label{sec:discussion}
-WSClean has been build out of necessacity to be able to make images with the MWA, because no 
+\section{Discussion \& conclusions} \label{sec:discussion}
+We have shown that the $w$-stacking algorithm is well suited for imaging MWA observations. The WSClean $w$-stacking implementation is faster than CASA's $w$-projection algorithm in all common MWA imaging configurations, and already an order of magnitude faster at a relatively small zenith angle of $10$\degree. At the same time, it is slightly more accurate. For approximately zenith angles $>15\degree$ or field of views $>35\degree$, rephasing visibility sets and performing snapshot imaging becomes worthwhile. This can lead to performance improvements of a factor of $3$ for the MWA. For arrays with longer baselines and higher resolution, snapshot imaging leads to even higher performance improvements. This agrees with \citet{widefield-imaging-ska-cornwell}. Additionally, we have shown that to implement $w$-snapshot imaging, a pure $w$-stacking implementation is likely more efficient than pure $w$-projection. A hybrid between the two might improve things by a few factors. TODO should we calculate some timings with SKA's configuration?
 
-TODO: describe hybrid between w-stacking, w-projection and w-snapshots (if not yet discussed in Cornwell's papers)
-
-TODO: discuss at what is the optimal time to split measurement sets into when using recentering technique.
-
-TODO: A-projection makes the psf more invariant: therefore, truely ``joined'' deconvolution might be more accurate.
-
-TODO: discuss low w-values means less-direction-invariant PSF.
+It remains challenging to joinedly deconvolve observations that are long enough to encur significant changes in the beam shape. It is possible to clean such an observation without beam corrections, but then a constant amount of flux is subtracted over time, which leads to inaccuracies. Alternatively, beam corrections can be made, either by integrating beam-corrected snapshots or by performing $a$-projection. This however leads to a stronger spatially-varying point-spread function, and would allow fewer image-based minor iterations in a major cycle. When it is required to calculate the beam on short time scales, calculating $a$-projection kernels or performing snapshot imaging also becomes much more expensive. For a few hundred components, an approach with direct Fourier transforms is accurate and affordable, but this becomes intractable for thousands of components. Images with diffuse emmission typically require cleaning of more than ten-thousand components. Joined deconvolution is not an issue for achieving low to intermediate dynamic range with the MWA. Because of the excellent instanteneous $uv$-coverage and near-confusion noise level, snapshots can be cleaned individually to deep levels. For example, cleaning to $5\sigma$ level results in a cleaning threshold of approximately 100~mJy in 112~s observations. However, MWA's EoR observations (TODO cite) require more advanced deconvolution techniques.
 
 \section*{Acknowledgments}
 ...
