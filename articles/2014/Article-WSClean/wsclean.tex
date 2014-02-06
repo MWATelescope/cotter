@@ -346,9 +346,20 @@ and for CASA we find
 \end{align}
 Parameter $w_e$ is the maximum $w$ value and is estimated with
 \begin{equation}
- w_e = \frac{1}{\lambda}\left[\max |\mathbf{x}| \sin \textrm{ZA} + \max z \cos \textrm{ZA} \left(1.0 - \cos(\frac{1}{2}\textrm{FOV})\right)\right],
+ w_e = \frac{1}{\lambda}\left[\max |\Delta \mathbf{x}| \sin \textrm{ZA} + \max \Delta z \cos \textrm{ZA} \left(1.0 - \cos(\frac{1}{2}\textrm{FOV})\right)\right],
 \end{equation}
-where $\max |\mathbf{x}|$ is the maximum baseline length, $\max z$ is the maximum height difference between antennas and $\lambda$ is the wavelength.
+where $\max |\Delta \mathbf{x}|$ is the maximum baseline length, $\max \Delta z$ is the maximum height difference between antennas and $\lambda$ is the wavelength.
+
+\begin{table*}
+\begin{tabular}{lrrrrrrr}
+ Survey   & $\lambda$ & FWHM  & Resolution & $\max |\Delta \mathbf{x}|$ & $\max \Delta z$ & int. time & B/$\delta \nu$ \\
+\hline
+ GLEAM    &           &       & 2'     & 2.9~km & 5~m & 2~s & 32~MHz/40~kHz\\
+ EMU wide & 20 cm  & 1\degree & 10''    & 6~km &  0~m &     & ?/?\\
+ MSSS low &  5 m   & 9.8\degree & 100'' & 5~km &      &10~s & 16~MHz/4~khZ\\
+ MSSS high&  2 m   & 3.8\degree & 120'' & 5~km &      &10~s & 16~MHz/4~khZ\\
+\end{tabular}
+\end{table*}
 
 The $w$-projection and $w$-stacking algorithms can be combined by gridding onto several $w$-layers to which large $w$-terms are corrected after the FFTs, and using a $w$-correcting kernel for making small $w$-corrections before the FFTs. This allows using small $w$-kernels and limits at the same time the number of FFTs and required memory. The AWImager has been applied like this, which let to better results compared to $w$-projection without $w$-stacking \citep{awimager-2013}. For this scenario, Eq.~\eqref{eq:casa-computing-cost} can be used to determine the optimal number of $w$-layers, or more generally the optimal distance between layers, by assuming that the cost of calculating a single $w$-layer equals the cost of imaging the data set with correspondingly smaller $w_e$ value and smaller $N_\textrm{vis}$. If $\Delta w$ is the distance between $w$-layers, then 
 \begin{equation}
