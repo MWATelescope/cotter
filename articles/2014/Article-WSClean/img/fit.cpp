@@ -108,18 +108,18 @@ double eval(FittingFunc func, double za, double nVis, double nPix, double fov, d
 {
 	if(func == WSCleanFunc) {
 		double we = sinZA(za, lambda, maxBaselineM, maxHeightDiffM) * fovFact(fov);
-		return nChan * (a * (we+b)*nPix*nPix*log2(nPix) + c * nVis/nChan) + d;
+		return nChan * (a * (we+b)*nPix*nPix*log2(nPix) + d) + c * nVis;
 	}
 	else if(func == WSSCleanFunc) {
-		return nChan * (a *nPix*nPix*log2(nPix) + b * nVis/nChan) + c;
+		return nChan * a *nPix*nPix*log2(nPix) + b * nVis + c;
 	}
 	else if(func == CASAFunc) {
-		double we = (sinZA(za, lambda, maxBaselineM, maxHeightDiffM) * fovFact(fov) + d);
-		return nChan * (a * nPix*nPix*log2(nPix) + b * nVis/nChan * we * we) + f;
+		double we = sinZA(za, lambda, maxBaselineM, maxHeightDiffM) * fovFact(fov);
+		return nChan * a * nPix*nPix*log2(nPix) + b * nVis * (we * we + d) + f;
 	}
 	else {
 		double we = maxHeightDiffM/lambda * fovFact(fov);
-		return nChan * (a * (we+b)*nPix*nPix*log2(nPix) + c * nVis/nChan) + d;
+		return nChan * a * (we+b)*nPix*nPix*log2(nPix) + c * nVis + d;
 	}
 }
 
@@ -134,47 +134,6 @@ double eval(FittingFunc func, double za, double nVis, double nPix, double fov, d
 		default:
 			return 0.0;
 	}
-}
-
-void evalSurveyConfig(const std::string& desc, double lambda, double fwhm, size_t beams, double intTimeSec, double bandWidth, double freqRes, size_t antennas, double angRes, double maxBaseline, double maxDiffHeight, FittingFunc func, double a, double b, double c, double d, double e, double f)
-{
-	const double duration = 10.0 * 60.0;
-	const double za1 = 10.0, za2 = 20.0;
-	double nMVis = bandWidth / freqRes * (antennas * (antennas-1))/2 * (duration/intTimeSec) * 1e-6;
-	const double nKPix = 5.0 * fwhm/(angRes*1000.0);
-	const double nChan = 1;
-	if(func == WSSCleanExtrapolatedFunc)
-	{
-		nMVis *= 300.0 / duration;
-	}
-	const double we1 = sinZA(za1, lambda, maxBaseline, maxDiffHeight) * fovFact(fwhm);
-	const double we2 = sinZA(za2, lambda, maxBaseline, maxDiffHeight) * fovFact(fwhm);
-	const double majorIterationCount = 10;
-	double time1 = majorIterationCount * double(beams) * eval(func, za1, nMVis, nKPix, fwhm, nChan, a, b, c, d, e, f, lambda, maxBaseline, maxDiffHeight);
-	double time2 = majorIterationCount * double(beams) * eval(func, za2, nMVis, nKPix, fwhm, nChan, a, b, c, d, e, f, lambda, maxBaseline, maxDiffHeight);
-	if(func == WSSCleanExtrapolatedFunc)
-	{
-		time1 *= duration / 300.0;
-		time2 *= duration / 300.0;
-	}
-	std::cout << "== " << desc << " ==\n"
-		<< "ZA=" << za1 << ", MVis=" << nMVis << ", nKPix=" << nKPix << ", nChan=" << nChan << ", we=" << we1 << '\n'
-		<< "Time: " << time1 << " " << floor(time1/60.0/60.0)  << " h " << round(fmod(time1/60.0, 60.0)) << " m\n"
-		<< "ZA=" << za2 << ", MVis=" << nMVis << ", nKPix=" << nKPix << ", nChan=" << nChan << ", we=" << we2 << '\n'
-		<< "Time: " << time2 << " " << floor(time2/60.0/60.0)  << " h " << round(fmod(time2/60.0, 60.0)) << " m\n";
-}
-
-void evalSurveys(FittingFunc func, double a, double b, double c, double d, double e, double f)
-{
-	evalSurveyConfig("GLEAM",     2.0, 24.7,  1, 2.0, 32000.0, 40.0, 128,    2.0/60.0, 2900.0, 5.5, func, a, b, c, d, e, f);
-
-	evalSurveyConfig("EMU Wide", 0.20,  1.0, 30,10.0, 300000.0,20.0,  36, 10.0/3600.0, 6000.0, 0.0, func, a, b, c, d, e, f);
-
-	evalSurveyConfig("MSSS low",  5.0,  9.8,  5,10.0, 16000.0,  4.0,  20,100.0/3600.0, 5000.0, 5.5, func, a, b, c, d, e, f);
-
-	evalSurveyConfig("MSSS high", 2.0,  3.8,  5,10.0, 16000.0,  4.0,  40,120.0/3600.0, 5000.0, 5.5, func, a, b, c, d, e, f);
-
-	evalSurveyConfig("VLSS",      4.1,   14,  1,10.0,  1560.0,12.1875,  27, 80.0/3600.0,11100.0, 0.0, func, a, b, c, d, e, f);
 }
 
 double evalWE(FittingFunc func, double we, double nVis, double nPix, double nChan, double a, double b, double c, double d, double e, double f)
@@ -280,12 +239,12 @@ int fitFuncDeriv(const gsl_vector *xvec, void *data, gsl_matrix *J)
 				nChan = fittingInfo.samples[i].nChan;
 			
 			if(fittingInfo.func == WSCleanFunc)
-			{ // nChan * (a * (we+b)*nPix*nPix*log2(nPix) + c * nVis) + d;
+			{ // nChan * (a * (we+b)*nPix*nPix*log2(nPix) + d) + c * nVis
 				double we = sinZA(za) * fovFact(fov);
 				da = nChan * (we+b)*nPix*nPix*log2(nPix);
 				db = fixDW ? 0.0 : nChan * a*nPix*nPix*log2(nPix);
 				dc = nVis;
-				dd = fixConstant ? 0.0 : 1.0;
+				dd = fixConstant ? 0.0 : nChan;
 			}
 			else if(fittingInfo.func == WSSCleanFunc)
 			{ // nChan * (a *nPix*nPix*log2(nPix) + b * nVis/nChan) + c;
@@ -293,12 +252,13 @@ int fitFuncDeriv(const gsl_vector *xvec, void *data, gsl_matrix *J)
 				db = nVis;
 				dc = fixConstant ? 0.0 : 1.0;
 			}
-			else { // nChan * (a * nPix*nPix*log2(nPix) + b * nVis/nChan * we * we) + f;
-				double we = sinZA(za) * fovFact(fov) + d;
+			else { // nChan * (a * nPix*nPix*log2(nPix) + b * nVis/nChan * (we * we + d)) + f;
+				double we = sinZA(za) * fovFact(fov);
 				da = nChan * nPix*nPix*log2(nPix);
-				db = nChan * 2.0 * we * we;
+				db = nVis * 2.0 * (we * we + d);
 				dc = 0.0;
-				dd = fixDW ? 0.0 : nChan * b * 2.0 * (d + sinZA(za) * fovFact(fov));
+//				dd = fixDW ? 0.0 : nChan * b * 2.0 * (d + sinZA(za) * fovFact(fov));
+				dd = fixDW ? 0.0 : nVis * b;
 				de = 0.0;
 				df = fixConstant ? 0.0 : 1.0;
 			}
@@ -427,11 +387,12 @@ void fit(FittingInfo& info, double& a, double& b, double& c, double& d)
 
 void readFile(std::vector<std::pair<double, TimingRecord>>& valueArray, const std::string& filename)
 {
-	std::cout << "Reading " << filename << ".\n";
+	std::cout << "Reading " << filename << "... ";
 	std::ifstream file(filename);
 	std::string line;
 	if(file.bad())
 		throw std::runtime_error("Could not read file " + filename);
+	size_t lines = 0;
 	while(file.good())
 	{
 		std::getline(file, line);
@@ -441,8 +402,10 @@ void readFile(std::vector<std::pair<double, TimingRecord>>& valueArray, const st
 		if(parseLine(line, desc, val, time))
 		{
 			valueArray.push_back(std::make_pair(val, time));
+			++lines;
 		}
 	}
+	std::cout << lines << " lines.\n";
 }
 
 void addSample(std::vector<Sample>& samples, const Sample& sample)
@@ -737,7 +700,60 @@ void optimalDeltaT(FittingFunc func, const std::string& filename, double a, doub
 	}
 	dt = minDT;
 	double tNormal = eval(func, za, nVis, nPix, fov, nChan, a, b, c, d, e, fz);
-	std::cout << "Optimal snapshot time: " << minDT << " (time=" << minY << " vs " << tNormal << ")\n";
+	std::cout << "Optimal snapshot time: " << minDT << " (time=" << minY << " or " << floor(minY/60.0/60.0)  << " h " << round(fmod(minY/60.0, 60.0)) << " m" << " , vs " << tNormal << ")\n";
+}
+
+void evalSurveyConfig(const std::string& desc, double lambda, double fwhm, size_t beams, double intTimeSec, double bandWidth, double freqRes, size_t antennas, double angRes, double maxBaseline, double maxDiffHeight, FittingFunc func, double a, double b, double c, double d, double e, double f)
+{
+	const double duration = 10.0 * 60.0;
+	const double za1 = 10.0, za2 = 20.0;
+	double nMVis = bandWidth / freqRes * (antennas * (antennas-1))/2 * (duration/intTimeSec) * 1e-6;
+	const double nKPix = 5.0 * fwhm/(angRes*1000.0);
+	const double nChan = 1;
+	if(func == WSSCleanExtrapolatedFunc)
+	{
+		nMVis *= 300.0 / duration;
+	}
+	const double we1 = sinZA(za1, lambda, maxBaseline, maxDiffHeight) * fovFact(fwhm);
+	const double we2 = sinZA(za2, lambda, maxBaseline, maxDiffHeight) * fovFact(fwhm);
+	const double majorIterationCount = 10;
+	double time1 = majorIterationCount * double(beams) * eval(func, za1, nMVis, nKPix, fwhm, nChan, a, b, c, d, e, f, lambda, maxBaseline, maxDiffHeight);
+	double time2 = majorIterationCount * double(beams) * eval(func, za2, nMVis, nKPix, fwhm, nChan, a, b, c, d, e, f, lambda, maxBaseline, maxDiffHeight);
+	if(func == WSSCleanExtrapolatedFunc)
+	{
+		time1 *= duration / 300.0;
+		time2 *= duration / 300.0;
+	}
+	std::cout << "== " << desc << " ==\n"
+		<< "ZA=" << za1 << ", MVis=" << nMVis << ", nKPix=" << nKPix << ", nChan=" << nChan << ", we=" << we1 << '\n'
+		<< "Time: " << time1 << " " << floor(time1/60.0/60.0)  << " h " << round(fmod(time1/60.0, 60.0)) << " m\n"
+		<< "ZA=" << za2 << ", MVis=" << nMVis << ", nKPix=" << nKPix << ", nChan=" << nChan << ", we=" << we2 << '\n'
+		<< "Time: " << time2 << " " << floor(time2/60.0/60.0)  << " h " << round(fmod(time2/60.0, 60.0)) << " m\n";
+	if(func != WSSCleanFunc && func != WSSCleanExtrapolatedFunc)
+	{
+		double dt;
+		std::string filename = func == WSCleanFunc ? "dt-wsclean.txt" : "dt-casa.txt";
+		optimalDeltaT(func, filename, a, b, c, d, e, f, za2, nMVis, nKPix, fwhm, nChan, false, dt);
+	}
+}
+
+void evalSurveys(FittingFunc func, double a, double b, double c, double d, double e, double f)
+{
+	evalSurveyConfig("GLEAM",     2.0, 24.7,  1, 2.0, 32000.0, 40.0, 128,    2.0/60.0, 2900.0, 5.5, func, a, b, c, d, e, f);
+
+	evalSurveyConfig("EMU Wide", 0.20,  1.0, 30,10.0, 300000.0,20.0,  36, 10.0/3600.0, 6000.0, 0.0, func, a, b, c, d, e, f);
+
+	evalSurveyConfig("MSSS low",  5.0,  9.8,  5,10.0, 16000.0,  4.0,  20,100.0/3600.0, 5000.0, 5.5, func, a, b, c, d, e, f);
+
+	evalSurveyConfig("MSSS high", 2.0,  3.8,  5,10.0, 16000.0,  4.0,  40,120.0/3600.0, 5000.0, 5.5, func, a, b, c, d, e, f);
+
+	evalSurveyConfig("AARTFAAC",  5.0, 45.0,  1, 1.0,  7000.0, 24.0, 288,   20.0/60.0,  300.0, 1.0, func, a, b, c, d, e, f);
+
+	evalSurveyConfig("VLSS",      4.1,   14,  1,10.0,  1560.0,12.1875,27, 80.0/3600.0,11100.0, 0.0, func, a, b, c, d, e, f);
+	
+	evalSurveyConfig("SKA-P1 AA inner",2.3,1.2,480,1.0,380000.0,   1.0,  35,140.0/3600.0,2500.0, 2.0, func, a, b, c, d, e, f);
+	
+	evalSurveyConfig("SKA-P1 AA mid"  ,2.3,1.2,480,1.0,380000.0,   1.0,  50,  3.5/3600.0,100000.0, 50.0, func, a, b, c, d, e, f);
 }
 
 void fitAllWSClean()
@@ -751,17 +767,19 @@ void fitAllWSClean()
 	readZAFile(samples, "benchmark-zenith-angle/timings-za3072-wsclean.txt", 3072, 349.6, 36.864, 1, 1.0);
 	readZAFile(samples, "benchmark-zenith-angle/timings-za2048-wsclean.txt", 2048, 349.6, 24.576, 1, 1.0);
 	readFOVFile(samples, "benchmark-fov/timings-zenith-fov-wsc.txt", 0.0, 3072, 349.6, 1, 1.0);
-	readNChanFile(samples, "benchmark-channels/timings-channels-wsc.txt", 0.0, 3072, 349.6, 24.576, 1.0);
+	readNChanFile(samples, "benchmark-channels/timings-channels-wsclean.txt", 0.0, 3072, 349.6, 24.576, 1.0);
 	std::cout << "Read " << samples.size() << " values.\n";
 	printDuplicates(samples);
 	FittingInfo info;
 	info.n = samples.size();
 	info.samples = samples.data();
 	info.func = WSCleanFunc;
-	fixConstant = true;
 	double a = 1.0, b = 0.0, c = 1.0, d = 0.0, e = 0.0, f = 0.0;
+	fixConstant = true;
 	fit(info, a, b, c, d, e, f);
-	std::cout << "Nchan (" << a << " Npix^2 log Npix ((1-sqrt(1-tan(0.5fov)^2)) sin ZA + " << b << ") + " << c << " Nvis) + " << d << "\n";
+	fixConstant = false;
+	fit(info, a, b, c, d, e, f);
+	std::cout << "Nchan (" << a << " Npix^2 log Npix fovFact sin ZA + " << b << ") + " << c << " Nvis) + " << d << "\n";
 	writeNVisFit("benchmark-nsamples/fit-zenith-wsc.txt", info.func, a, b, c, d, e, f, 0.0, 3.072, 36.864, 1);
 	writeNVisFit("benchmark-nsamples/fit-ZA010-wsc.txt", info.func, a, b, c, d, e, f, 10.0, 3.072, 36.864, 1);
 	writeNPixFit("benchmark-resolution/fit-zenith-wsclean.txt", info.func, a, b, c, d, e, f, 0.0, 349.6, 36.864, 1);
@@ -773,8 +791,6 @@ void fitAllWSClean()
 	writeNChanFit("benchmark-channels/fit-zenith-wsc.txt", info.func, a, b, c, d, e, f, 0.0, 3.072, 349.6, 36.864);
 	calculateStdError(samples, info.func, a, b, c, d, e, f);
 	double dt;
-	optimalDeltaT(info.func, "wsclean-dt-ZA010.txt", a, b, c, d, e, f, 10.0, 349.6, 3.072, 36.864, 1, false, dt);
-	optimalDeltaT(info.func, "wsclean-dt-zenith.txt", a, b, c, d, e, f, 0.0, 349.6, 3.072, 36.864, 1, false, dt);
 	evalSurveys(info.func, a, b, c, d, e, f);
 	std::cout << "***\n*** SNAPSHOT WSCLEAN EXTROPOLATED FROM WSCLEAN RESULTS\n***\n";
 	evalSurveys(WSSCleanExtrapolatedFunc, a, b, c, d, e, f);
@@ -841,7 +857,7 @@ void fitAllCASA()
 	fit(info, a, b, c, d, e, f);
 	fixDW = false;
 	fit(info, a, b, c, d, e, f);
-	std::cout << "t = Nchan (" << a << " Npix^2 log Npix + " << b << " Nvis (sin ZA * fov + " << d << ")^2) + " << f << '\n';
+	std::cout << "t = Nchan (" << a << " Npix^2 log Npix + " << b << " Nvis (sin ZA * fov)^2 + " << b*d << " Nvis + " << f << '\n';
 	writeNVisFit("benchmark-nsamples/fit-zenith-casa.txt", info.func, a, b, c, d, e, f, 0.0, 3.072, 36.864, 1);
 	writeNVisFit("benchmark-nsamples/fit-ZA010-casa.txt", info.func, a, b, c, d, e, f, 10.0, 3.072, 36.864, 1);
 	writeNPixFit("benchmark-resolution/fit-zenith-casa.txt", info.func, a, b, c, d, e, f, 0.0, 349.6, 36.864, 1);
@@ -853,9 +869,6 @@ void fitAllCASA()
 	writeNChanFit("benchmark-channels/fit-zenith-casa.txt", info.func, a, b, c, d, e, f, 0.0, 3.072, 349.6, 36.864);
 	calculateStdError(samples, info.func, a, b, c, d, e, f);
 	optimalDeltaW(samples, info.func, a, b, c, d, e, f);
-	double dt;
-	optimalDeltaT(info.func, "casa-dt-ZA010.txt", a, b, c, d, e, f, 10.0, 349.6, 3.072, 36.864, 1, false, dt);
-	optimalDeltaT(info.func, "casa-dt-zenith.txt", a, b, c, d, e, f, 0.0, 349.6, 3.072, 36.864, 1, false, dt);
 	evalSurveys(info.func, a, b, c, d, e, f);
 }
 

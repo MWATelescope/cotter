@@ -27,6 +27,7 @@ fit-all:	fit
 plots:	benchmark-zenith-angle/za.plt benchmark-nsamples/nsamples.plt benchmark-resolution/resolution.plt
 	cd benchmark-resolution ; gnuplot resolution.plt ; cd ..
 	cd benchmark-nsamples ; gnuplot nsamples.plt ; cd ..
+	cd benchmark-nsamples ; gnuplot nsamples-fit.plt ; cd ..
 	cd benchmark-zenith-angle ; gnuplot za.plt ; cd ..
 	cd benchmark-fov ; gnuplot fov.plt ; cd ..
 	cd benchmark-fov ; gnuplot fov-fit.plt ; cd ..

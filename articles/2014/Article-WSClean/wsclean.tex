@@ -350,37 +350,44 @@ Parameter $w_e$ is the maximum $w$ value and is estimated with
 \end{equation}
 where $\max |\Delta \mathbf{x}|$ is the maximum baseline length, $\max \Delta z$ is the maximum height difference between antennas and $\lambda$ is the wavelength.
 
+TODO say something about error of analytical function vs measurements.
+
 \begin{table*}
 \caption{Predicted imaging times for various surveys, based on multi-frequency synthesis with 5 major iterations observing for 1 hour at ZA=20\degree.  Predictions are for $w$-projection in CASA, $w$-stacking with WSClean and $w$-stacked 12$\times$5-min snapshots with WSClean, with approximately equal accuracy.}
 \begin{tabular}{lrrrrrrrrrr|rrr}
- Survey   & $\lambda$ & FWHM  & Beams & Ant & Res & $\max |\Delta \mathbf{x}|$ & $\max \Delta z$ & int. t & BW & $\Delta \nu$ & $w$-proj & $w$-stack & $w$-snaps \\
-          &           &       &       &     &     & (km)                       &                 & (s)    & (MHz) &  (kHz) &  &  & \\
+ Configuration&$\lambda$&FWHM  & Beams & Ant & Res & $\max |\Delta \mathbf{x}|$ & $\max \Delta z$ & int. t & BW & $\Delta \nu$ & $w$-proj & $w$-stack & $w$-snaps \\
+          & (m)       &       &       &     &     & (km)                       & (m)             & (s)    & (MHz) &  (kHz) &  &  & \\
 \hline
- GLEAM    &  2 m   & 24.7\degree& 1    & 128 & 2'   & 2.9 & 5~m & 2 & 32 & 40     &14h 02m & 1h 52 m & 1h 23m \\
- EMU      & 20 cm  & 1\degree   & 36   &  36 & 10''  & 6 &  0~m &10 & 300 & 20    &19h 49m &14h 12 m & 14h 13m\\
- MSSS low &  5 m   & 9.8\degree & 5    &  20 & 100'' & 5 &      &10 & 16 & 16     & 2h 30m & 0h 11 m & 0h 11m\\
- MSSS high&  2 m   & 3.8\degree & 5    &  40 & 120'' & 5 &      &10 & 16 & 16     & 2h 31m & 0h 38 m & 0h 39m\\
- VLSS     & 4.1 m  & 14\degree  & 1    &  27 &  80'' &11.1& 0~m &10 & 1.56 & 12.2 & 0h 32m & 0h 12 m & 0h 02m\\
+ GLEAM    &  2   & 24.7\degree& 1    & 128 & 2'   & 2.9 & 5 & 2 & 32 & 40     &14h 02m & 1h 52 m & 1h 23m \\
+ EMU      & 0.2  & 1\degree   & 30   &  36 & 10''  & 6 &  0 &10 & 300 & 20    &19h 49m &14h 12 m & 14h 13m\\
+ MSSS low &  5   & 9.8\degree & 5    &  20 & 100'' & 5 &    &10 & 16 & 16     & 2h 30m & 0h 11 m & 0h 11m\\
+ MSSS high&  2   & 3.8\degree & 5    &  40 & 120'' & 5 &    &10 & 16 & 16     & 2h 31m & 0h 38 m & 0h 39m\\
+ AARTFAAC &  5   & 45\degree  & 1    & 288 &  20'  & 0.3& 1 & 1 &  7 & 24     & & & \\
+ VLSS     & 4.1  & 14\degree  & 1    &  27 &  80'' &11.1& 0 &10 & 1.56 & 12.2 & 0h 32m & 0h 12 m & 0h 02m\\
+ SKA-P1 AA inner&3& 1.2\degree& 480  &  35 & 140'' &2.5& 2 &1.2 & 380 & 1     &       &         &      \\
+ SKA-P1 AA mid&3 & 1.2\degree & 480  &  50 & 3.5'' &100& 50 &1.2 & 380 & 1     &       &         &      \\
 \end{tabular}
 \end{table*}
 
-\subsection{Optimal snapshot time}
-The computing time of snapshot imaging can be expressed in either of the $w$-correction techniques. Snapshot imaging effectively removes the dependency on ZA from $w_e$. Given the snapshot time $\Delta t_\textrm{snapshot}$ and the total time $\Delta t_\textrm{total}$, the total time cost of inversion becomes
-\begin{equation}
-t(\Delta t_\textrm{snapshot}) = \frac{\Delta t_\textrm{total}}{\Delta t_\textrm{snapshot}} t_\textrm{imaging}(w'_e,N'_\textrm{vis},N_\textrm{freq},N_\textrm{pix}),
+\subsection{Optimal snapshot duration}
+Snapshot imaging can in theory be implemented with either $w$-projection or $w$-stacking. Using the derived formula, we can estimate the cost of making snapshots with both techniques. Snapshot imaging effectively removes the dependency on ZA from $w_e$. Given the snapshot duration $\Delta \tau_\textrm{snapshot}$ and the total integration time $\Delta \tau_\textrm{total}$, the total time cost of inversion becomes
+\begin{equation} \label{eq:snapshot-cost}
+t_\textrm{snapshot}(\Delta \tau_\textrm{snapshot}) = \frac{\Delta \tau_\textrm{total}}{\Delta \tau_\textrm{snapshot}} t_\textrm{imaging}(w'_e,N'_\textrm{vis},N_\textrm{freq},N_\textrm{pix}),
 \end{equation}
 with
 \begin{equation}
-w'_e = \frac{1}{\lambda}\max \Delta z \left(1.0 - \cos(\frac{1}{2}(\textrm{FOV} + \angle t_\textrm{snapshot})\right)
+w'_e = \frac{1}{\lambda}\max \Delta z \left(1.0 - \cos(\frac{1}{2}(\textrm{FOV} + \omega_E \tau_\textrm{snapshot})\right),
 \end{equation}
-and $N'_\textrm{vis} = \frac{N_\textrm{vis}\Delta t_\textrm{total}}{t_\textrm{snapshot}}$. This function can be minimized to find the optimal snapshot time. For WSClean with MWA parameters, we find this function does not reach its minimum within 24~h, suggesting that the optimal snapshot time is as long as possible. This implies that the change in in performance due to higher $w$-values because of Earth rotation during an individual snapshot is less significant than the cost of the additional FFTs. For $w$-projection in CASA we find an optimal snapshot time of 122~seconds.
+$\omega_E$ the rotational speed of the Earth and $N'_\textrm{vis} = N_\textrm{vis}\frac{\Delta \tau_\textrm{total}}{\tau_\textrm{snapshot}}$. We have excluded the cost of phase shifting the visibilities and gridding. The cost for regridding with simple nearest neighbour or bilinair interpolation is indeed negligable, although more accurate interpolation (e.g. Lanczos interpolation) can be expensive. Also, our current implementation of the phase-changing program does take a non-negligable time, but this implementation is not optimized and can in theory be implemented in a preprocessing pipeline or on the fly during imaging.
 
-\subsection{Optimal $w$-project/$w$-stacking combination}
-The $w$-projection and $w$-stacking algorithms can be combined by gridding onto several $w$-layers to which large $w$-terms are corrected after the FFTs, and using a $w$-correcting kernel for making small $w$-corrections before the FFTs. This allows using small $w$-kernels and limits at the same time the number of FFTs and required memory. The AWImager has been applied like this, which let to better results compared to $w$-projection without $w$-stacking \citep{awimager-2013}. For this scenario, Eq.~\eqref{eq:casa-computing-cost} can be used to determine the optimal number of $w$-layers, or more generally the optimal distance between layers, by assuming that the cost of calculating a single $w$-layer equals the cost of imaging the data set with correspondingly smaller $w_e$ value and smaller $N_\textrm{vis}$. If $\Delta w$ is the distance between $w$-layers, then 
+Function $t_\textrm{snapshot}$ can be minimized to find the optimal snapshot duration. For WSClean with MWA parameters, we find that this function decreases but no minimum is reached for $\Delta \tau_\textrm{snapshot}<24$~h. Therefore, from a performance perspective, the snapshot duration should be as large as possible. For $w$-projection in CASA we find an optimal snapshot duration of 122~s for MWA observations.
+
+\subsection{Combination of $w$-projection and $w$-stacking}
+To combine the $w$-projection and $w$-stacking algorithms, small $w$-corrections are made before the FFTs using a $w$-correcting kernel and large $w$-terms are corrected after the FFTs by gridding onto several $w$-layers. This allows using small $w$-kernels and limits at the same time the number of FFTs and required memory. The AWImager has been applied like this, which let to better results compared to $w$-projection without $w$-stacking \citep{awimager-2013}. For this scenario, Eq.~\eqref{eq:casa-computing-cost} can be used to determine the optimal number of $w$-layers, or more generally the optimal distance between layers, by assuming that the cost of calculating a single $w$-layer equals the cost of imaging the data set with correspondingly smaller $w_e$ value and smaller $N_\textrm{vis}$. If $\Delta w$ is the distance between $w$-layers, then 
 \begin{equation}
 t(\Delta w) = \frac{w_e}{\Delta w} t_\textrm{CASA}(w'_e,N'_\textrm{vis},N_\textrm{freq},N_\textrm{pix}),
 \end{equation}
-with $N'_\textrm{vis} = \frac{N_\textrm{vis}\Delta w}{w_e}$ and $w'_e = \Delta w.
+with $N'_\textrm{vis} = N_\textrm{vis}\frac{\Delta w}{w_e}$ and $w'_e = \Delta w$.
 
 \section{Application of WSClean to the MWA}
 For technical reasons, the MWA correlator splits observations in data products of typically a few minutes. This simplifies $w$-snapshot imaging, which can be done by phase rotating each snapshot to zenith with a possibly additional phase-centre shift. 
@@ -400,6 +407,8 @@ We have shown that the $w$-stacking algorithm is well suited for imaging MWA obs
 
 It remains challenging to joinedly deconvolve observations that are long enough to encur significant changes in the beam shape. It is possible to clean such an observation without beam corrections, but then a constant amount of flux is subtracted over time, which leads to inaccuracies. Alternatively, beam corrections can be made, either by integrating beam-corrected snapshots or by performing $a$-projection. This however leads to a stronger spatially-varying point-spread function, and would allow fewer image-based minor iterations in a major cycle. When it is required to calculate the beam on short time scales, calculating $a$-projection kernels or performing snapshot imaging also becomes much more expensive. For a few hundred components, an approach with direct Fourier transforms is accurate and affordable, but this becomes intractable for thousands of components. Images with diffuse emmission typically require cleaning of more than ten-thousand components. Joined deconvolution is not an issue for achieving low to intermediate dynamic range with the MWA. Because of the excellent instanteneous $uv$-coverage and near-confusion noise level, snapshots can be cleaned individually to deep levels. For example, cleaning to $5\sigma$ level results in a cleaning threshold of approximately 100~mJy in 112~s observations. However, MWA's EoR observations (TODO cite) require more advanced deconvolution techniques.
 
+TODO discuss fact that w-projection needs layers for multi-threading.
+
 \section*{Acknowledgments}
 ...
 \appendix
@@ -408,7 +417,7 @@ It remains challenging to joinedly deconvolve observations that are long enough 
 \begin{figure}
 \begin{center}
 \includegraphics[width=8cm]{img/benchmark-kernelsize/kernel}
-\caption{Effect of antialiasing kernel size on performance.}
+\caption{Effect of antialiasing-kernel size on performance.}
 \label{fig:timing-kernelsize}
 \end{center}
 \end{figure}
