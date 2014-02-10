@@ -244,6 +244,18 @@ void processField(
 			fieldTable.rwKeywordSet().define(RecordFieldId("WSCLEAN_DL"), dl);
 			fieldTable.rwKeywordSet().define(RecordFieldId("WSCLEAN_DM"), dm);
 		}
+		else {
+			if(fieldTable.keywordSet().isDefined("WSCLEAN_DL"))
+			{
+				fieldTable.rwKeywordSet().removeField(RecordFieldId("WSCLEAN_DL"));
+				std::cout << "Removing WSCLEAN_DL keyword.\n";
+			}
+			if(fieldTable.keywordSet().isDefined("WSCLEAN_DM"))
+			{
+				fieldTable.rwKeywordSet().removeField(RecordFieldId("WSCLEAN_DM"));
+				std::cout << "Removing WSCLEAN_DM keyword.\n";
+			}
+		}
 	}
 }
 
