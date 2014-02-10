@@ -11,7 +11,7 @@
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_multifit_nlin.h>
 
-bool fixDW = false, fixConstant = false;
+bool fixDW = false, fixConstant = false, fixZAOffset = false;
 
 double sinZA(double za, double lambda = 1.64, double maxBaselineM = 2900.0, double maxHeightDiffM = 5.5)
 {
@@ -114,7 +114,7 @@ double eval(FittingFunc func, double za, double nVis, double nPix, double fov, d
 		return nChan * a *nPix*nPix*log2(nPix) + b * nVis + c;
 	}
 	else if(func == CASAFunc) {
-		double we = sinZA(za, lambda, maxBaselineM, maxHeightDiffM) * fovFact(fov);
+		double we = (sinZA(za, lambda, maxBaselineM, maxHeightDiffM) + e) * fovFact(fov);
 		return nChan * a * nPix*nPix*log2(nPix) + b * nVis * (we * we + d) + f;
 	}
 	else {
@@ -145,8 +145,8 @@ double evalWE(FittingFunc func, double we, double nVis, double nPix, double nCha
 		return nChan * (a *nPix*nPix*log2(nPix) + b * nVis/nChan) + c;
 	}
 	else {
-		we = we + d;
-		return nChan * (a * nPix*nPix*log2(nPix) + b * nVis/nChan * we * we) + f;
+		we = we + e;
+		return nChan * a * nPix*nPix*log2(nPix) + b * nVis * (we * we + d) + f;
 	}
 }
 
@@ -253,13 +253,14 @@ int fitFuncDeriv(const gsl_vector *xvec, void *data, gsl_matrix *J)
 				dc = fixConstant ? 0.0 : 1.0;
 			}
 			else { // nChan * (a * nPix*nPix*log2(nPix) + b * nVis/nChan * (we * we + d)) + f;
-				double we = sinZA(za) * fovFact(fov);
+				double e = gsl_vector_get(xvec, 4);
+				double we = (sinZA(za) + e) * fovFact(fov);
 				da = nChan * nPix*nPix*log2(nPix);
 				db = nVis * 2.0 * (we * we + d);
 				dc = 0.0;
 //				dd = fixDW ? 0.0 : nChan * b * 2.0 * (d + sinZA(za) * fovFact(fov));
 				dd = fixDW ? 0.0 : nVis * b;
-				de = 0.0;
+				de = fixZAOffset ? 0.0 : b * nVis * 2.0 * (e * fovFact(fov) * fovFact(fov) + sinZA(za) * fovFact(fov));
 				df = fixConstant ? 0.0 : 1.0;
 			}
 			gsl_matrix_set(J, i, 4, de*w);
@@ -726,7 +727,7 @@ void evalSurveyConfig(const std::string& desc, double lambda, double fwhm, size_
 	}
 	std::cout << "== " << desc << " ==\n"
 		<< "ZA=" << za1 << ", MVis=" << nMVis << ", nKPix=" << nKPix << ", nChan=" << nChan << ", we=" << we1 << '\n'
-		<< "Time: " << time1 << " " << floor(time1/60.0/60.0)  << " h " << round(fmod(time1/60.0, 60.0)) << " m\n"
+		<< "Time: " << time1 << " (" << floor(time1/60.0/60.0/24.0) << ") " << floor(time1/60.0/60.0)  << " h " << round(fmod(time1/60.0, 60.0)) << " m\n"
 		<< "ZA=" << za2 << ", MVis=" << nMVis << ", nKPix=" << nKPix << ", nChan=" << nChan << ", we=" << we2 << '\n'
 		<< "Time: " << time2 << " " << floor(time2/60.0/60.0)  << " h " << round(fmod(time2/60.0, 60.0)) << " m\n";
 	if(func != WSSCleanFunc && func != WSSCleanExtrapolatedFunc)
@@ -789,6 +790,7 @@ void fitAllWSClean()
 	writeFOVFit("benchmark-fov/fit-zenith-fov-wsc.txt", info.func, a, b, c, d, e, f, 0.0, 3.072, 349.6, 1);
 	writeFOVFit("benchmark-fov/fit-ZA010-fov-wsc.txt", info.func, a, b, c, d, e, f, 10.0, 3.072, 349.6, 1);
 	writeNChanFit("benchmark-channels/fit-zenith-wsc.txt", info.func, a, b, c, d, e, f, 0.0, 3.072, 349.6, 36.864);
+	writeNChanFit("benchmark-channels/fit-ZA010-wsc.txt", info.func, a, b, c, d, e, f, 10.0, 3.072, 349.6, 36.864);
 	calculateStdError(samples, info.func, a, b, c, d, e, f);
 	double dt;
 	evalSurveys(info.func, a, b, c, d, e, f);
@@ -857,7 +859,7 @@ void fitAllCASA()
 	fit(info, a, b, c, d, e, f);
 	fixDW = false;
 	fit(info, a, b, c, d, e, f);
-	std::cout << "t = Nchan (" << a << " Npix^2 log Npix + " << b << " Nvis (sin ZA * fov)^2 + " << b*d << " Nvis + " << f << '\n';
+	std::cout << "t = Nchan (" << a << " Npix^2 log Npix + " << b << " Nvis ((sin ZA + " << e << ") * fov)^2 + " << b*d << " Nvis + " << f << '\n';
 	writeNVisFit("benchmark-nsamples/fit-zenith-casa.txt", info.func, a, b, c, d, e, f, 0.0, 3.072, 36.864, 1);
 	writeNVisFit("benchmark-nsamples/fit-ZA010-casa.txt", info.func, a, b, c, d, e, f, 10.0, 3.072, 36.864, 1);
 	writeNPixFit("benchmark-resolution/fit-zenith-casa.txt", info.func, a, b, c, d, e, f, 0.0, 349.6, 36.864, 1);
@@ -867,6 +869,7 @@ void fitAllCASA()
 	writeFOVFit("benchmark-fov/fit-zenith-fov-casa.txt", info.func, a, b, c, d, e, f, 0.0, 3.072, 349.6, 1);
 	writeFOVFit("benchmark-fov/fit-ZA010-fov-casa.txt", info.func, a, b, c, d, e, f, 10.0, 3.072, 349.6, 1);
 	writeNChanFit("benchmark-channels/fit-zenith-casa.txt", info.func, a, b, c, d, e, f, 0.0, 3.072, 349.6, 36.864);
+	writeNChanFit("benchmark-channels/fit-ZA010-casa.txt", info.func, a, b, c, d, e, f, 10.0, 3.072, 349.6, 36.864);
 	calculateStdError(samples, info.func, a, b, c, d, e, f);
 	optimalDeltaW(samples, info.func, a, b, c, d, e, f);
 	evalSurveys(info.func, a, b, c, d, e, f);
