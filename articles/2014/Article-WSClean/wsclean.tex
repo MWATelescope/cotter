@@ -140,7 +140,7 @@ While the discretization of $u$ and $v$ is similar to conventional imaging, the 
 \begin{equation} \label{eq:minimum-w-distance}
 \left|\left(w_A - w_B\right) 2\pi (\sqrt{1-l^2-m^2}-1)\right| \ll 1.
 \end{equation}
-This suggest that a uniform discretization in $w$ is optimal (TODO this is in contrast to what Cornwell 2008 says -- mailed Cornwell to ask why). From Eq.~\eqref{eq:minimum-w-distance}, the required number of layers can be derived and is given by
+This suggest that a uniform discretization in $w$ is optimal (TODO this is in contrast to what Cornwell 2008 says -- Cornwell mailed me he made a mistake... Do we need to explicitly point that out here :-/ ?). From Eq.~\eqref{eq:minimum-w-distance}, the required number of layers can be derived and is given by
 \begin{equation} \label{eq:nwlayers-bound}
  N_\textrm{wlayers} \gg 2\pi \left(w_e - w_0\right) \max_{l,m} \left(1 - \sqrt{1-l^2-m^2}\right).
 \end{equation}
@@ -255,7 +255,7 @@ Data size & 18 GB \\
 & \textbf{WSClean} & \textbf{WSClean}    & \textbf{CASA} \\
 &                  & \textbf{+ recentre} & \\
 \hline
-\multicolumn{3}{l}{\textit{Zenith angle 0\degree (minimum w-layers/planes)}} \\
+\multicolumn{3}{l}{\textit{Zenith angle 0\degree (6 w-layers/planes)}} \\
 \hline
 Source flux standard error & 1.31\% & & 1.34\% \\
 RMS in residual image & 0.94 mJy & --- & 1.90 mJy\\
@@ -269,10 +269,9 @@ Computational time & 10.3 min & & 19.6 min \\
 \hline
 \multicolumn{3}{l}{\textit{Zenith angle 10\degree}} \\
 \hline
-Source flux standard error & 1.75\% & 2.92\% & 2.41 \%\\
-RMS in residual image & 0.90 mJy & 1.05 mJy & 1.07 mJy \\
+Source flux standard error & 1.75\% & 1.40\% & 2.41 \%\\
+RMS in residual image & 0.90 mJy & 1.03 mJy & 1.07 mJy \\
 Computational time & 15.3 min & 6.6 min & 178.2 min \\
-& & recentreTODO & \\
 \hline\hline
 \end{tabular}\end{center}\end{table}
 
@@ -284,39 +283,36 @@ Computational time & 15.3 min & 6.6 min & 178.2 min \\
 \end{center}
 \end{figure*}
 
-To asses the accuracy of WSClean and CASA, we have simulated a MWA observation without system noise, but with hundred sources of 1~Jy in a 20\degree diameter area. A unitary primary beam is assumed. We imaged the simulated set both with WSClean and CASA, using Cotton-Schwab cleaning to a threshold of 10~mJy. The two imagers calculate slightly different restoring (synthesized) beams, hence to avoid bias the restoring beams are fixed. Other imaging parameters are given in Table~\ref{tbl:default-parameters}. The Aegean program \citep{aegean-hancock-2012} is used to perform source detection on the produced images. Sidelobe noise of the residual 10~mJy source structures triggers a few false detections. These are ignored.
+To assess the accuracy of WSClean and CASA, we simulate a MWA observation with hundred sources of 1~Jy in a 20\degree diameter area, without adding system noise. A unitary primary beam is assumed. We image the simulated set with WSClean and CASA using Cotton-Schwab cleaning to a threshold of 10~mJy. The two imagers calculate slightly different restoring (synthesized) beams, hence to avoid bias the restoring beams are fixed. Other imaging parameters are given in Table~\ref{tbl:default-parameters}. The Aegean program \citep{aegean-hancock-2012} is used to perform source detection on the produced images. Sidelobe noise of the residual 10~mJy source structures triggers a few false detections. These are ignored.
 
-Table~\ref{tbl:accuracy-measurements} lists the measured RMS in the residual image and the standard errors of the source brightnesses as detected by Aegean. In all tests, WSClean performs slightly more accurate. At zenith, CASA produces a residual RMS twice as high as WSClean. This is caused by the fact that we keep the number of w-projection planes in w-projection equal to the number of w-layers in w-stacking, resulting in only 12 $w$-planes at zenith. This evidently has a stronger effect on the w-projection algorithm. However, the computational performance of the w-projection algorithm is hardly affected by the number of w-projection planes, and in practical situations one would always use more w-projection planes\footnote{In the zenith case CASA actually issues a warning to use more $w$-projection planes.}. When 128 w-projection planes are used in CASA, its residual RMS is equal to WSClean with 12 $w$-layers. We do not know why this parameter needs to be higher in CASA to reach the same RMS. In theory it should be enough, since Eq.~\eqref{eq:nwlayers-bound} results in $N_\textrm{wlayers}\gg 6$ for the top-left image pixel that is 26\degree away from the centre, while the sources are all within 10\degree. Also unexpected is that the source flux density becomes worse by increasing the number of planes. For WSClean both values stay approximately the same when the number of $w$-layers is increased.
+Table~\ref{tbl:accuracy-measurements} lists the measured RMS in the residual image and the standard errors of the source brightnesses as detected by Aegean. In all tests, WSClean performs slightly more accurate. At zenith, CASA produces a residual RMS twice as high as WSClean. This is caused by the fact that we keep the number of $w$-projection planes in w-projection equal to the number of w-layers in w-stacking, resulting in only 12 $w$-planes at zenith. This evidently has a stronger effect on the $w$-projection algorithm. However, the computational performance of the $w$-projection algorithm is hardly affected by the number of $w$-projection planes, and in practical situations one would always use more w-projection planes\footnote{In the zenith case CASA issues a warning to use more $w$-projection planes.}. When 128 $w$-projection planes are used in CASA, its residual RMS is equal to WSClean with 12 $w$-layers, but the flux density measurements are less accurate. We do not know why this parameter needs to be higher in CASA to reach the same RMS.\footnote{TODO: do I want to find out this is because of invalid sqrt(w) gridding?} Eq.~\eqref{eq:nwlayers-bound} results in $N_\textrm{wlayers}\gg 6$ for the top-left image pixel that is 26\degree away from the centre, while the sources are all within 10\degree. Also unexpected is that the source flux density becomes worse by increasing the number of planes. For WSClean both values stay approximately the same when the number of $w$-layers is increased.
 
-In the $\textrm{ZA}=10\degree$ case, CASA is slightly less accurate. We have noticed this consistently at higher zenith angles, and it can actually be observed in the produced images, as shown in Fig.~\ref{fig:residuals}. TODO the following might be caused by a bug; check: We have also made an image with the technique of recentring a zenith phase-centred visibility set, as described in Sect.~\ref{sec:snapshot-imaging}. Its accuracy is lower compared to the normal projection. This is due to the fact that the sources are further away from the phase centre, and sources have therefore on average higher $(l,m)$-values, thereby increasing the average $w$-correction. Nevertheless, the reprojection technique needs on average fewer $w$-layers to reach the same level of accuracy.
+In the $\textrm{ZA}=10\degree$ case, CASA is slightly less accurate. The extra noise can be observed in the produced images, as shown in Fig.~\ref{fig:residuals}. Also made is an image with the technique of recentring a zenith phase-centred visibility set, as described in Sect.~\ref{sec:snapshot-imaging}. Its accuracy is higher compared to the normal projection, but its residual noise is also higher. The reprojection technique needs on average fewer $w$-layers to reach the same level of accuracy.
 
 WSClean is faster in all tested cases. WSClean and CASA determine a different next major iteration threshold. CASA performs 5 major iterations at zenith and 8 at 10\degree angle, while WSClean always performs 5 major iterations. Major iterations are dominating the computing time. We will look more closely at the difference in performance in the next section.
 
-Many parameters affect the accuracy more than the observed differences between the methods. These include the number of major iterations, $w$-planes/layers, restoring beam, image size, weighting, kernel size and grid oversampling. Therefore, the differences in accuracy are not very significant. The results do show that synthesis imaging using common imaging parameters results in an approximate flux-density standard error of at least $\sim1\%$.
-
 \begin{figure*}%
-\begin{subfigure}{.36\linewidth}%
+\begin{subfigure}{.5\linewidth}%
 \includegraphics[width=\linewidth]{img/benchmark-nsamples/nsamples}%
 \caption{}\label{fig:timing-nsamples}%
 \end{subfigure}%
-\begin{subfigure}{.36\linewidth}%
+\hspace{-.05\linewidth}\begin{subfigure}{.5\linewidth}%
 \includegraphics[width=\linewidth]{img/benchmark-zenith-angle/za}%
 \caption{}\label{fig:timing-zenith-angle}%
 \end{subfigure}\\
-\begin{subfigure}{.36\linewidth}%
+\begin{subfigure}{.5\linewidth}%
 \includegraphics[width=\linewidth]{img/benchmark-resolution/resolution}
 \caption{}\label{fig:timing-resolution}%
 \end{subfigure}%
-\hspace{-.05\linewidth}\begin{subfigure}{.36\linewidth}%
+\hspace{-.05\linewidth}\begin{subfigure}{.5\linewidth}%
 \includegraphics[width=\linewidth]{img/benchmark-channels/channels}
 \caption{}\label{fig:timing-channels}%
-\end{subfigure}%
-\hspace{-.05\linewidth}\begin{subfigure}{.36\linewidth}%
+\end{subfigure}\\
+\begin{subfigure}{.5\linewidth}%
 \includegraphics[width=\linewidth]{img/benchmark-fov/fov}
-\caption{}
-\label{fig:timing-fov}
+\caption{}\label{fig:timing-fov}%
 \end{subfigure}%
-\caption{Imaging performance as a function of several configuration parameters. Error bars show 5$\sigma$ level. }\label{fig:timings}
+\caption{Imaging performance as a function of several parameters. Error bars show 5$\sigma$ level. Unfinished lines indicate the imager could not run succesfully.}\label{fig:timings}
 \end{figure*}
 
 \subsection{Performance analysis}
@@ -325,18 +321,20 @@ We measured the performance of the imagers using several MWA data sets. Each spe
 
 Panel~\ref{fig:timing-nsamples} shows the dependency on the size of the visibility set. Results for imaging at zenith and 10\degree zenith angle (ZA) are shown. The size of the visibility set was varied by changing the time resolution, which affects the number of visibilities to be gridded without changing the maximum $w$-value. For larger sets, both methods show a linear time dependency on the number of visibilities. This implies that gridding or reading dominates the cost. In that situation, the $w$-stacking implementation is 7.9 times faster at $\textrm{ZA}=10\degree$ and 2.6 times faster at $\textrm{ZA}=0\degree$. With small data volumes, the FFTs start to dominate the cost. This is visible from Fig.~\ref{fig:timing-nsamples} by the flattening towards the left. At that point, WSClean is in both cases approximately 3 times faster. At zenith, the two methods are expected to perform almost identical. The factor of 2-3 difference in Fig.~\ref{fig:timing-nsamples} could be due to different choices in optimizations.
 
-In Panel~\ref{fig:timing-zenith-angle}, the computational cost as function of zenith angle is plotted. It shows that, as expected from \S\ref{sec:time-complexity}, the $w$-projection algorithm is more affected by the increased $w$-values, leading to differences of more than an order of magnitude at zenith angles of $\gtrapprox 20$\degree. Additionally, at higher zenith angles, the $w$-kernels become too large to be able to make images of 3072 pixels or larger. Using the recentering technique to decrease the $w$-values makes the computational cost approximately constant. However, the additional time required to rephase and regrid the measurement set makes it only worthwhile for images $\ge3072$ pixels and $\textrm{ZA}\ge15\degree$. TODO: this is quite heavily depending on the speed of \texttt{chgcentre}, and that might still be improvable...
+In Panel~\ref{fig:timing-zenith-angle}, the computational cost as function of zenith angle is plotted. It shows that, as expected from \S\ref{sec:time-complexity}, the $w$-projection algorithm is more affected by the increased $w$-values, leading to differences of more than an order of magnitude at zenith angles of $\gtrapprox 20$\degree. Additionally, at higher zenith angles, the $w$-kernels become too large to be able to make images of 3072 pixels or larger. Using the recentering technique to decrease the $w$-values makes the computational cost approximately constant. However, the additional time required to rephase and regrid the measurement set makes it only worthwhile for images $\ge3072$ pixels and $\textrm{ZA}\ge15\degree$. This is dependent on the speed of rotating the phase centre and regridding. Our program to change the phase centre is currently not multi-threaded, so its performance might be improvable.
 
 In Panel~\ref{fig:timing-resolution}, the number of pixels in the image is changed without changing the field of view. The performance of $w$-stacking is more affected by the size of the image, but is still significantly faster in making 12.8K images at 10\degree ZA than $w$-projection. 
 
-Panel~\ref{fig:timing-channels} shows performance versus the spectral output resolution. The cost of imaging multiple frequencies is the cost of making an image from fewer visibilities times the number of frequencies. FFTs become the dominant cost for such small visibility sets, and the number of imaged frequencies affect performance linearly.
+The cost of spectral imaging, i.e. imaging multiple frequencies, is the cost of making an image from fewer visibilities times the number of desired frequencies. Panel~\ref{fig:timing-channels} shows performance versus the spectral output resolution. As can be expected from the previous results, FFTs become the dominant cost for such small visibility sets, and the number of imaged frequencies affect performance linearly.
+
+As can be seen in Panel~\ref{fig:timing-fov}, the field of view (FOV) has a large affect on performance when imaging off-zenith. This plot was created by varying the size of the pixel in the output image, such that the number of pixels in the image did not change. The FOV is calculated as angle between the left and right most pixel in the image. CASA is not able to make off-zenith images larger than $\sim30$\degree, and its imaging cost increases much more rapidly compared to the cost of WSClean, which implies that gridding is the major cost in this scenario. The image recentering technique is clearly beneficial for FOVs larger than $\sim30$\degree, and can even make a difference of an order of magnitude at very large FOVs of $\sim90$\degree.
 
 %It is important to point out that all these measurement were performed by imaging a single polarization. Making full-polarization images with WSClean currently requires four runs. Imaging four Stokes parameters with CASA costs slightly less than four times the time of imaging a single polarization. With the settings of Table~\ref{tbl:default-parameters}, the difference is a factor of $3.5$, and imaging XX and YY together costs $1.9$ times imaging just XX.
 
 \subsection{Derivation of computing cost formulae}
-Based on the expected cost terms described in Sec.~\ref{sec:time-complexity}, we derive analytical functions for the CASA and WSClean measurements using least-squares fitting. Several functions with different free parameters were tested, and formulae with minimum amount of parameters are selected that still follow the trend of the measurements and have reasonably small errors. Measurements are weighted with the inverse standard deviation. The single outlying measurement of CASA in Fig.~\ref{fig:timing-nsamples} is removed.
+Based on the expected cost terms described in Sec.~\ref{sec:time-complexity}, we derive analytical functions for the CASA and WSClean measurements using least-squares fitting. Several functions with different free parameters were tested, and formulae with minimum amount of parameters are selected that still follow the trend of the measurements and have reasonably small errors. Measurements are weighted with the inverse standard deviation. The single outlying measurement for $N_\textrm{pix}=1792$ with CASA in Fig.~\ref{fig:timing-resolution} is removed.
 
-For the WSClean time cost function $t_\textrm{WSClean}$ we find 
+For the WSClean time-cost function $t_\textrm{WSClean}$ we find 
 \begin{align}\label{eq:wsclean-computing-cost}
 & t_\textrm{WSClean} (w_e,N_\textrm{Mvis},N_\textrm{freq},N_\textrm{kpix}) = \\ \notag%
 & N_\textrm{freq} \left( 0.452 N_\textrm{kpix}^2 \log_2 N_\textrm{kpix} (w_e + 0.611) + 244 N_\textrm{Mvis} \right)
@@ -351,26 +349,7 @@ Parameter $w_e$ is the maximum $w$ value and is estimated with
 \begin{equation}
  w_e = \frac{1}{\lambda}\left[\max |\Delta \mathbf{x}| \sin \textrm{ZA} + \max \Delta z \cos \textrm{ZA} \left(1.0 - \cos(\frac{1}{2}\textrm{FOV})\right)\right],
 \end{equation}
-where $\max |\Delta \mathbf{x}|$ is the maximum baseline length, $\max \Delta z$ is the maximum height difference between antennas and $\lambda$ is the wavelength.
-
-TODO say something about error of analytical function vs measurements.
-
-\begin{table*}
-\caption{Predicted computational cost for various configurations, based on multi-frequency synthesis with 5 major iterations observing for 1 hour at ZA=20\degree.  Predictions are for $w$-projection in CASA, $w$-stacking with WSClean and $w$-stacked 12$\times$5-min snapshots with WSClean, with approximately equal accuracy.}
-\begin{tabular}{lrrrrrrrrrr|rrr}
- Configuration&$\lambda$&FWHM  & Beams & Ant & Res & $\max |\Delta \mathbf{x}|$ & $\max \Delta z$ & int. t & BW & $\Delta \nu$ & $w$-proj & $w$-stack & $w$-snaps \\
-          & (m)       &       &       &     &     & (km)                       & (m)             & (s)    & (MHz) &  (kHz) &  &  & \\
-\hline
- GLEAM    &  2   & 24.7\degree& 1    & 128 & 2'   & 2.9 & 5 & 2 & 32 & 40     &14h 02m & 1h 52m & 1h 23m \\
- EMU      & 0.2  & 1\degree   & 30   &  36 & 10''  & 6 &  0 &10 & 300 & 20    &19h 49m &14h 12m & 14h 13m\\
- MSSS low &  5   & 9.8\degree & 5    &  20 & 100'' & 5 &    &10 & 16 & 16     & 2h 30m & 0h 11m & 0h 11m\\
- MSSS high&  2   & 3.8\degree & 5    &  40 & 120'' & 5 &    &10 & 16 & 16     & 2h 31m & 0h 38m & 0h 39m\\
- AARTFAAC &  5   & 45\degree  & 1    & 288 &  20'  & 0.3& 1 & 1 &  7 & 24     & 10h 47m & 4h 58m & 4h 58m \\
- VLSS     & 4.1  & 14\degree  & 1    &  27 &  80'' &11.1& 0 &10 & 1.56 & 12.2 & 0h 32m & 0h 12m & 0h 02m\\
- SKA-P1 AA inner&3& 1.2\degree& 480  &  35 & 140'' &2.5& 2 &1.2 & 380 & 1     & 3218 d & 1865 d  & 1865 d \\
- SKA-P1 AA mid&3 & 1.2\degree & 480  &  50 & 3.5'' &100& 50 &1.2 & 380 & 1     & 6658 d & 3843 d & 3844 d \\
-\end{tabular}
-\end{table*}
+where $\max |\Delta \mathbf{x}|$ is the maximum baseline length, $\max \Delta z$ is the maximum height difference between antennas and $\lambda$ is the wavelength. These functions follow the trend of the measurements well, with an absolute error of 14.7\% and 20.7\% for respectively the WSClean and CASA functions.
 
 \subsection{Optimal snapshot duration}
 Snapshot imaging can in theory be implemented with either $w$-projection or $w$-stacking. Using the derived formula, we can estimate the cost of making snapshots with both techniques. Snapshot imaging effectively removes the dependency on ZA from $w_e$. Given the snapshot duration $\Delta \tau_\textrm{snapshot}$ and the total integration time $\Delta \tau_\textrm{total}$, the total time cost of inversion becomes
@@ -385,15 +364,32 @@ $\omega_E$ the rotational speed of the Earth and $N'_\textrm{vis} = N_\textrm{vi
 
 Function $t_\textrm{snapshot}$ can be minimized to find the optimal snapshot duration. For WSClean with MWA parameters, we find that this function decreases but no minimum is reached for $\Delta \tau_\textrm{snapshot}<24$~h. Therefore, from a performance perspective, the snapshot duration should be as large as possible. For $w$-projection in CASA we find an optimal snapshot duration of 122~s for MWA observations.
 
+\begin{table*}
+\caption{Predicted computational cost for various configurations, based on multi-frequency synthesis with 5 major iterations observing for 1 hour at ZA=20\degree.  Predictions are for $w$-projection in CASA, $w$-stacking with WSClean and $w$-stacked snapshots with WSClean and optimal snapshot duration, all with approximately equal accuracy.}
+\begin{tabular}{lrrrrrrrrrr|rrr}
+ Configuration&$\lambda$& FOV  & Beams & Ant & Res & $\max |\Delta \mathbf{x}|$ & $\max \Delta z$ & int. t & BW & $\Delta \nu$ & $w$-proj & $w$-stack & $w$-snaps \\
+          & (m)       & (FWHM)&       &     &     & (km)                       & (m)             & (s)    & (MHz) &  (kHz) &  &  & \\
+\hline
+ GLEAM    &  2   & 24.7\degree& 1    & 128 & 2'   & 2.9 & 5 & 2 & 32 & 40     &11h 20m & 1h 49m & 1h 23m \\
+ EMU      & 0.2  & 1\degree   & 30   &  36 & 10''  & 6 &  0 &10 & 300 & 20    &23h 52m &11h 52m & 11h 49m\\
+ MSSS low &  5   & 9.8\degree & 5    &  20 & 100'' & 5 &    &10 & 16 & 16     & 0h 53m & 0h 12m & 0h 11m\\
+ MSSS high&  2   & 3.8\degree & 5    &  40 & 120'' & 5 &    &10 & 16 & 16     & 1h 41m & 0h 39m & 0h 39m\\
+ AARTFAAC &  5   & 45\degree  & 1    & 288 &  20'  & 0.3& 1 & 1 &  7 & 24     & 12h 01m & 4h 58m & 4h 58m \\
+ VLSS     & 4.1  & 14\degree  & 1    &  27 &  80'' &11.1& 0 &10 & 1.56 & 12.2 & 0h 10m & 0h 11m & 0h 01m\\
+ SKA-P1 AA inner&3& 1.2\degree& 480  &  35 & 140'' &2.5& 2 &1.2 & 380 & 1     & 3219 d & 1865 d  & 1865 d \\
+ SKA-P1 AA mid&3 & 1.2\degree & 480  &  50 & 3.5'' &100& 50 &1.2 & 380 & 1     &  6740 d & 3845 d & 3844 d \\
+\end{tabular}
+\end{table*}
+
+\subsection{Estimated computing cost for other telescopes} \label{sec:application-to-nonmwa}
+We use the derived functions to estimate the computational cost of the algorithms for configurations of several telescopes. We estimate the cost of imaging an hour of ZA=20\degree data for the following surveys or array configurations: The Galactic and Extragalactic MWA survey (GLEAM); the Evolutionary Map of the Universe (EMU) ASKAP survey \citep{emu-norris-2011}; the low and high bands of the LOFAR Multifrequency Snapshot Sky Survey (MSSS)\footnote{See \url{https://www.astron.nl/radio-observatory/lofar-msss/lofar-msss}}; the Amsterdam—ASTRON Radio Transients Facility and Analysis Centre (AARTFAAC) project\footnote{See \url{http://www.aartfaac.org}}; The VLA Low-Frequency Sky Survey (VLSS, \citealt{vlss-2007}); and the low-frequency phase~1 aperture arrays of the Square-Kilometre Array, with inner (2.5~km) and mid (2.5~km) configurations \citep{ska-phase1-2010}. In multi-beam configurations such as the SKA and EMU configurations, we assume each beam is imaged separately, i.e., the FOV of a single beam is used and the computing cost is multiplied with the number of beams. 
+
 \subsection{Combination of $w$-projection and $w$-stacking}
 To combine the $w$-projection and $w$-stacking algorithms, small $w$-corrections are made before the FFTs using a $w$-correcting kernel and large $w$-terms are corrected after the FFTs by gridding onto several $w$-layers. This allows using small $w$-kernels and limits at the same time the number of FFTs and required memory. The AWImager has been applied like this, which let to better results compared to $w$-projection without $w$-stacking \citep{awimager-2013}. For this scenario, Eq.~\eqref{eq:casa-computing-cost} can be used to determine the optimal number of $w$-layers, or more generally the optimal distance between layers, by assuming that the cost of calculating a single $w$-layer equals the cost of imaging the data set with correspondingly smaller $w_e$ value and smaller $N_\textrm{vis}$. If $\Delta w$ is the distance between $w$-layers, then 
 \begin{equation}
 t(\Delta w) = \frac{w_e}{\Delta w} t_\textrm{CASA}(w'_e,N'_\textrm{vis},N_\textrm{freq},N_\textrm{pix}),
 \end{equation}
 with $N'_\textrm{vis} = N_\textrm{vis}\frac{\Delta w}{w_e}$ and $w'_e = \Delta w$.
-
-\section{Application of WSClean to other telescopes} \label{sec:application-to-nonmwa}
-TODO
 
 \section{Discussion \& conclusions} \label{sec:discussion}
 We have shown that the $w$-stacking algorithm is well suited for imaging MWA observations. The WSClean $w$-stacking implementation is faster than CASA's $w$-projection algorithm in all common MWA imaging configurations, and already an order of magnitude faster at a relatively small zenith angle of $10$\degree. At the same time, it is slightly more accurate. For approximately zenith angles $>15\degree$ or field of views $>35\degree$, rephasing visibility sets and performing snapshot imaging becomes worthwhile. This can lead to performance improvements of a factor of $3$ for the MWA. For arrays with longer baselines and higher resolution, snapshot imaging leads to even higher performance improvements. This agrees with \citet{widefield-imaging-ska-cornwell}. Additionally, we have shown that to implement $w$-snapshot imaging, a pure $w$-stacking implementation is likely more efficient than pure $w$-projection. A hybrid between the two might improve things by a few factors. TODO should we calculate some timings with SKA's configuration?
@@ -403,6 +399,8 @@ It remains challenging to joinedly deconvolve observations that are long enough 
 TODO discuss fact that w-projection needs layers for multi-threading.
 
 TODO discuss optimalisations with GPUs
+
+TODO The results do show that synthesis imaging using common imaging parameters results in an approximate flux-density standard error of at least $\sim1\%$.
 
 \section*{Acknowledgments}
 ...

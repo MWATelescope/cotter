@@ -594,6 +594,7 @@ double stddev(double sum, double sumSq, double sumweight)
 void calculateStdError(std::vector<Sample>& samples, FittingFunc func, double a, double b, double c, double d, double e, double f)
 {
 	double weights = 0.0, weightedSum = 0.0, unweightedSum = 0.0, weightedSumSq = 0.0, unweightedSumSq = 0.0;
+	double absMeanFrac = 0.0;
 	for(size_t i=0; i!=samples.size(); ++i)
 	{
 		const Sample& s = samples[i];
@@ -604,9 +605,11 @@ void calculateStdError(std::vector<Sample>& samples, FittingFunc func, double a,
 		weightedSumSq += dwy*dwy;
 		unweightedSum += dy;
 		unweightedSumSq += dy*dy;
+		absMeanFrac += fabs(dy) / fabs(y);
 	}
 	std::cout << "Mean error: " << weightedSum/weights << "  standard error: " << stddev(weightedSum, weightedSumSq, weights) << '\n'
 		<< "Unweighted mean: " << unweightedSum/samples.size() << " unweighted stderr: " << stddev(unweightedSum, unweightedSumSq, samples.size()) << '\n';
+	std::cout << "Mean absolute error: " << 100.0*absMeanFrac / samples.size() << "%\n";
 }
 
 void printDuplicates(const std::vector<Sample>& samples)
@@ -679,17 +682,18 @@ void optimalDeltaW(const std::vector<Sample>& samples, FittingFunc func, double 
 	std::cout << ", mean dw=" << sumDW/count << '\n';
 }
 
-void optimalDeltaT(FittingFunc func, const std::string& filename, double a, double b, double c, double d, double e, double f, double za, double nVis, double nPix, double fov, double nChan, bool zeroConstant, double& dt)
+void optimalDeltaT(FittingFunc func, const std::string& filename, double a, double b, double c, double d, double e, double f, double za, double nVis, double nPix, double fov, double nChan, bool zeroConstant, double& dt, size_t beamsTimesIters, double lambda, double maxBaseline, double maxHeight)
 {
 	std::ofstream file(filename);
 	double minY = std::numeric_limits<double>::max(), minDT = 0.0;
 	double dtTrial = 1.0, prevTrial = 1.0;
 	double fz = zeroConstant ? 0.0 : f;
-	while(dtTrial < 300000.0 || minDT == prevTrial)
+	const double totalTime = 60.0*60.0;
+	while(dtTrial < totalTime)
 	{
 		double trialFOV = fov + 2.0 * (dtTrial - 112.0) * (360.0 / 60.0 / 60.0 / 24.0);
 		if(trialFOV < 0.0) trialFOV = 0.0;
-		double y = (112.0/dtTrial) * eval(func, za, nVis * dtTrial/112.0, nPix, trialFOV, nChan, a, b, c, d, e, fz);
+		double y = (totalTime/dtTrial) * eval(func, 0.0, nVis * dtTrial/totalTime, nPix, trialFOV, nChan, a, b, c, d, e, fz, lambda, maxBaseline, maxHeight);
 		//std::cout << "za=" << trialFOV<< ", dt=" << dtTrial << ", y=" << y << '\n';
 		if(y < minY) {
 			minDT = dtTrial;
@@ -700,8 +704,9 @@ void optimalDeltaT(FittingFunc func, const std::string& filename, double a, doub
 		dtTrial *= 1.001;
 	}
 	dt = minDT;
-	double tNormal = eval(func, za, nVis, nPix, fov, nChan, a, b, c, d, e, fz);
-	std::cout << "Optimal snapshot time: " << minDT << " (time=" << minY << " or " << floor(minY/60.0/60.0)  << " h " << round(fmod(minY/60.0, 60.0)) << " m" << " , vs " << tNormal << ")\n";
+	double tNormal = beamsTimesIters * eval(func, za, nVis, nPix, fov, nChan, a, b, c, d, e, fz, lambda, maxBaseline, maxHeight);
+	minY *= beamsTimesIters;
+	std::cout << "Optimal snapshot time: " << minDT << " (time=" << minY << " or (" << round(minY/60.0/60.0/24.0) << " d ) " << floor(minY/60.0/60.0)  << " h " << round(fmod(minY/60.0, 60.0)) << " m" << " , vs " << tNormal << ")\n";
 }
 
 void evalSurveyConfig(const std::string& desc, double lambda, double fwhm, size_t beams, double intTimeSec, double bandWidth, double freqRes, size_t antennas, double angRes, double maxBaseline, double maxDiffHeight, FittingFunc func, double a, double b, double c, double d, double e, double f)
@@ -726,15 +731,16 @@ void evalSurveyConfig(const std::string& desc, double lambda, double fwhm, size_
 		time2 *= duration / 300.0;
 	}
 	std::cout << "== " << desc << " ==\n"
-		<< "ZA=" << za1 << ", MVis=" << nMVis << ", nKPix=" << nKPix << ", nChan=" << nChan << ", we=" << we1 << '\n'
-		<< "Time: " << time1 << " (" << floor(time1/60.0/60.0/24.0) << ") " << floor(time1/60.0/60.0)  << " h " << round(fmod(time1/60.0, 60.0)) << " m\n"
+		//<< "ZA=" << za1 << ", MVis=" << nMVis << ", nKPix=" << nKPix << ", nChan=" << nChan << ", we=" << we1 << '\n'
+		//<< "Time: " << time1 << " ( " << floor(time1/60.0/60.0/24.0) << " d ) " << floor(time1/60.0/60.0)  << " h " << round(fmod(time1/60.0, 60.0)) << " m\n"
 		<< "ZA=" << za2 << ", MVis=" << nMVis << ", nKPix=" << nKPix << ", nChan=" << nChan << ", we=" << we2 << '\n'
-		<< "Time: " << time2 << " " << floor(time2/60.0/60.0)  << " h " << round(fmod(time2/60.0, 60.0)) << " m\n";
+		<< "Time: " << time2 << " ( " << round(time2/60.0/60.0/24.0) << " d ) " << floor(time2/60.0/60.0)  << " h " << round(fmod(time2/60.0, 60.0)) << " m\n";
 	if(func != WSSCleanFunc && func != WSSCleanExtrapolatedFunc)
 	{
 		double dt;
 		std::string filename = func == WSCleanFunc ? "dt-wsclean.txt" : "dt-casa.txt";
-		optimalDeltaT(func, filename, a, b, c, d, e, f, za2, nMVis, nKPix, fwhm, nChan, false, dt);
+		// beams * 10: 5 major iterations
+		optimalDeltaT(func, filename, a, b, c, d, e, f, za2, nMVis, nKPix, fwhm, nChan, false, dt, beams * 10, lambda, maxBaseline, maxDiffHeight);
 	}
 }
 
