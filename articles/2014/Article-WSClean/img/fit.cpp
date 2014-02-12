@@ -48,6 +48,26 @@ struct TimingRecord {
 	}
 };
 
+std::string timeToStr(double secComputingRequired, double secObservation, double nMVis)
+{
+	const double BATTLESTAR_GFLOPS_PER_SECOND = 138.0;
+	std::ostringstream str;
+	str << secComputingRequired << " ( " << round(secComputingRequired/6.0/60.0/24.0)/10.0 << " d ) " << floor(secComputingRequired/60.0/60.0)  << " h " << round(fmod(secComputingRequired/60.0, 60.0)) << " m or ";
+	
+	double gFlopsRequired = secComputingRequired * BATTLESTAR_GFLOPS_PER_SECOND / secObservation;
+	if(gFlopsRequired > 1000000.0)
+		str << round(gFlopsRequired / 100000.0)/10.0 << " PetaFLOPS";
+	else if(gFlopsRequired > 1000.0)
+		str << round(gFlopsRequired / 100.0)/10.0 << " TeraFLOPS";
+	else
+		str << round(gFlopsRequired*10.0)/10.0 << " GFLOPS";
+	str << ", ";
+	double perVis = secComputingRequired * BATTLESTAR_GFLOPS_PER_SECOND / nMVis;
+	str << perVis << " or " << round(10.0*perVis / exp10(floor(log10(perVis))))/10.0 << " x 10^" << floor(log10(perVis)) << " FLOPS/vis";
+	
+	return str.str();
+}
+
 bool parseLine(const std::string& line, std::string& description, double& value, TimingRecord& record)
 {
 	std::string tokens[7];
@@ -718,7 +738,7 @@ void evalSurveyConfig(const std::string& desc, double lambda, double fwhm, size_
 	double maxChannelBWinKHz = 100.0 * (300.0 / lambda) * 2.0 * angRes / fwhm / 10.0;
 	double maxIntTime = 1370.0 * 2.0 * angRes / fwhm / 10.0;
 	
-	const double duration = 10.0 * 60.0;
+	const double duration = 60.0 * 60.0;
 	const double za1 = 10.0, za2 = 20.0;
 	double nMVis = bandWidth / freqRes * (antennas * (antennas-1))/2 * (duration/intTimeSec) * 1e-6;
 	const double nKPix = 5.0 * fwhm/(angRes*1000.0);
@@ -742,7 +762,7 @@ void evalSurveyConfig(const std::string& desc, double lambda, double fwhm, size_
 		//<< "ZA=" << za1 << ", MVis=" << nMVis << ", nKPix=" << nKPix << ", nChan=" << nChan << ", we=" << we1 << '\n'
 		//<< "Time: " << time1 << " ( " << floor(time1/60.0/60.0/24.0) << " d ) " << floor(time1/60.0/60.0)  << " h " << round(fmod(time1/60.0, 60.0)) << " m\n"
 		<< "ZA=" << za2 << ", MVis=" << nMVis << ", nKPix=" << nKPix << ", nChan=" << nChan << ", we=" << we2 << '\n'
-		<< "Time: " << time2 << " ( " << round(time2/6.0/60.0/24.0)/10.0 << " d ) " << floor(time2/60.0/60.0)  << " h " << round(fmod(time2/60.0, 60.0)) << " m\n";
+		<< "Time: " << timeToStr(time2, duration, nMVis) << "\n";
 	if(func != WSSCleanFunc && func != WSSCleanExtrapolatedFunc)
 	{
 		double dt, dw, minDWTime;
