@@ -223,7 +223,7 @@ The prolate spheroidal wave function (PSWF) is generally considered to be the op
 \section{Analysis} \label{sec:analysis}
 We will now analyse the performance and accuracy of our implementation, and compare it with the w-projection implementation in CASA. For the analysis, we use imaging parameters which are common for MWA Imaging. When a specific parameter value is not mentioned, the settings from Table~\ref{tbl:default-parameters} are used. The number of $w$-projection planes in w-projection is kept equal to the number of $w$-layers in w-stacking, and is set to the right hand side of Eq.~\eqref{eq:nwlayers-bound}. This yields 195 $w$-planes/layers at 10\degree zenith angle. Some configurations with high $w$-values fail to image with CASA, presumably because the $w$-kernels become to large.
 
-The used software version of CASA is ``stable release 42.0, revision 26465'', which was released September 2013. It includes performance improvements to the \texttt{clean} task which have recently been made. For WSClean, the latest version as of February 2014 was used. The tests were run on a high-end desktop, with a 3.20-GHz Intel Core i7-3930K processor with 6 cores and 32 GB of memory. The data are stored on a multi-disk array with 5 spinning hard disks, which has a combined read rate of about 450 MB/s.
+The used software version of CASA is ``stable release 42.0, revision 26465'', which was released September 2013. It includes performance improvements to the \texttt{clean} task which have recently been made. For WSClean, the latest version as of February 2014 was used. The tests were run on a high-end desktop with 32 GB of memory and a 3.20-GHz Intel Core i7-3930K processor with 6 cores that can perform 138 giga-floating point operations per second (GFLOPS). The data are stored on a multi-disk array with 5 spinning hard disks, which has a combined read rate of about 450 MB/s.
 \begin{table}%
 \caption{Parameter values used during benchmarks, unless otherwise mentioned.} \label{tbl:default-parameters}%
 \begin{center}\begin{tabular}{rl}%
@@ -365,19 +365,36 @@ $\omega_E$ the rotational speed of the Earth and $N'_\textrm{vis} = N_\textrm{vi
 Function $t_\textrm{snapshot}$ can be minimized to find the optimal snapshot duration. For WSClean with MWA parameters, we find that this function decreases but no minimum is reached for $\Delta \tau_\textrm{snapshot}<24$~h. Therefore, from a performance perspective, the snapshot duration should be as large as possible. For $w$-projection in CASA we find an optimal snapshot duration of 122~s for MWA observations.
 
 \begin{table*}
-\caption{Predicted computational cost for various configurations, based on multi-frequency synthesis with 5 major iterations observing for 1 hour at ZA=20\degree.  Predictions are for $w$-projection in CASA, $w$-stacking with WSClean and $w$-stacked snapshots with WSClean and optimal snapshot duration, all with approximately equal accuracy.}
-\begin{tabular}{lrrrrrrrrrr|rrr}
- Configuration&$\lambda$& FOV  & Beams & Ant & Res & $\max |\Delta \mathbf{x}|$ & $\max \Delta z$ & int. t & BW & $\Delta \nu$ & $w$-proj & $w$-stack & $w$-snaps \\
-          & (m)       & (FWHM)&       &     &     & (km)                       & (m)             & (s)    & (MHz) &  (kHz) &  &  & \\
+\caption{Configurations for which the computational cost are predicted.} \label{tbl:computational-cost-configurations}
+\begin{tabular}{l|rrrrrrrrrr}
+ Configuration&$\lambda$& FOV  & Beams & Ant & Res & $\max |\Delta \mathbf{x}|$ & $\max \Delta z$ & int. t & BW & $\Delta \nu$ \\
+          & (m)       & (FWHM)&       &     &     & (km)                       & (m)             & (s)    & (MHz) &  (kHz) \\
 \hline
- GLEAM    &  2   & 24.7\degree& 1    & 128 & 2'   & 2.9 & 5 & 2 & 32 & 40     &11h 20m & 1h 49m & 1h 23m \\
- EMU      & 0.2  & 1\degree   & 30   &  36 & 10''  & 6 &  0 &10 & 300 & 20    &23h 52m &11h 52m & 11h 49m\\
- MSSS low &  5   & 9.8\degree & 5    &  20 & 100'' & 5 &    &10 & 16 & 16     & 0h 53m & 0h 12m & 0h 11m\\
- MSSS high&  2   & 3.8\degree & 5    &  40 & 120'' & 5 &    &10 & 16 & 16     & 1h 41m & 0h 39m & 0h 39m\\
- AARTFAAC &  5   & 45\degree  & 1    & 288 &  20'  & 0.3& 1 & 1 &  7 & 24     & 12h 01m & 4h 58m & 4h 58m \\
- VLSS     & 4.1  & 14\degree  & 1    &  27 &  80'' &11.1& 0 &10 & 1.56 & 12.2 & 0h 10m & 0h 11m & 0h 01m\\
- SKA-P1 AA inner&3& 1.2\degree& 480  &  35 & 140'' &2.5& 2 &1.2 & 380 & 1     & 3219 d & 1865 d  & 1865 d \\
- SKA-P1 AA mid&3 & 1.2\degree & 480  &  50 & 3.5'' &100& 50 &1.2 & 380 & 1     &  6740 d & 3845 d & 3844 d \\
+ GLEAM    &  2   & 24.7\degree& 1    & 128 & 2'   & 2.9 & 5 & 2 & 32 & 40 \\
+ EMU      & 0.2  & 1\degree   & 30   &  36 & 10''  & 6 &  0 &10 & 300 & 20\\
+ MSSS low &  5   & 9.8\degree & 5    &  20 & 100'' & 5 &    &10 & 16 & 16 \\
+ MSSS high&  2   & 3.8\degree & 5    &  40 & 120'' & 5 &    &10 & 16 & 16 \\
+ AARTFAAC &  5   & 45\degree  & 1    & 288 &  20'  & 0.3& 1 & 1 &  7 & 24 \\
+ VLSS     & 4.1  & 14\degree  & 1    &  27 &  80'' &11.1& 0 &10 & 1.56 & 12.2 \\
+ SKA-P1 AA inner&3& 1.2\degree& 480  &  35 & 140'' &2.5& 2 &  8 & 380 & 80 \\
+ SKA-P1 AA +mid&3 & 1.2\degree & 480  &  50 & 3.5'' &100& 50 & 0.2 & 380 & 2 \\
+\end{tabular}
+\end{table*}
+
+\begin{table*}
+\caption{Predicted computational cost for configurations listed in Table~\ref{tbl:computational-cost-configurations}, based on multi-frequency synthesis with 5 major iterations observing for 1 hour at ZA=20\degree. Predictions are for $w$-projection with CASA; $w$-stacking with WSClean; $w$-stacked snapshots with WSClean using optimal snapshot duration; and a hybrid between $w$-projection and $w$-stacking using CASA with optimal $\Delta w$. All have approximately equal accuracy.} \label{tbl:computational-cost-predictions}
+\begin{tabular}{l|rrrr|}
+               & \multicolumn{4}{c|}{Predicted computing cost on test computer} \\
+ Configuration & $w$-projection & $w$-stacking & $w$-snapshot & hybrid \\
+ \hline
+ GLEAM    & 11h 20m & 1h 49m & 1h 23m  & 3h 07m   \\
+ EMU      & 23h 52m &11h 52m & 11h 49m &23h 52m   \\
+ MSSS low & 0h 53m & 0h 12m & 0h 11m   & 0h 53m   \\
+ MSSS high& 1h 41m & 0h 39m & 0h 39m   & 1h 20m   \\
+ AARTFAAC & 12h 01m & 4h 58m & 4h 58m  & 8h 38m   \\
+ VLSS     & 0h 10m & 0h 11m & 0h 01m   & 0h 10m   \\
+ SKA-P1 AA inner&7.3 d &2.9 d &        &        \\
+ SKA-P1 AA mid& 16839 d & 9605 d &        &        \\
 \end{tabular}
 \end{table*}
 
@@ -391,16 +408,16 @@ t(\Delta w) = \frac{w_e}{\Delta w} t_\textrm{CASA}(w'_e,N'_\textrm{vis},N_\textr
 \end{equation}
 with $N'_\textrm{vis} = N_\textrm{vis}\frac{\Delta w}{w_e}$ and $w'_e = \Delta w$.
 
-\section{Discussion \& conclusions} \label{sec:discussion}
-We have shown that the $w$-stacking algorithm is well suited for imaging MWA observations. The WSClean $w$-stacking implementation is faster than CASA's $w$-projection algorithm in all common MWA imaging configurations, and already an order of magnitude faster at a relatively small zenith angle of $10$\degree. At the same time, it is slightly more accurate. For approximately zenith angles $>15\degree$ or field of views $>35\degree$, rephasing visibility sets and performing snapshot imaging becomes worthwhile. This can lead to performance improvements of a factor of $3$ for the MWA. For arrays with longer baselines and higher resolution, snapshot imaging leads to even higher performance improvements. This agrees with \citet{widefield-imaging-ska-cornwell}. Additionally, we have shown that to implement $w$-snapshot imaging, a pure $w$-stacking implementation is likely more efficient than pure $w$-projection. A hybrid between the two might improve things by a few factors. TODO should we calculate some timings with SKA's configuration?
+\section{Conclusions} \label{sec:discussion}
+We have shown that the $w$-stacking algorithm is well suited for imaging MWA observations. The WSClean $w$-stacking implementation is faster than CASA's $w$-projection algorithm in all common MWA imaging configurations, leading up to an order of magnitude difference already at a relatively small zenith angle of $10$\degree. It is also slightly more accurate. For approximately zenith angles $>15\degree$ or field-of-view diameters $>35\degree$, snapshot imaging becomes faster. This can lead to performance improvements of a factor of $3$ for the MWA, but only in the most expensive imaging configurations that are less commonly used. Considering the extra regridding step required, which complicates issues such as calculating the integrated beam shape, recentering snapshots might not be worthwhile for the MWA. Extrapolation of the computing cost predicts that this holds for most arrays, including SKA low. A hybrid between $w$-stacking and $w$-projection might improve things by a few factors.
 
-It remains challenging to joinedly deconvolve observations that are long enough to encur significant changes in the beam shape. It is possible to clean such an observation without beam corrections, but then a constant amount of flux is subtracted over time, which leads to inaccuracies. Alternatively, beam corrections can be made, either by integrating beam-corrected snapshots or by performing $a$-projection. This however leads to a stronger spatially-varying point-spread function, and would allow fewer image-based minor iterations in a major cycle. When it is required to calculate the beam on short time scales, calculating $a$-projection kernels or performing snapshot imaging also becomes much more expensive. For a few hundred components, an approach with direct Fourier transforms is accurate and affordable, but this becomes intractable for thousands of components. Images with diffuse emmission typically require cleaning of more than ten-thousand components. Joined deconvolution is not an issue for achieving low to intermediate dynamic range with the MWA. Because of the excellent instanteneous $uv$-coverage and near-confusion noise level, snapshots can be cleaned individually to deep levels. For example, cleaning to $5\sigma$ level results in a cleaning threshold of approximately 100~mJy in 112~s observations. However, MWA's EoR observations (TODO cite) require more advanced deconvolution techniques.
+It remains challenging to deconvolve observations that are long enough to encur significant changes in the beam shape. It is possible to clean an observation integrated over time without beam corrections, but this will subtract a constant (absolute) flux over time. Alternatively, beam corrections can be made, either by integrating beam-corrected snapshots or by performing $a$-projection. This however leads to a stronger spatially-varying point-spread function, and would allow fewer image-based minor iterations in a major cycle. When it is required to calculate the beam on short time scales, calculating $a$-projection kernels or performing snapshot imaging also becomes much more expensive. For a few thousand components, an approach with direct Fourier transforms is accurate and affordable, but this becomes intractable for tens of thousands of components. Images with diffuse emmission typically require cleaning that many components.
 
-TODO discuss fact that w-projection needs layers for multi-threading.
+Deconvolution is not an issue for achieving low to intermediate dynamic range with the MWA. Because of sufficient instanteneous $uv$-coverage and near-confusion snapshot noise level, snapshots can be cleaned individually to deep levels. For example, cleaning to $5\sigma$ level results in a cleaning threshold of approximately 100~mJy in 112~s observations. However, MWA's EoR observations (TODO cite) require more advanced deconvolution techniques.
 
-TODO discuss optimalisations with GPUs
+By using the $w$-stacking algorithms, some computational cost is transferred from gridding to performing FFTs. WSClean uses the FFTW library for calculating the FFTs \citep{fftw-2005}. Further performance improvement can be made by using a FFT library that is executed on graphical processing units (GPUs).
 
-TODO The results do show that synthesis imaging using common imaging parameters results in an approximate flux-density standard error of at least $\sim1\%$.
+TODO The results show that synthesis imaging using common imaging parameters results in an approximate flux-density standard error of at least $\sim1\%$.
 
 \section*{Acknowledgments}
 ...
