@@ -63,7 +63,7 @@ std::string timeToStr(double secComputingRequired, double secObservation, double
 		str << round(gFlopsRequired*10.0)/10.0 << " GFLOPS";
 	str << ", ";
 	double perVis = secComputingRequired * BATTLESTAR_GFLOPS_PER_SECOND / nMVis;
-	str << perVis << " or " << round(10.0*perVis / exp10(floor(log10(perVis))))/10.0 << " x 10^" << floor(log10(perVis)) << " FLOPS/vis";
+	str << perVis << " or " << round(20.0*perVis / exp10(floor(log10(perVis))))/10.0 << " x 10^" << floor(log10(perVis)) << " FLOPS/float";
 	
 	return str.str();
 }
@@ -659,7 +659,8 @@ void optimalDeltaW(FittingFunc func, double a, double b, double c, double d, dou
 	double i = 1;
 	double fz = zeroConstant ? 0.0 : f, fnz = zeroConstant ? f : 0.0;
 	double we = sinZA(za) * fovFact(fov);
-	while(i < 100.0)
+	const double totalTime = 60.0 * 60.0;
+	while(i < 1000.0)
 	{
 		double y = double(i) * evalWE(func, za, fov, double(i), nVis / double(i), nPix, nChan, a, b, c, d, e, fz, lambda, maxBaseline, maxHeight) + fnz;
 		double dw = we / double(i);
@@ -667,12 +668,12 @@ void optimalDeltaW(FittingFunc func, double a, double b, double c, double d, dou
 			minDW = dw;
 			minTime = y;
 		}
-		i *= 1.01;
+		i *= 1.001;
 	}
 	
-	double tNormal = beamsTimesIters * eval(func, za, nVis, nPix, fov, nChan, a, b, c, d, e, fz, lambda, maxBaseline, maxHeight);
+	double tNormal = beamsTimesIters * (eval(func, za, nVis, nPix, fov, nChan, a, b, c, d, e, fz, lambda, maxBaseline, maxHeight) + fnz);
 	minTime *= beamsTimesIters;
-	std::cout << "Optimal w-layer/w-projection hybrid: " << minDW << " (time=" << minTime << " or (" << round(minTime/60.0/60.0/24.0) << " d ) " << floor(minTime/60.0/60.0)  << " h " << round(fmod(minTime/60.0, 60.0)) << " m" << " , vs " << tNormal << ")\n";
+	std::cout << "Optimal w-layer/w-projection hybrid: " << minDW << " (time=" << timeToStr(minTime, totalTime, nVis) << " , vs " << tNormal << ")\n";
 }
 
 /*void optimalDeltaW(const std::vector<Sample>& samples, FittingFunc func, double a, double b, double c, double d, double e, double f)
@@ -729,47 +730,43 @@ void optimalDeltaT(FittingFunc func, const std::string& filename, double a, doub
 	dt = minDT;
 	double tNormal = beamsTimesIters * eval(func, za, nVis, nPix, fov, nChan, a, b, c, d, e, fz, lambda, maxBaseline, maxHeight);
 	minY *= beamsTimesIters;
-	std::cout << "Optimal snapshot time: " << minDT << " / " << round(minDT/60.0) << "m (time=" << minY << " or (" << round(minY/60.0/60.0/24.0) << " d ) " << floor(minY/60.0/60.0)  << " h " << round(fmod(minY/60.0, 60.0)) << " m" << " , vs " << tNormal << ")\n";
+	std::cout << "Optimal snapshot time: " << minDT << " / " << round(minDT/60.0) << "m (time=" << timeToStr(minY, totalTime, nVis) << " , vs " << tNormal << ")\n";
 }
 
 void evalSurveyConfig(const std::string& desc, double lambda, double fwhm, size_t beams, double intTimeSec, double bandWidth, double freqRes, size_t antennas, double angRes, double maxBaseline, double maxDiffHeight, FittingFunc func, double a, double b, double c, double d, double e, double f)
 {
-	//TODO convert fwhm to nr of pixels x pixel size
 	double maxChannelBWinKHz = 100.0 * (300.0 / lambda) * 2.0 * angRes / fwhm / 10.0;
 	double maxIntTime = 1370.0 * 2.0 * angRes / fwhm / 10.0;
+	// fov is expressed in distance in tangent plane
+	double fov = sin(0.5*fwhm*(M_PI/180.0))*2.0*(180.0/M_PI);
 	
 	const double duration = 60.0 * 60.0;
-	const double za1 = 10.0, za2 = 20.0;
+	const double za = 20.0;
 	double nMVis = bandWidth / freqRes * (antennas * (antennas-1))/2 * (duration/intTimeSec) * 1e-6;
-	const double nKPix = 5.0 * fwhm/(angRes*1000.0);
+	const double nKPix = 5.0 * fov/(angRes*1000.0);
 	const double nChan = 1;
 	if(func == WSSCleanExtrapolatedFunc)
 	{
 		nMVis *= 300.0 / duration;
 	}
-	const double we1 = sinZA(za1, lambda, maxBaseline, maxDiffHeight) * fovFact(fwhm);
-	const double we2 = sinZA(za2, lambda, maxBaseline, maxDiffHeight) * fovFact(fwhm);
+	const double we = sinZA(za, lambda, maxBaseline, maxDiffHeight) * fovFact(fov);
 	const double majorIterationCount = 10;
-	double time1 = majorIterationCount * double(beams) * eval(func, za1, nMVis, nKPix, fwhm, nChan, a, b, c, d, e, f, lambda, maxBaseline, maxDiffHeight);
-	double time2 = majorIterationCount * double(beams) * eval(func, za2, nMVis, nKPix, fwhm, nChan, a, b, c, d, e, f, lambda, maxBaseline, maxDiffHeight);
+	double time = majorIterationCount * double(beams) * eval(func, za, nMVis, nKPix, fov, nChan, a, b, c, d, e, f, lambda, maxBaseline, maxDiffHeight);
 	if(func == WSSCleanExtrapolatedFunc)
 	{
-		time1 *= duration / 300.0;
-		time2 *= duration / 300.0;
+		time *= duration / 300.0;
 	}
 	std::cout << "== " << desc << " ==\n"
-		"Channel BW=" << maxChannelBWinKHz << ", Int time=" << maxIntTime << '\n'
-		//<< "ZA=" << za1 << ", MVis=" << nMVis << ", nKPix=" << nKPix << ", nChan=" << nChan << ", we=" << we1 << '\n'
-		//<< "Time: " << time1 << " ( " << floor(time1/60.0/60.0/24.0) << " d ) " << floor(time1/60.0/60.0)  << " h " << round(fmod(time1/60.0, 60.0)) << " m\n"
-		<< "ZA=" << za2 << ", MVis=" << nMVis << ", nKPix=" << nKPix << ", nChan=" << nChan << ", we=" << we2 << '\n'
-		<< "Time: " << timeToStr(time2, duration, nMVis) << "\n";
+		"Baseline=" << maxBaseline << ", channel=" << maxChannelBWinKHz << " kHz, Int time=" << maxIntTime << " s\n"
+		<< "FOV=" << fov << ", fovFact=" << fovFact(fov) << ", ZA=" << za << ", MVis=" << nMVis << ", nKPix=" << nKPix << ", nChan=" << nChan << ", we=" << we << '\n'
+		<< "Time: " << timeToStr(time, duration, nMVis) << "\n";
 	if(func != WSSCleanFunc && func != WSSCleanExtrapolatedFunc)
 	{
 		double dt, dw, minDWTime;
 		std::string filename = func == WSCleanFunc ? "dt-wsclean.txt" : "dt-casa.txt";
 		// beams * 10: 5 major iterations
-		optimalDeltaT(func, filename, a, b, c, d, e, f, za2, nMVis, nKPix, fwhm, nChan, false, dt, beams * 10, lambda, maxBaseline, maxDiffHeight);
-		optimalDeltaW(func, a, b, c, d, e, f, za2, nMVis, nKPix, fwhm, nChan, true, dw, minDWTime, beams * 10, lambda, maxBaseline, maxDiffHeight);
+		optimalDeltaT(func, filename, a, b, c, d, e, f, za, nMVis, nKPix, fov, nChan, false, dt, beams*majorIterationCount, lambda, maxBaseline, maxDiffHeight);
+		optimalDeltaW(func, a, b, c, d, e, f, za, nMVis, nKPix, fov, nChan, true, dw, minDWTime, beams*majorIterationCount, lambda, maxBaseline, maxDiffHeight);
 	}
 }
 
@@ -779,17 +776,23 @@ void evalSurveys(FittingFunc func, double a, double b, double c, double d, doubl
 
 	evalSurveyConfig("EMU Wide", 0.20,  1.0, 30,10.0, 300000.0,20.0,  36, 10.0/3600.0, 6000.0, 0.2, func, a, b, c, d, e, f);
 
-	evalSurveyConfig("MSSS low",  5.0,  9.8,  5,10.0, 16000.0,  4.0,  20,100.0/3600.0, 5000.0, 5.5, func, a, b, c, d, e, f);
+	evalSurveyConfig("MSSS low",  5.0,  9.8,  5,10.0, 16000.0,  4.0,  20,100.0/3600.0, 5000.0, 2.0, func, a, b, c, d, e, f);
 
-	evalSurveyConfig("MSSS high", 2.0,  3.8,  5,10.0, 16000.0,  4.0,  40,120.0/3600.0, 5000.0, 5.5, func, a, b, c, d, e, f);
+	evalSurveyConfig("MSSS high", 2.0,  3.8,  5,10.0, 16000.0,  4.0,  40,120.0/3600.0, 5000.0, 2.0, func, a, b, c, d, e, f);
 
-	evalSurveyConfig("AARTFAAC",  5.0, 45.0,  1, 1.0,  7000.0, 24.0, 288,   20.0/60.0,  300.0, 1.0, func, a, b, c, d, e, f);
+	evalSurveyConfig("LOFAR LBA NL",5.0,4.9,  1, 1.0, 96000.0,  1.0,  38,  3.0/3600.0,180000.0,20.0,func, a, b, c, d, e, f);
+
+	evalSurveyConfig("AARTFAAC",  5.0, 45.0,  1, 1.0,  7000.0, 24.0, 288,   20.0/60.0,  300.0, 0.5, func, a, b, c, d, e, f);
 
 	evalSurveyConfig("VLSS",      4.1,   14,  1,10.0,  1560.0,12.1875,27, 80.0/3600.0,11100.0, 0.2, func, a, b, c, d, e, f);
 	
-	evalSurveyConfig("SKA-P1 AA inner",2.3,1.2,480, 8.0,380000.0,80.0,  35,140.0/3600.0,2500.0, 2.0, func, a, b, c, d, e, f);
+	evalSurveyConfig("MeerKAT",   0.2,  1.0,  1, 0.5,750000.0,     50,64,  6.0/3600.0, 8000.0, 1.0, func, a, b, c, d, e, f);
 	
-	evalSurveyConfig("SKA-P1 AA mid"  ,2.3,1.2,480, 0.2,380000.0, 2.0, 50, 3.5/3600.0,100000.0, 50.0, func, a, b, c, d, e, f);
+	evalSurveyConfig("SKA-P1 AA inner",2.3,1.2,480,49.0,380000.0,80.0, 35,140.0/3600.0,5000.0, 2.0, func, a, b, c, d, e, f);
+	
+	evalSurveyConfig("SKA-P1 AA mid"  ,2.3,1.2,480,0.2,380000.0, 2.0, 50, 3.5/3600.0,100000.0, 50.0, func, a, b, c, d, e, f);
+	
+	evalSurveyConfig("AWProjection"  , 5.0,11.4, 1,300,  0.78,9.36, 22, 10.0/3600.0,   20000.0, 2.0,func, a, b, c, d, e, f);
 }
 
 void fitAllWSClean()
