@@ -5,11 +5,13 @@
 #include "fitswriter.h"
 #include "geometry.h"
 #include "mswriter.h"
+#include "mwafits.h"
 #include "mwams.h"
 #include "subbandpassband.h"
 #include "progressbar.h"
 #include "threadedwriter.h"
 #include "radeccoord.h"
+#include "version.h"
 
 #include <aoflagger.h>
 
@@ -515,8 +517,13 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	
 	if(_outputFormat == MSOutputFormat)
 	{
-		std::cout << "Writing MWA fields to file...\n";
-		writeMWAFields(outputFilename, _mwaConfig.Header().nScans/partCount);
+		std::cout << "Writing MWA fields to measurement set...\n";
+		writeMWAFieldsToMS(outputFilename, _mwaConfig.Header().nScans/partCount);
+	}
+	else if(_outputFormat == FitsOutputFormat)
+	{
+		std::cout << "Writing MWA fields to UVFits file...\n";
+		writeMWAFieldsToUVFits(outputFilename);
 	}
 	
 	_writeWatch.Pause();
@@ -1326,7 +1333,7 @@ void Cotter::writeAlignmentScans()
 	}
 }
 
-void Cotter::writeMWAFields(const std::string& outputFilename, size_t flagWindowSize)
+void Cotter::writeMWAFieldsToMS(const std::string& outputFilename, size_t flagWindowSize)
 {
 	MWAMS mwaMs(outputFilename);
 	mwaMs.InitializeMWAFields();
@@ -1371,5 +1378,11 @@ void Cotter::writeMWAFields(const std::string& outputFilename, size_t flagWindow
 	for(int i=0; i!=24; ++i)
 		mwaMs.WriteMWASubbandInfo(i, _mwaConfig.HeaderExt().subbandGains[i], false);
 	
-	mwaMs.WriteMWAKeywords(_mwaConfig.HeaderExt().fiberFactor, 0);
+	mwaMs.WriteMWAKeywords(_mwaConfig.HeaderExt().fiberFactor, _mwaConfig.HeaderExt().metaDataVersion, _mwaConfig.HeaderExt().mwaPyVersion, COTTER_VERSION_STR, COTTER_VERSION_DATE);
+}
+
+void Cotter::writeMWAFieldsToUVFits(const std::string& outputFilename)
+{
+	MWAFits mwaFits(outputFilename);
+	mwaFits.WriteMWAKeywords(_mwaConfig.HeaderExt().fiberFactor, _mwaConfig.HeaderExt().metaDataVersion, _mwaConfig.HeaderExt().mwaPyVersion, COTTER_VERSION_STR, COTTER_VERSION_DATE);
 }

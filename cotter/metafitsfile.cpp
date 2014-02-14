@@ -261,6 +261,14 @@ void MetaFitsFile::parseKeyword(MWAHeader &header, MWAHeaderExt &headerExt, cons
 		; //parseFitsDate(keyValue, header.year, header.month, header.day, header.refHour, header.refMinute, header.refSecond);
 	else if(keyName == "DATE")
 		; // Date that metafits was created; ignored.
+	else if(keyName == "VERSION")
+		headerExt.metaDataVersion = keyValue.c_str();
+	else if(keyName == "MWAVER")
+		headerExt.mwaPyVersion = parseFitsString(keyValue.c_str());
+	else if(keyName == "MWADATE")
+		headerExt.mwaPyDate = parseFitsString(keyValue.c_str());
+	else if(keyName == "TELESCOP")
+		; // Ignore; will always be set to 'MWA'
 	else if(keyName == "EXPOSURE" || keyName == "MJD" || keyName == "LST" || keyName == "HA" || keyName == "AZIMUTH" || keyName == "ALTITUDE" || keyName == "SUN-DIST" || keyName == "MOONDIST" || keyName == "JUP-DIST" || keyName == "GRIDNUM" || keyName == "RECVRS" || keyName == "CHANNELS" || keyName == "SUN-ALT" || keyName == "TILEFLAG" || keyName == "NAV_FREQ" || keyName == "FINECHAN" || keyName == "TIMEOFF")
 		; // Ignore these fields, they can be derived from others.
 	else

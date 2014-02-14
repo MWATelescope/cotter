@@ -53,7 +53,9 @@ const std::string MWAMS::_columnNames[] = {
 };
 
 const std::string MWAMS::_keywordNames[] = {
-	"MWA_FIBER_VEL_FACTOR", "MWA_METADATA_VERSION"
+	"MWA_FIBER_VEL_FACTOR", "MWA_METADATA_VERSION",
+	"MWA_MWAPY_VERSION",
+	"MWA_COTTER_VERSION", "MWA_COTTER_VERSION_DATE"
 };
 
 MWAMS::MWAMS(const string& filename) : _filename(filename),
@@ -323,8 +325,11 @@ void MWAMS::WriteMWASubbandInfo(int number, double gain, bool isFlagged)
 	flagRowCol.put(index, isFlagged);
 }
 
-void MWAMS::WriteMWAKeywords(double fibreVelFactor, int metaDataVersion)
+void MWAMS::WriteMWAKeywords(double fibreVelFactor, const std::string& metaDataVersion, const std::string& mwaPyVersion, const std::string& cotterVersion, const std::string& cotterVersionDate)
 {
 	_data->_measurementSet.rwKeywordSet().define(keywordName(MWAMSEnums::MWA_FIBER_VEL_FACTOR), fibreVelFactor);
 	_data->_measurementSet.rwKeywordSet().define(keywordName(MWAMSEnums::MWA_METADATA_VERSION), metaDataVersion);
+	_data->_measurementSet.rwKeywordSet().define(keywordName(MWAMSEnums::MWA_MWAPY_VERSION), mwaPyVersion);
+	_data->_measurementSet.rwKeywordSet().define(keywordName(MWAMSEnums::MWA_COTTER_VERSION), cotterVersion);
+	_data->_measurementSet.rwKeywordSet().define(keywordName(MWAMSEnums::MWA_COTTER_VERSION_DATE), cotterVersionDate);
 }

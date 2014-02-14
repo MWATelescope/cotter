@@ -147,7 +147,8 @@ class Cotter : private UVWCalculater
 		void reorderSubbands(aoflagger::ImageSet& imageSet) const;
 		void initializeSbOrder();
 		void writeAlignmentScans();
-		void writeMWAFields(const std::string& outputFilename, size_t flagWindowSize);
+		void writeMWAFieldsToMS(const std::string& outputFilename, size_t flagWindowSize);
+		void writeMWAFieldsToUVFits(const std::string& outputFilename);
 		size_t rowsPerTimescan() const
 		{
 			if(_removeFlaggedAntennae && _removeAutoCorrelations)

@@ -52,7 +52,7 @@ struct MWAHeaderExt
 	MWAHeaderExt();
 	
 	int gpsTime;
-	std::string observerName, projectName, gridName, mode, filename;
+	std::string observerName, projectName, gridName, mode, filename, mwaPyVersion, mwaPyDate, metaDataVersion;
 	int delays[16], subbandGains[24], subbandNumbers[24];
 	bool hasCalibrator, hasGlobalSubbandGains;
 	int centreSBNumber;
