@@ -59,7 +59,7 @@ $^{2}$ARC Centre of Excellence for All-sky Astrophysics (CAASTRO) \\
 \maketitle
 
 \begin{abstract}
-We present a new imager implementation that uses the $w$-stacking algorithm and can make use of the $w$-snapshot algorithm. On MWA data, we find it to be an order of magnitude faster than $w$-projection, as well as being capable of full-sky imaging at full resolution. The performance dependencies of CASA's $w$-projection and WSClean are analysed and analytical functions are derived that describe the required computing cost for both imagers. The difference in computing cost is mainly caused by the efficiency of our new imager on MWA's 27\degree field of view. We predict the computing costs for several other configurations and estimate that our imager is approximately a factor of 2--3 faster on other arrays. Especially imaging SKA observations will become challenging, for which we predict that our new algorithm is still at least 30 times slower than is budgetted. We find that the $w$-snapshot has only a minor benefit. The source code of our new imager is publicly released.
+We present a new imager implementation that uses the $w$-stacking algorithm and can make use of the $w$-snapshot algorithm. On MWA data, we find it to be an order of magnitude faster than $w$-projection, as well as being capable of full-sky imaging at full resolution. The performance dependencies of CASA's $w$-projection and WSClean are analysed and analytical functions are derived that describe the required computing cost for both imagers. The difference in computing cost is mainly caused by the efficiency of our new imager on MWA's 27\degree field of view. We predict the computing costs for several other configurations and estimate that our imager is approximately a factor of 2--3 faster on other arrays. Especially imaging SKA observations will become challenging, for which we predict that our new algorithm is still at least 30 times slower than is budgetted. We find that the $w$-snapshot algorithm has only a minor benefit. The source code of our new imager is publicly released.
 \end{abstract}
 
 \begin{keywords}
@@ -383,7 +383,7 @@ Function $t_\textrm{snapshot}$ can be minimized to find the optimal snapshot dur
 \end{table*}
 
 \begin{table*}
-\caption{Predicted computational cost for configurations listed in Table~\ref{tbl:computational-cost-configurations}, based on multi-frequency synthesis with 5 major iterations observing for 1 hour at ZA=20\degree with 1 polarization. Predictions are for $w$-projection with CASA; $w$-stacking with WSClean; $w$-stacked snapshots with WSClean using optimal snapshot duration; and a hybrid between $w$-projection and $w$-stacking using CASA with optimal $\Delta w$. All have approximately equal accuracy.} \label{tbl:computational-cost-predictions}
+\caption{Predicted computational costs for configurations listed in Table~\ref{tbl:computational-cost-configurations}, based on multi-frequency synthesis with 5 major iterations observing for 1 hour at ZA=20\degree with 1 polarization. Predictions are for $w$-projection with CASA; $w$-stacking with WSClean; $w$-stacked snapshots with WSClean using optimal snapshot duration; and a hybrid between $w$-projection and $w$-stacking using CASA with optimal $\Delta w$. All have approximately equal accuracy.} \label{tbl:computational-cost-predictions}
 \begin{tabular}{l|rrrr|r}
                & \multicolumn{4}{c|}{Predicted computing cost on test computer} & max \\
  Configuration & $w$-projection & $w$-stacking & $w$-snapshot & hybrid & FLOPS/float \\
