@@ -715,9 +715,11 @@ void optimalDeltaT(FittingFunc func, const std::string& filename, double a, doub
 	const double totalTime = 60.0*60.0;
 	while(dtTrial < totalTime)
 	{
-		double trialFOV = fov + 2.0 * (dtTrial - 112.0) * (360.0 / 60.0 / 60.0 / 24.0);
+		double tAngle = dtTrial * (360.0 / 60.0 / 60.0 / 24.0);
+		double trialFOV = fov + sin(za) * 2.0;
+		double trialZA = tAngle * 0.5;
 		if(trialFOV < 0.0) trialFOV = 0.0;
-		double y = (totalTime/dtTrial) * eval(func, 0.0, nVis * dtTrial/totalTime, nPix, trialFOV, nChan, a, b, c, d, e, fz, lambda, maxBaseline, maxHeight);
+		double y = (totalTime/dtTrial) * eval(func, trialZA, nVis * dtTrial/totalTime, nPix, trialFOV, nChan, a, b, c, d, e, fz, lambda, maxBaseline, maxHeight);
 		//std::cout << "za=" << trialFOV<< ", dt=" << dtTrial << ", y=" << y << '\n';
 		if(y < minY) {
 			minDT = dtTrial;
