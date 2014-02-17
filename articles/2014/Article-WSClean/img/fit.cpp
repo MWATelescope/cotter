@@ -62,8 +62,8 @@ std::string timeToStr(double secComputingRequired, double secObservation, double
 	else
 		str << round(gFlopsRequired*10.0)/10.0 << " GFLOPS";
 	str << ", ";
-	double perVis = secComputingRequired * BATTLESTAR_GFLOPS_PER_SECOND / nMVis;
-	str << perVis << " or " << round(20.0*perVis / exp10(floor(log10(perVis))))/10.0 << " x 10^" << floor(log10(perVis)) << " FLOPS/float";
+	double perFloat = 2.0 * secComputingRequired * BATTLESTAR_GFLOPS_PER_SECOND / nMVis;
+	str << perFloat << " or " << round(10.0*perFloat / exp10(floor(log10(perFloat))))/10.0 << " x 10^" << floor(log10(perFloat)) << " FLOPS/float";
 	
 	return str.str();
 }
@@ -709,7 +709,7 @@ void optimalDeltaW(FittingFunc func, double a, double b, double c, double d, dou
 void optimalDeltaT(FittingFunc func, const std::string& filename, double a, double b, double c, double d, double e, double f, double za, double nVis, double nPix, double fov, double nChan, bool zeroConstant, double& dt, size_t beamsTimesIters, double lambda, double maxBaseline, double maxHeight)
 {
 	std::ofstream file(filename);
-	double minY = std::numeric_limits<double>::max(), minDT = 0.0;
+	double minY = std::numeric_limits<double>::max(), minDT = 0.0, minFOV = 0.0;
 	double dtTrial = 1.0, prevTrial = 1.0;
 	double fz = zeroConstant ? 0.0 : f;
 	const double totalTime = 60.0*60.0;
@@ -722,6 +722,7 @@ void optimalDeltaT(FittingFunc func, const std::string& filename, double a, doub
 		if(y < minY) {
 			minDT = dtTrial;
 			minY = y;
+			minFOV = trialFOV;
 		}
 		file << dtTrial << '\t' << y << '\n';
 		prevTrial = dtTrial;
@@ -730,7 +731,7 @@ void optimalDeltaT(FittingFunc func, const std::string& filename, double a, doub
 	dt = minDT;
 	double tNormal = beamsTimesIters * eval(func, za, nVis, nPix, fov, nChan, a, b, c, d, e, fz, lambda, maxBaseline, maxHeight);
 	minY *= beamsTimesIters;
-	std::cout << "Optimal snapshot time: " << minDT << " / " << round(minDT/60.0) << "m (time=" << timeToStr(minY, totalTime, nVis) << " , vs " << tNormal << ")\n";
+	std::cout << "Optimal snapshot time: " << minDT << " / " << round(minDT/60.0) << "m (time=" << timeToStr(minY, totalTime, nVis) << " , vs " << tNormal << ", fov=" << minFOV << ")\n";
 }
 
 void evalSurveyConfig(const std::string& desc, double lambda, double fwhm, size_t beams, double intTimeSec, double bandWidth, double freqRes, size_t antennas, double angRes, double maxBaseline, double maxDiffHeight, FittingFunc func, double a, double b, double c, double d, double e, double f)
@@ -788,9 +789,15 @@ void evalSurveys(FittingFunc func, double a, double b, double c, double d, doubl
 	
 	evalSurveyConfig("MeerKAT",   0.2,  1.0,  1, 0.5,750000.0,     50,64,  6.0/3600.0, 8000.0, 1.0, func, a, b, c, d, e, f);
 	
-	evalSurveyConfig("SKA-P1 AA inner",2.3,1.2,480,49.0,380000.0,80.0, 35,140.0/3600.0,5000.0, 2.0, func, a, b, c, d, e, f);
+	evalSurveyConfig("SKA1 AA inner",2.0, 5,  1,10.6,250000.0,   1.0,433, 15.0/60.0, 600.0,  0.5, func, a, b, c, d, e, f);
 	
-	evalSurveyConfig("SKA-P1 AA mid"  ,2.3,1.2,480,0.2,380000.0, 2.0, 50, 3.5/3600.0,100000.0, 50.0, func, a, b, c, d, e, f);
+	evalSurveyConfig("SKA1 AA core" ,2.0, 5,  1,10.6,250000.0,   1.0,866,  3.0/60.0,3000.0,  5.0, func, a, b, c, d, e, f);
+	
+	evalSurveyConfig("SKA1 AA full" ,2.0, 5,  1, 0.6,250000.0,   1.0,911,  5.0/3600.0,100000.0, 50.0, func, a, b, c, d, e, f);
+	
+	//evalSurveyConfig("SKA-P1 AA inner",2.3,1.2,480,49.0,380000.0,80.0, 35,140.0/3600.0,5000.0, 2.0, func, a, b, c, d, e, f);
+	
+	//evalSurveyConfig("SKA-P1 AA mid"  ,2.3,1.2,480,0.2,380000.0, 2.0, 50, 3.5/3600.0,100000.0, 50.0, func, a, b, c, d, e, f);
 	
 	evalSurveyConfig("AWProjection"  , 5.0,11.4, 1,300,  0.78,9.36, 22, 10.0/3600.0,   20000.0, 2.0,func, a, b, c, d, e, f);
 }
