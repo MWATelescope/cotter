@@ -256,7 +256,7 @@ For low-frequency telescopes, it can be of interest to do full-sky (i.e., horizo
 
 To efficiently image the full sky, an observation is split into short snapshots, their phase centre is changed to zenith and subsequently a suitable area is imaged. Depending on desired resolution and dynamic range, this might require very large images. To make an image at the MWA resolution, the image needs to have approximately 10k pixels in width and height. The $w$-values will be very small at zenith, because at zenith only the vertical offsets of the antennas will contribute to the $w$-value. For the MWA, the maximum height difference between tiles is $8.5$m. The MWA tiles are in fact on a slight slope, and by fitting a plane to the antennas and changing the phase centre towards the normal of that plane, the maximum $w$-value decreases to $5.5\textrm{m} / \lambda$. In the following sections, when discussing the MWA zenith direction we are referring to this optimal $w$-direction.
 
-TODO: add big-ass full-sky image
+TODO: add big full-sky image
 
 \subsection{$w$-snapshots} \label{sec:snapshot-imaging}
 \begin{figure*}
@@ -270,18 +270,17 @@ TODO: add big-ass full-sky image
 As discussed, all-sky snapshot imaging with zenith as phase centre is quite efficient. However, if one is not interested in imaging the whole sky, and the direction of interest is far from zenith, the computational overhead of making all-sky images is undesirable.
 
 Instead of imaging the whole sky, the image can be recentred from $(l,m)$ to $(\hat{l},\hat{m})=(l+\Delta l,m+\Delta m)$ by performing the substitution $(l,m)\leftarrow(\hat{l},\hat{m})$ in Eq.~\eqref{eq:wstacking}:
-%When the Fourier transform is performed, the $w$ term has been corrected (either by $w$-stacking or by $w$-projection). Therefore, if $U(u, v)$ is the input to the 2-dimensional Fourier transform, the transform is described by
 \begin{align}\notag
 \frac{I'(\hat{l}, \hat{m})\left(w_{\max} - w_{\min}\right)}{\sqrt{1-\hat{l}^2-\hat{m}^2}} = \int\limits_{w_{\min}}^{w_{\max}} e^{2\pi i w(\sqrt{1-\hat{l}^2-\hat{m}^2}-1)} \times \\
 \iint e^{2 \pi i \left(u\Delta l + v\Delta m\right)} V(u,v,w) e^{2\pi i \left(ul + vm\right)} du dv dw.
 \end{align}
-In words, recentering an image involves accounting for the position shift during the $w$-correction and final scaling, and shifting the visibilities in phase by multiplication with $e^{2 \pi i \left(u\Delta l + v\Delta m\right)}$ prior to the imaging. This essentially is a method of implementing the $w$-snapshots algorithm as described by \citet{widefield-imaging-ska-cornwell}. By doing the inverse corrections during prediction, such a shifted visibility set can be cleaned with Cotton-Schwab iterations similar to a non-shifted set.
+In words, recentering an image involves accounting for the position shift during the $w$-correction and final scaling, and shifting the visibilities in phase by multiplication with $e^{2 \pi i \left(u\Delta l + v\Delta m\right)}$ prior to the imaging. This essentially is a method of implementing the $w$-snapshots algorithm as described by \citet{widefield-imaging-ska-cornwell}. However, instead of creating warped images by performing the FFT over a tilted plane in $uvw$-space, our method transforms planes with constant $w$-values. The benefit of our method is that the resulting image has a circular synthesized beam, i.e., the resolution in $l$ and $m$ directions matches the intrinsic resolution of the instrument, which is desirable for cleaning. Our method is also relatively easy to implement. It has a similar computational cost compared to the $w$-snapshot algorithm, although the required number of $w$-layers has a different dependency on zenith angle, field of view and the non-coplanarity.
 
-A recentred image is in the projection of the zenith tangent plane, and will need an additional regridding step before multiple snapshots can be added together. A recentred image can be stored in a Flexible Image Transport System (FITS) file with the slant orthographic (SIN) projection normally used in interferometric imaging \citep{fits-coordinates-2002}, by setting the centre of tangent projection with the \texttt{CRPIXi} keyword \citep{wcs-in-fits}. Common viewers such as Kvis and DS9 support such FITS files and display their coordinates correctly. An example of the difference in projection is given in Fig.~\ref{fig:vela-projection-example}, which displays a 13~min MWA observation imaged with WSClean. Cleaning an image that is in a different projection yields slightly different results, but qualitativily the two images are clearly of equal accuracy. The wall-clock time for imaging is 60 min and 41 min for respectively normal projection and the recentred image. Of the 41 min, 3 min is spent on phase rotating the visibilities.
+By doing the inverse corrections during prediction, a recentred visibility set can be cleaned with Cotton-Schwab iterations similar to a non-recentred set. The PSF used during minor cleaning iterations is created by multiplying the weights with the recentering corrections, such that the PSF represents a source in the middle of the image.
+
+A recentred image is in the projection of the zenith tangent plane, and will need an additional regridding step before multiple snapshots can be added together. A recentred image can be stored in a Flexible Image Transport System (FITS) file with the slant orthographic (SIN) projection normally used in interferometric imaging \citep{fits-coordinates-2002}, by setting the centre of tangent projection with the \texttt{CRPIXi} keyword \citep{wcs-in-fits}. Common viewers such as Kvis and DS9 support such FITS files and display their coordinates correctly. Unlike warped snapshots, recentred images do not need the generalized-SIN-projection keywords \texttt{PV2\_1} and \texttt{PV2\_2}. An example of the difference in projection between non-recentred and recentred imaging is given in Fig.~\ref{fig:vela-projection-example}, which displays a 13~min MWA observation imaged with WSClean. Cleaning an image that is in a different projection yields slightly different results, but qualitativily the two images are clearly of equal accuracy. The wall-clock time for imaging is 60 min and 41 min for respectively normal projection and the recentred image. Of the 41 min, 3 min is spent on phase rotating the visibilities.
 
 Another method to shift an image is by using the periodicity of the FFT function. Since sources outside the field of view will be aliased back into the field, the image can be transformed to have the alias in the centre. This complicates gridding during imaging, because the antialiasing kernel needs to have a pass-band shape instead of a low-pass shape. Therefore, we chose to implement the former method.
-
-TODO: I just realized that the original definition of $w$-snapshots might be Natasha's way of fixing $w$-values in MWACS. In that case, these methods are new and it might be good to distinguish this.
 
 \subsection{Beam correction}
 Because the MWA consists of fixed, beamformed dipole antennas, the voltage beam of a MWA tile is described by a complex, non-diagonal Jones matrix. Alternatively, Mueller matrices can be used as well, but in general these result in more computations \citep{revisiting-me-i}. When assuming all individual antennas of the tiles are working properly, all tiles have the same beam. The beam can then be corrected in image space for all tiles at once with
@@ -422,11 +421,11 @@ and for CASA we find
 & N_\textrm{freq} \left(1.03 N_\textrm{kpix}^2 \log_2 N_\textrm{kpix} + 5.93 N_\textrm{Mvis} (w_{\max} + 1.71)^2\right) + 172.
 \label{eq:casa-computing-cost}%
 \end{align}
-Parameter $w_{\max}$ is the maximum $w$ value and is estimated with
-\begin{equation}
- w_{\max} = \frac{1}{\lambda}\left[D \sin \textrm{ZA} + \max \Delta z \cos \textrm{ZA} \left(1.0 - \cos(\frac{1}{2}\textrm{FOV})\right)\right],
-\end{equation}
-where $D$ is the maximum baseline length, $\max \Delta z$ is the maximum height difference between antennas and $\lambda$ is the wavelength, all in meters. These functions follow the trend of the measurements well, with an absolute error of 14.7\% and 20.7\% for respectively the WSClean and CASA functions. (TODO $w_{\max}$ is slightly different for CASA)
+Parameter $w_{\max}$ is the maximum $w$-value and is estimated with
+\begin{equation}\resizebox{0.45\textwidth}{!}{$
+ w_{\max} = \frac{1}{\lambda}\left[(D \sin \textrm{ZA} + \Delta z_{\max} \cos \textrm{ZA} + \xi) \left(1.0 - \cos(\frac{1}{2}\textrm{FOV})\right)\right]$},
+\end{equation}%
+where $D$ is the maximum baseline length, $\Delta z_{\max}$ is the maximum height difference between antennas and $\lambda$ is the wavelength, all in meters, and $\xi$ is an extra parameter for fitting the CASA measurements, $\xi_\textrm{CASA}=28.4$ and $\xi_\textrm{WSClean}=0$. These functions follow the trend of the measurements well, with an absolute error of 14.7\% and 20.7\% for respectively the WSClean and CASA functions.
 
 \subsection{Optimal snapshot duration}
 Snapshot imaging, such as the recentring technique described in \S\ref{sec:snapshot-imaging}, can be implemented with either $w$-projection or $w$-stacking. Using the derived formulae, we can estimate the cost of making snapshots with both techniques. Snapshot imaging effectively removes the dependency on ZA from $w_{\max}$. Given the snapshot duration $\Delta \tau_\textrm{snapshot}$ and the total integration time $\Delta \tau_\textrm{total}$, the total time cost of inversion becomes
