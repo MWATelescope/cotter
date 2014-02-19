@@ -66,6 +66,7 @@ void usage()
 	"  -h <filename>      Read header data from given text file (overrides the metadata.)\n"
 	"  -i <filename>      Read meta data from given fits filename (overrides the metadata).\n"
 	"  -mem <percentage>  Use at most the given percentage of memory.\n"
+	"  -j <ncpus>         Number of CPUs to use. Default is to use all.\n"
 	"  -timeavg <factor>  Average 'factor' timesteps together before writing to measurement set.\n"
 	"  -freqavg <factor>  Average 'factor' channels together before writing to measurement set.\n"
 	"                     When averaging: flagging, collecting statistics and cable length fixes are done\n"
@@ -122,6 +123,7 @@ int cotterMain(int argc, const char* const* argv)
 	Cotter cotter;
 	const char *outputFilename = 0;
 	bool saveQualityStatistics = false;
+	size_t nCPUs = 0;
 	while(argi!=argc)
 	{
 		if(argv[argi][0] == '-')
@@ -164,6 +166,11 @@ int cotterMain(int argc, const char* const* argv)
 			{
 				++argi;
 				cotter.SetInstrConfigFilename(argv[argi]);
+			}
+			else if(param == "j")
+			{
+				++argi;
+				nCPUs = atoi(argv[argi]);
 			}
 			else if(param == "mem")
 			{
@@ -356,7 +363,10 @@ int cotterMain(int argc, const char* const* argv)
 	
 	cotter.SetFileSets(fileSets);
 	cotter.SetMaxBufferSize(memSize*memPercentage/(100*(sizeof(float)*2+1)));
-	cotter.SetThreadCount(sysconf(_SC_NPROCESSORS_ONLN));
+	if(nCPUs == 0)
+		cotter.SetThreadCount(sysconf(_SC_NPROCESSORS_ONLN));
+	else
+		cotter.SetThreadCount(nCPUs);
 	if(outputFilename != 0)
 		cotter.SetOutputFilename(outputFilename);
 	cotter.Run(timeAvg, freqAvg);
