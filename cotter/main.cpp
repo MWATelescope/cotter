@@ -102,12 +102,15 @@ int main(int argc, char **argv)
 {
 	std::cout << "Running Cotter MWA preprocessing pipeline.\n";
 	
+	int result = 0;
 	try {
-		cotterMain(argc, argv);
+		result = cotterMain(argc, argv);
 	} catch(std::exception &e)
 	{
-		std::cout << "\nAn unhandled exception occured while running Cotter:\n" << e.what() << '\n';
+		std::cerr << "\nAn unhandled exception occured while running Cotter:\n" << e.what() << '\n';
+		return -1;
 	}
+	return result;
 }
 
 int cotterMain(int argc, const char* const* argv)
