@@ -253,9 +253,6 @@ The new imager, called ``WSClean'', is written in the C++ language. It reads vis
 It will not be possible to store all $w$-layers in memory when creating large images or when many $w$-layers are used. For example, our 32-GB test machine can store 227 $w$-layers of $3072\times3072$ in memory. In more demanding imaging configurations, the implementation performs several passes over the measurement set and will grid a subset of $w$-layers in each pass.
 
 \subsection{Full-sky imaging}
-For low-frequency telescopes, it can be of interest to do full-sky (i.e., horizon to horizon) imaging. In the case of MWA, the tile beam can have strong sidelobes at a distance of more than 90\degree from the pointing centre. Imaging these sidelobes might be relevant because they are scientifically of interest (e.g. when searching for transients). Full-sky imaging can also be useful for self-calibration or deconvolution. For example, self-calibration using full-sky clean components has been found to give good results in imaging the resolved FR-II radio source Fornax~A (McKinley et al., in prep.).
-
-To efficiently image the full sky, an observation is split into short snapshots, their phase centre is changed to zenith and subsequently a suitable area is imaged. Depending on desired resolution and dynamic range, this might require very large images. To make an image at the MWA resolution, the image needs to have approximately 10k pixels in width and height. The $w$-values will be very small at zenith, because at zenith only the vertical offsets of the antennas will contribute to the $w$-value. For the MWA, the maximum height difference between tiles is $8.5$m. The MWA tiles are in fact on a slight slope, and by fitting a plane to the antennas and changing the phase centre towards the normal of that plane, the maximum $w$-value decreases to $5.5\textrm{m} / \lambda$. In the following sections, when discussing the MWA zenith direction we are referring to this optimal $w$-direction.
 
 \begin{figure*}
 \begin{center}
@@ -264,6 +261,10 @@ To efficiently image the full sky, an observation is split into short snapshots,
 \label{fig:full-sky-example}
 \end{center}
 \end{figure*}
+
+For low-frequency telescopes, it can be of interest to do full-sky (i.e., horizon to horizon) imaging. In the case of MWA, the tile beam can have strong sidelobes at a distance of more than 90\degree from the pointing centre. Imaging these sidelobes might be relevant because they are scientifically of interest (e.g. when searching for transients). Full-sky imaging can also be useful for self-calibration or deconvolution. For example, self-calibration using full-sky clean components has been found to give good results in imaging the resolved FR-II radio source Fornax~A (McKinley et al., in prep.). An example full-sky MWA image is shown in Fig.~\ref{fig:full-sky-example}.
+
+To efficiently image the full sky, an observation is split into short snapshots, their phase centre is changed to zenith and subsequently a suitable area is imaged. Depending on desired resolution and dynamic range, this might require very large images. To make an image at the MWA resolution, the image needs to have approximately 10k pixels in width and height. The $w$-values will be very small at zenith, because at zenith only the vertical offsets of the antennas will contribute to the $w$-value. For the MWA, the maximum height difference between tiles is $8.5$m. The tiles are in fact on a slight slope, and by fitting a plane to the antennas and changing the phase centre towards the normal of that plane, the maximum $w$-value decreases to $5.5\textrm{m} / \lambda$. In the following sections, when discussing the MWA zenith direction we are referring to this optimal $w$-direction.
 
 \subsection{$w$-snapshots} \label{sec:snapshot-imaging}
 \begin{figure*}
