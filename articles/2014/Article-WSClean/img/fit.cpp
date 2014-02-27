@@ -13,6 +13,13 @@
 
 bool fixDW = false, fixConstant = false, fixZAOffset = false;
 
+const double majorIterationsInversionCount = 10.0; // total nr of inversions + predictions for configuration evaluations
+
+// number of times to sample higher than resolution
+// For cleaning, one would normally use ~5.0, but with the WSClean resampling optimization it is possible to
+// sample at Nyquist resolution (i.e., 0.5 beam size) and upscale the result.
+const double overSamplingResolution = 2.0; 
+
 double sinZA(double za, double lambda = 1.64, double maxBaselineM = 2900.0, double maxHeightDiffM = 5.5)
 {
 	return (maxBaselineM*sin(za*(M_PI/180.0)) + maxHeightDiffM*cos(za*(M_PI/180.0))) / lambda;
@@ -746,15 +753,14 @@ void evalSurveyConfig(const std::string& desc, double lambda, double fwhm, size_
 	const double duration = 60.0 * 60.0;
 	const double za = 20.0;
 	double nMVis = bandWidth / freqRes * (antennas * (antennas-1))/2 * (duration/intTimeSec) * 1e-6;
-	const double nKPix = 5.0 * fov/(angRes*1000.0);
+	const double nKPix = overSamplingResolution * fov/(angRes*1000.0);
 	const double nChan = 1;
 	if(func == WSSCleanExtrapolatedFunc)
 	{
 		nMVis *= 300.0 / duration;
 	}
 	const double we = sinZA(za, lambda, maxBaseline, maxDiffHeight) * fovFact(fov);
-	const double majorIterationCount = 10;
-	double time = majorIterationCount * double(beams) * eval(func, za, nMVis, nKPix, fov, nChan, a, b, c, d, e, f, lambda, maxBaseline, maxDiffHeight);
+	double time = majorIterationsInversionCount * double(beams) * eval(func, za, nMVis, nKPix, fov, nChan, a, b, c, d, e, f, lambda, maxBaseline, maxDiffHeight);
 	if(func == WSSCleanExtrapolatedFunc)
 	{
 		time *= duration / 300.0;
@@ -767,9 +773,8 @@ void evalSurveyConfig(const std::string& desc, double lambda, double fwhm, size_
 	{
 		double dt, dw, minDWTime;
 		std::string filename = func == WSCleanFunc ? "dt-wsclean.txt" : "dt-casa.txt";
-		// beams * 10: 5 major iterations
-		optimalDeltaT(func, filename, a, b, c, d, e, f, za, nMVis, nKPix, fov, nChan, false, dt, beams*majorIterationCount, lambda, maxBaseline, maxDiffHeight);
-		optimalDeltaW(func, a, b, c, d, e, f, za, nMVis, nKPix, fov, nChan, true, dw, minDWTime, beams*majorIterationCount, lambda, maxBaseline, maxDiffHeight);
+		optimalDeltaT(func, filename, a, b, c, d, e, f, za, nMVis, nKPix, fov, nChan, false, dt, beams*majorIterationsInversionCount, lambda, maxBaseline, maxDiffHeight);
+		optimalDeltaW(func, a, b, c, d, e, f, za, nMVis, nKPix, fov, nChan, true, dw, minDWTime, beams*majorIterationsInversionCount, lambda, maxBaseline, maxDiffHeight);
 	}
 }
 

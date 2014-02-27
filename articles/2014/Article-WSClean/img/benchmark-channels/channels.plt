@@ -1,9 +1,10 @@
 set terminal postscript enhanced color font 'Helvetica,24'
 set logscale xy
-#set xrange [:180]
+set xrange [:92]
 set yrange [:400]
 set output "channels.ps"
 set key top left vertical maxrows 3
+set xtics ("1" 1, "2" 2, "" 3 1, "" 4 1, "5" 5, "" 6 1, "" 7 1, "" 8 1, "" 9 1, "10" 10, "20" 20, "" 30 1, "" 40 1, "50" 50, "" 60 1, "" 70 1, "" 80 1, "" 90 1, "92" 92)
 set xlabel "Number of frequency channels"
 set ylabel "Time (min)"
 plot "timings-ZA010-channels-wsclean.txt" using 2:(column(3)/60) with lines lw 2.0 lc 1 lt 1 title "WSClean", \
