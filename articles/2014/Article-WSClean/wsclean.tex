@@ -43,12 +43,12 @@
 \def\CAASTRO{$^{2}$}
 \def\Curtin{$^{3}$}
 \def\UWisc{$^{4}$}
-\def\MIT{$^{5}$}
-\def\SKASA{$^{6}$}
-\def\ASU{$^{7}$}
-\def\Haystack{$^{8}$}
-\def\RRI{$^{9}$}
-\def\USydney{$^{10}$}
+\def\USydney{$^{5}$}
+\def\MIT{$^{6}$}
+\def\SKASA{$^{7}$}
+\def\ASU{$^{8}$}
+\def\Haystack{$^{9}$}
+\def\RRI{$^{10}$}
 \def\CfA{$^{11}$}
 \def\UW{$^{12}$}
 \def\Victoria{$^{13}$}
@@ -68,6 +68,7 @@ L.~Feng\MIT,
 A.~R.~Neben\MIT,
 J.~D.~Hughes\ANU, \newauthor
 J.~Rhee\ANU,
+T.~Murphy\USydney$^,$\CAASTRO,
 G.~Bernardi\SKASA,
 J.~D.~Bowman\ASU,
 R.~J.~Cappallo\Haystack,
@@ -107,12 +108,12 @@ C.~L.~Williams\MIT
 \CAASTRO{}ARC Centre of Excellence for All-sky Astrophysics (CAASTRO), Australian National University, Canberra, ACT 2611, Australia \\
 \Curtin{}International Centre for Radio Astronomy Research, Curtin University, Bentley, WA 6102, Australia\\
 \UWisc{}Department of Physics, University of Wisconsin--Milwaukee, Milwaukee, WI 53201, USA\\
+\USydney{}Sydney Institute for Astronomy, School of Physics, The University of Sydney, NSW 2006, Australia\\
 \MIT{}Kavli Institute for Astrophysics and Space Research, Massachusetts Institute of Technology, Cambridge, MA 02139, USA\\
 \SKASA{}Square Kilometre Array South Africa (SKA SA), Cape Town 7405, South Africa\\
 \ASU{}School of Earth and Space Exploration, Arizona State University, Tempe, AZ 85287, USA\\
 \Haystack{}MIT Haystack Observatory, Westford, MA 01886, USA\\
 \RRI{}Raman Research Institute, Bangalore 560080, India\\
-\USydney{}Sydney Institute for Astronomy, School of Physics, The University of Sydney, NSW 2006, Australia\\
 \CfA{}Harvard-Smithsonian Center for Astrophysics, Cambridge, MA 02138, USA\\
 \UW{}Department of Physics, University of Washington, Seattle, WA 98195, USA\\
 \Victoria{}School of Chemical \& Physical Sciences, Victoria University of Wellington, Wellington 6140, New Zealand\\
@@ -149,12 +150,12 @@ New generation of wide-field observatories are producing data sets that are orde
 
 Another option exists for imaging MWA data: the Real-Time System (RTS, \citealt{rts-mwa}). This has been designed as an efficient calibration and imaging pipeline specifically for MWA data. It can use GPUs to improve efficiency, and uses a $w$-projection kernel during imaging to correct for the $w$-term. The kernel can be kept small, because the data is processed in snapshots. The RTS can not perform deconvolution as of yet.
 
-To reach high dynamic ranges, it can be necessary to deal with direction-dependent effects (DDEs). This is especially true for widefield telescopes. One way to handle DDEs is by using the a-projection technique, which convolves the data during gridding with a kernel that corrects the DDEs \citep{aprojection-2008}.
+To reach high dynamic ranges, it can be necessary to deal with direction-dependent effects (DDEs). This is especially true for wide-field telescopes. One way to handle DDEs is by using the a-projection technique, which convolves the data during gridding with a kernel that corrects the DDEs \citep{aprojection-2008}.
 One such DDE is the effect of the ionosphere. For the MWA it can be assumed that the ionosphere has the same effect on all tiles, because the maximum baseline length is relatively small (2.9~km) and smaller than the typical size of ionospheric structure \citep{lonsdale-calibration-approaches-ionosphere}. This is not the case for LOFAR, making it necessary to correct the direction-dependent ionospheric effects per station before gridding the data. The \texttt{awimager} has been written to perform these corrections, and uses a hybrid of a-projection, $w$-projection and $w$-stacking \citep{awimager-2013}.
 
 Once the Square-Kilometre Array (SKA) begins its operation, the required computational power for wide-field imaging will become an even bigger challenge. \citet{widefield-imaging-ska-cornwell} argues that the $w$-snapshots algorithm is the most efficient approach for the SKA.
 
-In this article, we present a new implementation of a generic wide-field imager that is significantly faster than CASA's $w$-projection implementation, and is able to successfully image any MWA observation. To obtain the increase in speed, the implementation uses the $w$-stacking method for correcting the $w$-terms, optionally combined with a new technique for $w$-snapshot imaging. We named the new imager ``WSClean'', as an abbreviation for ``$w$-Stacking Clean''. Our new imaging implementation, which we believe to be the fastest generic widefield imager available, is publicly released\footnote{The WSClean source code can be found at:\\\url{http://sourceforge.net/p/wsclean}}.
+In this article, we present a new implementation of a generic wide-field imager that is significantly faster than CASA's $w$-projection implementation, and is able to successfully image any MWA observation. To obtain the increase in speed, the implementation uses the $w$-stacking method for correcting the $w$-terms, optionally combined with a new technique for $w$-snapshot imaging. We named the new imager ``WSClean'', as an abbreviation for ``$w$-Stacking Clean''. Our new imaging implementation, which we believe to be the fastest generic wide-field imager available, is publicly released\footnote{The WSClean source code can be found at:\\\url{http://sourceforge.net/p/wsclean}}.
 
 This paper is structured as follows: The $w$-stacking algorithm is described in Sect.~\ref{sec:wstacking}. Details of implementing the $w$-stacking and $w$-snapshots algorithms are described in Sect.~\ref{sec:implementation}. The performance and accuracy will be analysed in Sect.~\ref{sec:analysis}. The conclusions are presented in Sect.~\ref{sec:conclusions}.
 
@@ -304,7 +305,7 @@ Because the MWA consists of fixed, beam-formed dipole antennas, the voltage beam
 \begin{equation}\label{eq:beam-correction}
  I(l, m) = J(l,m)^{-1} I'(l, m) \left(J(l,m)^*\right)^{-1},
 \end{equation}
-where each term is a $2\times2$ complex matrices, with $J$ the voltage beam and $^*$ denoting the conjugate transpose. Because $J$ is complex and non-diagonal, all 4 combinations of the cross-correlated polarizations $p$ and $q$\footnote{The instrumental polarizations of the MWA are informally often referred to as $X$ and $Y$, mainly because many software treats the two polarizations as such. However, this is somewhat confusing because they are not necessarily orthogonal.} including the imaginary part of the $pq$ and $qp$ are required to calculate any of the Stokes parameters. The $pp$ and $qq$ have no imaginary part due to the $uv$-symmetry. To make proper MWA beam correction possible, WSClean can output both real $pp$, $pq$, $qp$, $qq$ images and imaginary $pq$ and $qp$ images. This requires four runs of the algorithm. Once these images are created, a separate program is used to perform the correction of Eq.~\eqref{eq:beam-correction}. The method is demonstrated in Fig.~\ref{fig:pulsar-stokes-iv}, which displays a detection of pulsar J0437-4715 in Stokes V. The image was made with an initial pipeline for the radio-sky monitor project that uses the MWA to search for transients and exoplanets. The pipeline includes WSClean to make the Stokes-parameter images.
+where each term is a $2\times2$ complex matrices, with $J$ the voltage beam and $^*$ denoting the conjugate transpose. Because $J$ is complex and non-diagonal, all 4 combinations of the cross-correlated polarizations $p$ and $q$\footnote{The instrumental polarizations of the MWA are informally often referred to as $X$ and $Y$, mainly because many software treats the two polarizations as such. However, this is somewhat confusing because they are not necessarily orthogonal.} including the imaginary part of the $pq$ and $qp$ are required to calculate any of the Stokes parameters. The $pp$ and $qq$ have no imaginary part due to the $uv$-symmetry. To make proper MWA beam correction possible, WSClean can output both real $pp$, $pq$, $qp$, $qq$ images and imaginary $pq$ and $qp$ images. This requires four runs of the algorithm. Once these images are created, a separate program is used to perform the correction of Eq.~\eqref{eq:beam-correction}. The method is demonstrated in Fig.~\ref{fig:pulsar-stokes-iv}, which displays a detection of pulsar J0437-4715 in Stokes V. The image was made with an initial pipeline for the MWA radio-sky monitor project (PI: Bell) that uses the MWA to search for transient and variable sources. The pipeline includes WSClean to make the Stokes-parameter images.
 
 Our image-based beam-correction method avoids expensive beam-correcting kernels during gridding, but only works because all tiles have the same beam. To apply the same method on heterogeneous arrays such as LOFAR, each set of correlations with a different combination of station beams will have to be imaged separately, which will increase the cost of the algorithm excessively unless an a-projection kernel is used. The AWImager uses an intermediate method, and corrects a common dipole factor in image space and the phased-array beam factor in $uv$-space, which allows the gridding kernel to be smaller compared to correcting both in $uv$-space \citep{awimager-2013}.
 
@@ -529,7 +530,7 @@ Imaging the full field of view with the full SKA becomes very expensive due to t
 \section{Conclusions} \label{sec:conclusions}
 We have shown that the $w$-stacking algorithm is well suited for imaging MWA observations. The WSClean $w$-stacking implementation is faster than CASA's $w$-projection algorithm in all common MWA imaging configurations, leading up to an order of magnitude difference already at a relatively small zenith angle of $10$\degree. It is also slightly more accurate. For approximately zenith angles $>15\degree$ or field-of-view diameters $>35\degree$, snapshot imaging becomes faster. This can lead to performance improvements of a factor of $3$ for the MWA, but only in the most expensive imaging configurations that are less commonly used. Considering the extra regridding step required, which complicates issues such as calculating the integrated beam shape, recentering snapshots is worthwhile for the MWA only at very low elevations or with large fields of view. Extrapolation of the computing cost predicts that this holds for most arrays, including SKA low. A hybrid between $w$-stacking and $w$-projection does not improve performance over a pure $w$-stacking implementation, but does improve a pure $w$-projection implementation significantly. Our optimization of lowering the image resolution during inversion and prediction increases performance by a factor of 2--10 and has no noticeable effect on the accuracy.
 
-The available SKA computing power is estimated to be around $\sim$100 PetaFLOPS. Extrapolation of our results shows that the current imagers require $3$--$60$ petaFLOPS for SKA1 low alone. It was suggested that $w$-snapshots would improve the imaging speed for the SKA situation \citep{widefield-imaging-ska-cornwell}, but our results show this is not the case when already using the $w$-stacking algorithm. Clearly it remains challenging to perform widefield imaging with acceptable performance, but some optimisations could be made for the SKA. For example, a performance gain of a few factors can be achieved by averaging shorter baselines to their maximum integration time and bandwidth resolution before imaging. Moreover, although longer baselines make the imaging more expensive, it is likely that it is not always required to image the full field of view when using the longest baselines.
+The available SKA computing power is estimated to be around $\sim$100 PetaFLOPS. Extrapolation of our results shows that the current imagers require $3$--$60$ petaFLOPS for SKA1 low alone. It was suggested that $w$-snapshots would improve the imaging speed for the SKA situation \citep{widefield-imaging-ska-cornwell}, but our results show this is not the case when already using the $w$-stacking algorithm. Clearly it remains challenging to perform wide-field imaging with acceptable performance, but some optimisations could be made for the SKA. For example, a performance gain of a few factors can be achieved by averaging shorter baselines to their maximum integration time and bandwidth resolution before imaging. Moreover, although longer baselines make the imaging more expensive, it is likely that it is not always required to image the full field of view when using the longest baselines.
 
 Deconvolution is not an issue for achieving low to intermediate dynamic ranges with the MWA. Because of sufficient instantaneous $uv$-coverage and near-confusion snapshot noise level, snapshots can be cleaned individually to deep levels. For example, cleaning to $5\sigma$ level results in a cleaning threshold of approximately 100~mJy in 112~s observations. However, MWA's EoR observations \citep{bowman-science-with-the-mwa-2013} require more advanced deconvolution techniques.
 
