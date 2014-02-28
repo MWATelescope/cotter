@@ -444,12 +444,12 @@ Based on the expected cost terms described in Sec.~\ref{sec:time-complexity}, we
 For the WSClean time-cost function $t_\textrm{WSClean}$ we find 
 \begin{align}\label{eq:wsclean-computing-cost}
 & t_\textrm{WSClean} (w_{\max},N_\textrm{Mvis},N_\textrm{freq},N_\textrm{kpix}) = \\ \notag%
-& N_\textrm{freq} \left( 0.452 N_\textrm{kpix}^2 \log_2 N_\textrm{kpix} (w_{\max} + 0.611) + 244 N_\textrm{Mvis} \right)
+& N_\textrm{freq} \left( 0.526 N_\textrm{kpix}^2 \log_2 N_\textrm{kpix} (w_{\max} + 0.715) + 0.535 \right) + 0.248 N_\textrm{Mvis}
 \end{align}
 and for CASA we find
 \begin{align}\label{eq:casa-computing-cost}
 & t_\textrm{CASA}(w_{\max},N_\textrm{vis},N_\textrm{freq},N_\textrm{pix}) = \\ \notag%
-& N_\textrm{freq} \left(1.03 N_\textrm{kpix}^2 \log_2 N_\textrm{kpix} + 5.93 N_\textrm{Mvis} (w_{\max} + 1.71)^2\right) + 172.
+& N_\textrm{freq} \left(0.965 N_\textrm{kpix}^2 \log_2 N_\textrm{kpix} + 0.0106 N_\textrm{Mvis} (w_{\max}^2 + 40.1)\right) + 40.8.
 \label{eq:casa-computing-cost}%
 \end{align}
 Parameter $w_{\max}$ is the maximum $w$-value and is estimated with
@@ -534,7 +534,7 @@ The available SKA computing power is estimated to be around $\sim$100 PetaFLOPS.
 
 Deconvolution is not an issue for achieving low to intermediate dynamic ranges with the MWA. Because of sufficient instantaneous $uv$-coverage and near-confusion snapshot noise level, snapshots can be cleaned individually to deep levels. For example, cleaning to $5\sigma$ level results in a cleaning threshold of approximately 100~mJy in 112~s observations. However, MWA's EoR observations \citep{bowman-science-with-the-mwa-2013} require more advanced deconvolution techniques.
 
-So far, we have corrected the (full-polarization) beam in image space, which is possible because of the homogeneity of the MWA tiles. This is cheap for our current snapshot time of 112s, but this might be infeasible when it is required to calculate the beam on very short time scales. Accurate MWA beam models are still being developed. When beam corrections are required on short time scales, calculating $a$-projection kernels or performing snapshot imaging also becomes more expensive, and it would be interesting to find out where the balance lies between these methods. When only a few thousand components need to be deconvolved, an approach with direct Fourier transforms is accurate and affordable. For wide-field arrays this can be combined with calibration of the direction dependence, e.g. with the SAGECAL \citep{sage-calibration-ii} or RTS peeling \citep{rts-mwa} calibration techniques. This is not possible for fields with diffuse emission or faint point sources when no model is known a-priory.
+So far, we have corrected the (full-polarization) beam in image space, which is possible because of the homogeneity of the MWA tiles. This is cheap for our current snapshot time of 112s, but this might be infeasible when it is required to calculate the beam on very short time scales. Accurate MWA beam models are still being developed. When beam corrections are required on short time scales, calculating $a$-projection kernels or performing snapshot imaging also becomes more expensive, and it would be interesting to find out where the balance lies between these methods. When only a few thousand components need to be deconvolved, an approach with direct Fourier transforms is accurate and affordable. For wide-field arrays this can be combined with calibration of the direction dependence, e.g. with the SAGECAL \citep{sage-calibration-ii} or RTS peeling \citep{rts-mwa} calibration techniques. This is not possible for fields with diffuse emission or faint point sources when no model is known \textit{a priori}.
 
 WSClean is currently not able to perform multi-scale clean. Results of applying CASA's multi-scale clean on MWA data show that especially the Galactic plane is significantly better deconvolved using multi-scale clean, but it is very expensive. Imaging a one-minute observation takes 30 hours of computational time without $w$-projection. We plan to implement some form of multi-scale cleaning in WSClean. It is likely that additional optimizations need to be made to be able to do this with acceptable performance.
 
