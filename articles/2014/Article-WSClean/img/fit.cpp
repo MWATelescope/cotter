@@ -832,7 +832,8 @@ void fitAllWSClean()
 	fit(info, a, b, c, d, e, f);
 	fixConstant = false;
 	fit(info, a, b, c, d, e, f);
-	std::cout << "Nchan (" << a << " Npix^2 log Npix fovFact sin ZA + " << b << ") + " << c << " Nvis) + " << d << "\n";
+	// nChan * (a * (we+b)*nPix*nPix*log2(nPix) + d) + c * nVis;
+	std::cout << "Nchan (" << a << " Npix^2 log Npix (w_max + " << b << ") + " << d << ") + " << c << " Nvis\n";
 	writeNVisFit("benchmark-nsamples/fit-zenith-wsc.txt", info.func, a, b, c, d, e, f, 0.0, 3.072, 36.864, 1);
 	writeNVisFit("benchmark-nsamples/fit-ZA010-wsc.txt", info.func, a, b, c, d, e, f, 10.0, 3.072, 36.864, 1);
 	writeNPixFit("benchmark-resolution/fit-zenith-wsclean.txt", info.func, a, b, c, d, e, f, 0.0, 349.6, 36.864, 1);
@@ -911,7 +912,8 @@ void fitAllCASA()
 	fit(info, a, b, c, d, e, f);
 	fixDW = false;
 	fit(info, a, b, c, d, e, f);
-	std::cout << "t = Nchan (" << a << " Npix^2 log Npix + " << b << " Nvis ((sin ZA + " << e << ") * fov)^2 + " << b*d << " Nvis + " << f << '\n';
+	// nChan * a * nPix*nPix*log2(nPix) + b * nVis * (we * we + d) + f;
+	std::cout << "t = Nchan " << a << " Npix^2 log Npix + " << b << " Nvis ((sin ZA + " << e << ") * fov)^2 + " << d << ") + " << f << '\n';
 	writeNVisFit("benchmark-nsamples/fit-zenith-casa.txt", info.func, a, b, c, d, e, f, 0.0, 3.072, 36.864, 1);
 	writeNVisFit("benchmark-nsamples/fit-ZA010-casa.txt", info.func, a, b, c, d, e, f, 10.0, 3.072, 36.864, 1);
 	writeNPixFit("benchmark-resolution/fit-zenith-casa.txt", info.func, a, b, c, d, e, f, 0.0, 349.6, 36.864, 1);
