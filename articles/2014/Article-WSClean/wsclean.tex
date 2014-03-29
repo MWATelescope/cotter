@@ -37,7 +37,7 @@
 % In text, it should be written with uppercase, as in ``De Bruyn''
 \DeclareRobustCommand{\TUSSEN}[3]{#2}
 
-\title[WSClean: a fast, generic wide-field imager]{WSClean: an implementation of a fast, generic wide-field imager}
+\title[WSClean: a fast, generic wide-field imager]{WSClean: an implementation of a fast, generic wide-field imager for radio astronomy}
 
 \def\ANU{$^{1}$}
 \def\CAASTRO{$^{2}$}
@@ -54,53 +54,61 @@
 \def\Victoria{$^{13}$}
 \def\CASS{$^{14}$}
 \def\Tata{$^{15}$}
-\def\NRAO{$^{16}$}
-\def\UMelbourne{$^{17}$}
+\def\UMelbourne{$^{16}$}
+\def\NRAO{$^{17}$}
+\def\UMichigan{$^{18}$}
 
 \author[A.~R.~Offringa et al.]{A.~R.~Offringa$^{1,2}$\thanks{E-mail: \url{andre.offringa@anu.edu.au}},
 B.~McKinley\ANU$^,$\CAASTRO,
 N.~Hurley-Walker\Curtin,
-F.~H.~Briggs$^{1,2}$, \newauthor
-R.~B.~Wayth\Curtin$^,$\CAASTRO, 
+F.~H.~Briggs$^{1,2}$,
+R.~B.~Wayth\Curtin$^,$\CAASTRO, \newauthor
 D.~L.~Kaplan\UWisc,
 M.~E.~Bell\USydney$^,$\CAASTRO,
 L.~Feng\MIT,
 A.~R.~Neben\MIT,
-J.~D.~Hughes\ANU, \newauthor
-J.~Rhee\ANU,
+J.~D.~Hughes\ANU, 
+J.~Rhee\ANU, \newauthor
 T.~Murphy\USydney$^,$\CAASTRO,
+R.~Bhat\Curtin,
 G.~Bernardi\SKASA,
 J.~D.~Bowman\ASU,
 R.~J.~Cappallo\Haystack,
 B.~E.~Corey\Haystack, \newauthor
 A.~A.~Deshpande\RRI, 
 D.~Emrich\Curtin,
+A.~Ewall-Wice\MIT,
 B.~M.~Gaensler\USydney$^,$\CAASTRO,
-R.~Goeke\MIT,
-L.~J.~Greenhill\CfA, \newauthor
+R.~Goeke\MIT, \newauthor
+L.~J.~Greenhill\CfA, 
 B.~J.~Hazelton\UW, 
 J.~N.~Hewitt\MIT,
 M.~Johnston-Hollitt\Victoria,
-J.~C.~Kasper\CfA, \newauthor
+D.~C.~Jacobs\ASU, \newauthor
+J.~C.~Kasper\UMichigan$^,$\CfA,
 E.~Kratzenberg\Haystack, 
+E.~Lenc\USydney,
 C.~J.~Lonsdale\Haystack,
 M.~J.~Lynch\Curtin,
-S.~R.~McWhirter\Haystack,
-D.~A.~Mitchell\CASS$^,$\CAASTRO, \newauthor
+S.~R.~McWhirter\Haystack, \newauthor
+D.~A.~Mitchell\CASS$^,$\CAASTRO,
 M.~F.~Morales\UW, 
 E.~Morgan\MIT,
-D.~Oberoi\Tata,
+N.~Kudryavtseva\Curtin,
+D.~Oberoi\Tata, \newauthor
 S.~M.~Ord\Curtin$^,$\CAASTRO,
-T.~Prabu\RRI, 
-A.~E.~E.~Rogers\Haystack, \newauthor
-D.~A.~Roshi\NRAO, %\footnote{The National Radio Astronomy Observatory is a facility of the National Science Foundation operated under cooperative agreement by Associated Universities, Inc.},
+P.~Procopio\UMelbourne,
+T.~Prabu\RRI,
+J.~Riding\UMelbourne, 
+A.~E.~E.~Rogers\Haystack,
+D.~A.~Roshi\NRAO, \newauthor %\footnote{The National Radio Astronomy Observatory is a facility of the National Science Foundation operated under cooperative agreement by Associated Universities, Inc.},
 N.~Udaya~Shankar\RRI,
 K.~S.~Srivani\RRI,
-R.~Subrahmanyan\RRI$^,$\CAASTRO, \newauthor
+R.~Subrahmanyan\RRI$^,$\CAASTRO,
 S.~J.~Tingay\Curtin$^,$\CAASTRO, 
-M.~Waterson\Curtin$^,$\ANU,
-R.~L.~Webster\UMelbourne$^,$\CAASTRO,
-A.~R.~Whitney\Haystack, \newauthor
+M.~Waterson\Curtin$^,$\ANU, \newauthor
+R.~L.~Webster\UMelbourne$^,$\CAASTRO, 
+A.~R.~Whitney\Haystack, 
 A.~Williams\Curtin,
 C.~L.~Williams\MIT
 \\
@@ -119,8 +127,8 @@ C.~L.~Williams\MIT
 \Victoria{}School of Chemical \& Physical Sciences, Victoria University of Wellington, Wellington 6140, New Zealand\\
 \CASS{}CSIRO Astronomy and Space Science, Marsfield, NSW 2122, Australia\\
 \Tata{}National Centre for Radio Astrophysics, Tata Institute for Fundamental Research, Pune 411007, India\\
-\NRAO{}National Radio Astronomy Observatory, Charlottesville and Greenbank, USA\\
 \UMelbourne{}School of Physics, The University of Melbourne, Parkville, VIC 3010, Australia\\
+\NRAO{}National Radio Astronomy Observatory, Charlottesville and Greenbank, USA\\
 }
 
 \begin{document}
@@ -133,7 +141,7 @@ C.~L.~Williams\MIT
 \maketitle
 
 \begin{abstract}
-Widefield interferometric imaging with existing imager implementations is computationally expensive, especially for the large data volumes created by modern non-coplanar many-element arrays. We present a new widefield interferometric imager that uses the $w$-stacking algorithm and can make use of the $w$-snapshot algorithm. The performance dependencies of \textsc{casa}'s $w$-projection and our new imager are analysed and analytical functions are derived that describe the required computing cost for both imagers. On data from the Murchison Widefield Array, we find our new method to be an order of magnitude faster than $w$-projection, as well as being capable of full-sky imaging at full resolution and with correct polarization correction.  We predict the computing costs for several other arrays and estimate that our imager is a factor of 2--12 faster, depending on the array configuration. We estimate the computing cost for imaging the low-frequency Square-Kilometre Array observations to be 60 PetaFLOPS with current techniques. We find that combining $w$-stacking with the $w$-snapshot algorithm does not significantly improve computing requirements over pure $w$-stacking. The source code of our new imager is publicly released.
+Widefield interferometric imaging of radio data with existing imager implementations is computationally expensive, especially for the large data volumes created by modern non-coplanar many-element arrays. We present a new widefield interferometric imager that uses the $w$-stacking algorithm and can make use of the $w$-snapshot algorithm. The performance dependencies of \textsc{casa}'s $w$-projection and our new imager are analysed and analytical functions are derived that describe the required computing cost for both imagers. On data from the Murchison Widefield Array, we find our new method to be an order of magnitude faster than $w$-projection, as well as being capable of full-sky imaging at full resolution and with correct polarization correction.  We predict the computing costs for several other arrays and estimate that our imager is a factor of 2--12 faster, depending on the array configuration. We estimate the computing cost for imaging the low-frequency Square-Kilometre Array observations to be 60 PetaFLOPS with current techniques. We find that combining $w$-stacking with the $w$-snapshot algorithm does not significantly improve computing requirements over pure $w$-stacking. The source code of our new imager is publicly released.
 \end{abstract}
 
 \begin{keywords}
@@ -541,7 +549,7 @@ Imaging the full FOV with the full SKA becomes very expensive due to the high fr
 \section{Conclusions} \label{sec:conclusions}
 We have shown that the $w$-stacking algorithm is well-suited for imaging MWA observations. The \textsc{wsclean} $w$-stacking implementation is faster than \textsc{casa}'s $w$-projection algorithm in all common MWA imaging configurations, giving up to an order of magnitude increase in speed at a relatively small ZA of $10$\degree, and is slightly more accurate. Roughly speaking, for ZAs $>15\degree$ or FOVs $>35\degree$ snapshot imaging becomes faster. This can lead to performance improvements of a factor of $3$ for the MWA, but only in the most expensive imaging configurations that are less commonly used. Considering the extra regridding step required, which complicates issues such as calculating the integrated beam shape, recentering snapshots is worthwhile for the MWA only at very low elevations or with large fields of view. Extrapolation of the computing cost predicts that this holds for most arrays, including SKA low. A hybrid between $w$-stacking and $w$-projection does not improve performance over a pure $w$-stacking implementation, but does improve a pure $w$-projection implementation significantly. Our optimization of lowering the image resolution during inversion and prediction increases performance by a factor of 2--10 and has no noticeable effect on the accuracy.
 
-The available SKA computing power is estimated to be around $\sim$100 PetaFLOPS. Extrapolation of our results shows that the current imagers require $3$--$60$ petaFLOPS for SKA1 low alone. It was suggested that $w$-snapshots would improve the imaging speed for the SKA situation \citep{widefield-imaging-ska-cornwell}, but our results show this is not the case when already using the $w$-stacking algorithm. Clearly it remains challenging to perform wide-field imaging with acceptable performance, but some optimisations could be made for the SKA. For example, a performance gain of factors of a few can be achieved by averaging shorter baselines to their maximum integration time and bandwidth resolution before imaging. Moreover, although longer baselines make the imaging more expensive, imaging the full FOV will likely not (always) be required when using the longest baselines.
+The available SKA computing power is estimated to be around $\sim$100 PetaFLOPS. Extrapolation of our results shows that the current imagers require $3$--$60$ petaFLOPS for SKA1 low alone. Although we have measured our performance in FLOPS, it is likely that memory bandwidth will be a limiting factor, because memory bandwidth is increasing less quickly compared to the floating point performance (e.g., \citealt{gpu-gridding-romein-2012}). It was suggested that $w$-snapshots would improve the imaging speed for the SKA situation \citep{widefield-imaging-ska-cornwell}, but our results show this is not the case when already using the $w$-stacking algorithm. Clearly it remains challenging to perform wide-field imaging with acceptable performance, but some optimisations could be made for the SKA. For example, a performance gain of factors of a few can be achieved by averaging shorter baselines to their maximum integration time and bandwidth resolution before imaging. Moreover, although longer baselines make the imaging more expensive, imaging the full FOV will likely not (always) be required when using the longest baselines.
 
 Deconvolution is not an issue for achieving low to intermediate dynamic ranges with the MWA. Because of sufficient instantaneous $uv$-coverage and near-confusion snapshot noise level, snapshots can be cleaned individually to deep levels. For example, cleaning to a $5\sigma$ level results in a cleaning threshold of approximately 100~mJy in 112~s observations. However, MWA's EoR observations \citep{bowman-science-with-the-mwa-2013} require more advanced deconvolution techniques.
 
