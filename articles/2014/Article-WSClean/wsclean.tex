@@ -19,7 +19,7 @@
 
 \usepackage[colorlinks=true,linkcolor=customlinkcolor,urlcolor=customlinkcolor,citecolor=customcitecolor,pdftex]{hyperref}
 
-\ifpdf\pdfinfo{/Title      (WSClean: an implementation of a fast, generic wide-field imager)
+\ifpdf\pdfinfo{/Title      (WSClean: an implementation of a fast, generic wide-field imager for radio astronomy)
                /Author     (A. R. Offringa et al.)
                /Keywords   (instrumentation: interferometers;methods: observational;techniques: interferometric;radio continuum: general)
         }
@@ -455,8 +455,6 @@ The cost of spectral imaging, i.e. imaging multiple frequencies, is the cost of 
 
 As can be seen in Panel~\ref{fig:timing-fov}, the FOV has a large affect on performance when imaging off-zenith. This plot was created by varying the size of a pixel in the output image, such that the number of pixels in the image did not change. The FOV is calculated as the angle subtended between the left- and right-most pixel in the image. \textsc{casa} is not able to make off-zenith images larger than $\sim$30\degree, and its imaging cost increases much more rapidly compared to the cost of \textsc{wsclean}, which implies that gridding is the major cost in this scenario. The image recentring technique is clearly beneficial for FOVs larger than $\sim$30\degree, and can even make a difference of an order of magnitude at very large FOVs of $\sim$90\degree.
 
-%It is important to point out that all these measurement were performed by imaging a single polarisation. Making full-polarisation images with \textsc{wsclean} currently requires four runs. Imaging four Stokes parameters with \textsc{casa} costs slightly less than four times the time of imaging a single polarisation. With the settings of Table~\ref{tbl:default-parameters}, the difference is a factor of $3.5$, and imaging XX and YY together costs $1.9$ times imaging just XX.
-
 \subsection{Derivation of computing cost formulae}
 Based on the expected cost terms described in Sec.~\ref{sec:time-complexity}, we derive analytical functions for the \textsc{casa} and \textsc{wsclean} measurements using least-squares fitting. Several functions with different free parameters were tested, and formulae with minimum number of parameters are selected that still follow the trend of the measurements and have reasonably small errors. Measurements are weighted with the inverse standard deviation instead of the variance, because we found that the latter results in too much weight on fast configurations, leading to functions that represent the general trend less well. The single outlying measurement for $N_\textrm{pix}=1792$ with \textsc{casa} in Fig.~\ref{fig:timing-resolution} is removed.
 
@@ -504,7 +502,6 @@ The function $t_\textrm{snapshot}$ can be minimised to find the optimal snapshot
  AARTFAAC &  5   & 45\degree  & 1    & 288 &  20'  & 0.3& 0.5 & 1 &  7 & 24 \\
  VLSS     & 4.1  & 14\degree  & 1    &  27 &  80'' &11.1& 0.2 &10 & 1.56 & 12.2 \\
  MeerKAT  & 0.2  &  1\degree  & 1    &  64 &   6'' &  8 & 1   & 0.5 & 750  & 50 \\
-% SKA1 AA inner&2 &  5\degree  & 1    & 433 &  15'' &0.6& 0.5 &  10 & 250 & 1 \\
  SKA1 AA core&2  &  5\degree  & 1    & 866 &    3' &  3& 5 & 10 & 250 & 1 \\
  SKA1 AA full&2  &  5\degree  & 1    & 911 &   5'' &100& 50 & 0.6& 250 & 1 \\
 \end{tabular}
@@ -524,7 +521,6 @@ The function $t_\textrm{snapshot}$ can be minimised to find the optimal snapshot
  AARTFAAC &  2.5 d   &  1.2 d &   1.2 d &   2.5 d   & 4.1 TFLOPS & $6.8 \times 10^2$   \\
  VLSS     &  0h 09m  & 0h 01m &  0h 01m &  0h 08m   & 2.2 GFLOPS & $1.1 \times 10^3$     \\
  MeerKAT  &   10.8 d &  6.2 d &   6.2 d &  10.8 d   &  21 TFLOPS & $6.8 \times 10^2$ \\
-% SKA1 AA inner&392 d &  228 d &   228 d &   392 d & & $6.8 \times 10^2$   \\
  SKA1 AA core&1581 d &  911 d &   911 d &  1570.8   & 3.0 PFLOPS & $6.8 \times 10^2$ \\
  SKA1 AA full& 643 yr& 48.8 yr & 48.8 yr& 84.1 yr   &  59 PFLOPS & $6.8 \times 10^2$ \\
 \end{tabular}
