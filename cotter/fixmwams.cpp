@@ -10,7 +10,7 @@ int main(int argc, char* argv[])
 	{
 		std::cout <<
 			"fixmwams will add several mwa-specific keywords to a measurement set that are normally added by Cotter.\n"
-			"This is for example useful when outputting to uvfits file and later to measurement set.\n\n"
+			"This is for example useful when outputting to uvfits file and importing this later into a measurement set.\n\n"
 			"Syntax: fixmwams <ms> <metafitsfile>\n";
 		return -1;
 	}
