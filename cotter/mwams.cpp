@@ -70,119 +70,131 @@ MWAMS::~MWAMS()
 
 void MWAMS::addMWAAntennaFields()
 {
-	ArrayColumnDesc<int> inputCD =
-		ArrayColumnDesc<int>(columnName(MWAMSEnums::MWA_INPUT));
-	ScalarColumnDesc<int> tileNrCD =
-		ScalarColumnDesc<int>(columnName(MWAMSEnums::MWA_TILE_NR));
-	ScalarColumnDesc<int> receiverCD =
-		ScalarColumnDesc<int>(columnName(MWAMSEnums::MWA_RECEIVER));
-	ArrayColumnDesc<int> slotCD =
-		ArrayColumnDesc<int>(columnName(MWAMSEnums::MWA_SLOT));
-	ArrayColumnDesc<double> cableLengthCD =
-		ArrayColumnDesc<double>(columnName(MWAMSEnums::MWA_CABLE_LENGTH));
-	
-	MSAntenna antennaTable = _data->_measurementSet.antenna();
-	antennaTable.addColumn(inputCD);
-	antennaTable.addColumn(tileNrCD);
-	antennaTable.addColumn(receiverCD);
-	antennaTable.addColumn(slotCD);
-	antennaTable.addColumn(cableLengthCD);
+	try {
+		ArrayColumnDesc<int> inputCD =
+			ArrayColumnDesc<int>(columnName(MWAMSEnums::MWA_INPUT));
+		ScalarColumnDesc<int> tileNrCD =
+			ScalarColumnDesc<int>(columnName(MWAMSEnums::MWA_TILE_NR));
+		ScalarColumnDesc<int> receiverCD =
+			ScalarColumnDesc<int>(columnName(MWAMSEnums::MWA_RECEIVER));
+		ArrayColumnDesc<int> slotCD =
+			ArrayColumnDesc<int>(columnName(MWAMSEnums::MWA_SLOT));
+		ArrayColumnDesc<double> cableLengthCD =
+			ArrayColumnDesc<double>(columnName(MWAMSEnums::MWA_CABLE_LENGTH));
+		
+		MSAntenna antennaTable = _data->_measurementSet.antenna();
+		antennaTable.addColumn(inputCD);
+		antennaTable.addColumn(tileNrCD);
+		antennaTable.addColumn(receiverCD);
+		antennaTable.addColumn(slotCD);
+		antennaTable.addColumn(cableLengthCD);
+	} catch(std::exception& e) { }
 }
 
 void MWAMS::addMWAFieldFields()
 {
-	ScalarColumnDesc<bool> hasCalibratorCD =
-		ScalarColumnDesc<bool>(columnName(MWAMSEnums::MWA_HAS_CALIBRATOR));
-	
-	MSField fieldTable = _data->_measurementSet.field();
-	fieldTable.addColumn(hasCalibratorCD);
+	try {
+		ScalarColumnDesc<bool> hasCalibratorCD =
+			ScalarColumnDesc<bool>(columnName(MWAMSEnums::MWA_HAS_CALIBRATOR));
+		
+		MSField fieldTable = _data->_measurementSet.field();
+		fieldTable.addColumn(hasCalibratorCD);
+	} catch(std::exception& e) { }
 }
 
 void MWAMS::addMWAObservationFields()
 {
-	MSObservation obsTable = _data->_measurementSet.observation();
-	
-	ScalarColumnDesc<double> gpsTimeCD =
-		ScalarColumnDesc<double>(columnName(MWAMSEnums::MWA_GPS_TIME));
-	ScalarColumnDesc<casa::String> filenameCD =
-		ScalarColumnDesc<casa::String>(columnName(MWAMSEnums::MWA_FILENAME));
-	ScalarColumnDesc<casa::String> obsModeCD =
-		ScalarColumnDesc<casa::String>(columnName(MWAMSEnums::MWA_OBSERVATION_MODE));
-	ScalarColumnDesc<int> flagWindowSizeCD =
-		ScalarColumnDesc<int>(columnName(MWAMSEnums::MWA_FLAG_WINDOW_SIZE));
+	try {
+		MSObservation obsTable = _data->_measurementSet.observation();
 		
-	ScalarColumnDesc<double> dateRequestedCD =
-		ScalarColumnDesc<double>(columnName(MWAMSEnums::MWA_DATE_REQUESTED));
-	
-	obsTable.addColumn(gpsTimeCD);
-	obsTable.addColumn(filenameCD);
-	obsTable.addColumn(obsModeCD);
-	obsTable.addColumn(flagWindowSizeCD);
-	obsTable.addColumn(dateRequestedCD);
-	
-	casa::Vector<Unit> unitVec(1);
-	unitVec[0] = Unit("s");
-	TableMeasRefDesc measRef(MEpoch::DEFAULT);
-	TableMeasValueDesc measVal(columnName(MWAMSEnums::MWA_DATE_REQUESTED));
-	TableMeasDesc<MEpoch> intervalColMeas(measVal, measRef, unitVec);
-	intervalColMeas.write(obsTable);
+		ScalarColumnDesc<double> gpsTimeCD =
+			ScalarColumnDesc<double>(columnName(MWAMSEnums::MWA_GPS_TIME));
+		ScalarColumnDesc<casa::String> filenameCD =
+			ScalarColumnDesc<casa::String>(columnName(MWAMSEnums::MWA_FILENAME));
+		ScalarColumnDesc<casa::String> obsModeCD =
+			ScalarColumnDesc<casa::String>(columnName(MWAMSEnums::MWA_OBSERVATION_MODE));
+		ScalarColumnDesc<int> flagWindowSizeCD =
+			ScalarColumnDesc<int>(columnName(MWAMSEnums::MWA_FLAG_WINDOW_SIZE));
+			
+		ScalarColumnDesc<double> dateRequestedCD =
+			ScalarColumnDesc<double>(columnName(MWAMSEnums::MWA_DATE_REQUESTED));
+		
+		obsTable.addColumn(gpsTimeCD);
+		obsTable.addColumn(filenameCD);
+		obsTable.addColumn(obsModeCD);
+		obsTable.addColumn(flagWindowSizeCD);
+		obsTable.addColumn(dateRequestedCD);
+		
+		casa::Vector<Unit> unitVec(1);
+		unitVec[0] = Unit("s");
+		TableMeasRefDesc measRef(MEpoch::DEFAULT);
+		TableMeasValueDesc measVal(columnName(MWAMSEnums::MWA_DATE_REQUESTED));
+		TableMeasDesc<MEpoch> intervalColMeas(measVal, measRef, unitVec);
+		intervalColMeas.write(obsTable);
+	} catch(std::exception& e) { }
 }
 
 void MWAMS::addMWASpectralWindowFields()
 {
-	ScalarColumnDesc<int> centreSubbandNrCD =
-		ScalarColumnDesc<int>(columnName(MWAMSEnums::MWA_CENTRE_SUBBAND_NR));
-		
-	MSSpectralWindow spwTable = _data->_measurementSet.spectralWindow();
-	spwTable.addColumn(centreSubbandNrCD);
+	try {
+		ScalarColumnDesc<int> centreSubbandNrCD =
+			ScalarColumnDesc<int>(columnName(MWAMSEnums::MWA_CENTRE_SUBBAND_NR));
+			
+		MSSpectralWindow spwTable = _data->_measurementSet.spectralWindow();
+		spwTable.addColumn(centreSubbandNrCD);
+	} catch(std::exception& e) { }
 }
 
 void MWAMS::addMWATilePointingFields()
 {
-	TableDesc tilePointingTableDesc(tableName(MWAMSEnums::MWA_TILE_POINTING_TABLE), TableDesc::Scratch);
-	
-	ArrayColumnDesc<double> intervalCD =
-		ArrayColumnDesc<double>(columnName(MWAMSEnums::INTERVAL));
-	
-	ArrayColumnDesc<int> delaysCD =
-		ArrayColumnDesc<int>(columnName(MWAMSEnums::DELAYS));
-	ArrayColumnDesc<double> directionCD =
-		ArrayColumnDesc<double>(columnName(MWAMSEnums::DIRECTION));
+	try {
+		TableDesc tilePointingTableDesc(tableName(MWAMSEnums::MWA_TILE_POINTING_TABLE), TableDesc::Scratch);
 		
-	tilePointingTableDesc.addColumn(intervalCD);
-	tilePointingTableDesc.addColumn(delaysCD);
-	tilePointingTableDesc.addColumn(directionCD);
-	
-	casa::Vector<Unit> unitVec(1);
-	unitVec[0] = Unit("s");
-	TableMeasRefDesc measRef(MEpoch::DEFAULT);
-	TableMeasValueDesc measVal(tilePointingTableDesc, columnName(MWAMSEnums::INTERVAL));
-	TableMeasDesc<MEpoch> intervalColMeas(measVal, measRef, unitVec);
-	intervalColMeas.write(tilePointingTableDesc);
-	
-	SetupNewTable newTilePointingTable(_filename + '/' + tableName(MWAMSEnums::MWA_TILE_POINTING_TABLE), tilePointingTableDesc, Table::New);
-	Table tilePointingTable(newTilePointingTable);
-	_data->_measurementSet.rwKeywordSet().defineTable(tableName(MWAMSEnums::MWA_TILE_POINTING_TABLE), tilePointingTable);
+		ArrayColumnDesc<double> intervalCD =
+			ArrayColumnDesc<double>(columnName(MWAMSEnums::INTERVAL));
+		
+		ArrayColumnDesc<int> delaysCD =
+			ArrayColumnDesc<int>(columnName(MWAMSEnums::DELAYS));
+		ArrayColumnDesc<double> directionCD =
+			ArrayColumnDesc<double>(columnName(MWAMSEnums::DIRECTION));
+			
+		tilePointingTableDesc.addColumn(intervalCD);
+		tilePointingTableDesc.addColumn(delaysCD);
+		tilePointingTableDesc.addColumn(directionCD);
+		
+		casa::Vector<Unit> unitVec(1);
+		unitVec[0] = Unit("s");
+		TableMeasRefDesc measRef(MEpoch::DEFAULT);
+		TableMeasValueDesc measVal(tilePointingTableDesc, columnName(MWAMSEnums::INTERVAL));
+		TableMeasDesc<MEpoch> intervalColMeas(measVal, measRef, unitVec);
+		intervalColMeas.write(tilePointingTableDesc);
+		
+		SetupNewTable newTilePointingTable(_filename + '/' + tableName(MWAMSEnums::MWA_TILE_POINTING_TABLE), tilePointingTableDesc, Table::New);
+		Table tilePointingTable(newTilePointingTable);
+		_data->_measurementSet.rwKeywordSet().defineTable(tableName(MWAMSEnums::MWA_TILE_POINTING_TABLE), tilePointingTable);
+	} catch(std::exception& e) { }
 }
 
 void MWAMS::addMWASubbandFields()
 {
-	TableDesc subbandTableDesc(tableName(MWAMSEnums::MWA_SUBBAND_TABLE), TableDesc::Scratch);
-	
-	ScalarColumnDesc<int> numberCD =
-		ScalarColumnDesc<int>(columnName(MWAMSEnums::NUMBER));
-	ScalarColumnDesc<double> gainCD =
-		ScalarColumnDesc<double>(columnName(MWAMSEnums::GAIN));
-	ScalarColumnDesc<bool> flagRowCD =
-		ScalarColumnDesc<bool>(columnName(MWAMSEnums::FLAG_ROW));
+	try {
+		TableDesc subbandTableDesc(tableName(MWAMSEnums::MWA_SUBBAND_TABLE), TableDesc::Scratch);
 		
-	subbandTableDesc.addColumn(numberCD);
-	subbandTableDesc.addColumn(gainCD);
-	subbandTableDesc.addColumn(flagRowCD);
-	
-	SetupNewTable newSubbandTable(_filename + '/' + tableName(MWAMSEnums::MWA_SUBBAND_TABLE), subbandTableDesc, Table::New);
-	Table subbandTable(newSubbandTable);
-	_data->_measurementSet.rwKeywordSet().defineTable(tableName(MWAMSEnums::MWA_SUBBAND_TABLE), subbandTable);
+		ScalarColumnDesc<int> numberCD =
+			ScalarColumnDesc<int>(columnName(MWAMSEnums::NUMBER));
+		ScalarColumnDesc<double> gainCD =
+			ScalarColumnDesc<double>(columnName(MWAMSEnums::GAIN));
+		ScalarColumnDesc<bool> flagRowCD =
+			ScalarColumnDesc<bool>(columnName(MWAMSEnums::FLAG_ROW));
+			
+		subbandTableDesc.addColumn(numberCD);
+		subbandTableDesc.addColumn(gainCD);
+		subbandTableDesc.addColumn(flagRowCD);
+		
+		SetupNewTable newSubbandTable(_filename + '/' + tableName(MWAMSEnums::MWA_SUBBAND_TABLE), subbandTableDesc, Table::New);
+		Table subbandTable(newSubbandTable);
+		_data->_measurementSet.rwKeywordSet().defineTable(tableName(MWAMSEnums::MWA_SUBBAND_TABLE), subbandTable);
+	} catch(std::exception& e) { }
 }
 
 void MWAMS::UpdateMWAAntennaInfo(size_t antennaIndex, const MWAMS::MWAAntennaInfo& info)
