@@ -84,7 +84,7 @@ void FitsWriter::initGroupHeader()
 		}
   }
 	// Set the zero level for the DATE column.
-  setKeywordToDouble("PZERO5", floor(_startTime / (60.0*60.0*24.0) + 2400000.5) - 0.5);
+  setKeywordToDouble("PZERO5", timeZeroLevel());
 
   int year, month, day;
 	julianDateToYMD(_startTime / (60.0*60.0*24.0) + 2400000.5, year, month, day);
@@ -205,7 +205,7 @@ void FitsWriter::WriteRow(double time, double timeCentroid, size_t antenna1, siz
 	rowData[1] = v / VLIGHT;
 	rowData[2] = w / VLIGHT;
 	rowData[3] = baselineIndex(antenna1+1, antenna2+1);
-	double zeroTimeLevel = floor(_startTime / (60.0*60.0*24.0) + 2400000.5) + 0.5;
+	double zeroTimeLevel = timeZeroLevel();
 	rowData[4] = time / (60.0*60.0*24.0) + 2400000.5 - zeroTimeLevel;
 
 	float *rowDataPtr = &rowData[5];

@@ -79,6 +79,17 @@ class FitsWriter : public Writer, private FitsUser
 				b1*256 + b2;
 		}
 		
+		/**
+		 * Returns the beginnin of the JD to which the first timestep belongs.
+		 * This is calculated by truncating the time within the day.
+		 * The times associated with the visibilities are then increments to
+		 * this truncated start-of-jd time. JDs start at 12:00h on a day.
+		 */
+		double timeZeroLevel() const
+		{
+			return floor(_startTime / (60.0*60.0*24.0) + 2400000.5) + 0.5;
+		}
+		
 		fitsfile *_fptr;
 		
 		std::vector<AntennaInfo> _antennae;
