@@ -1,11 +1,12 @@
-#include <iostream>
-#include <vector>
-
 #include "cotter.h"
-#include "radeccoord.h"
 #include "numberlist.h"
+#include "radeccoord.h"
+#include "version.h"
 
 #include <boost/algorithm/string.hpp>
+
+#include <iostream>
+#include <vector>
 
 bool isDigit(char c)
 {
@@ -101,7 +102,7 @@ int cotterMain(int argc, const char* const* argv);
 
 int main(int argc, char **argv)
 {
-	std::cout << "Running Cotter MWA preprocessing pipeline.\n";
+	std::cout << "Running Cotter MWA preprocessing pipeline, version " << COTTER_VERSION_STR << " (" << COTTER_VERSION_DATE << ").\n";
 	
 	int result = 0;
 	try {
