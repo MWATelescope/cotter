@@ -10,7 +10,7 @@ const double* SubbandPassband::_sb128ChannelSubbandValue = SubbandPassband::_sb1
  * These are the subband values that were measured by Offringa using
  * one of the MWA 32-tiles commissioning arrays somewhere
  * around the beginning of 2013. Measured from 5 min of data on a calibrator,
- * then stacked all subbands on top of each other and the median to unity.
+ * then stacked all subbands on top of each other and normalized the median to unity.
  */
 const double SubbandPassband::_sb128ChannelSubbandValue2013[128] =
 {
