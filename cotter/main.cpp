@@ -92,7 +92,7 @@ void usage()
 	"  -flagsubband <lst> Flag the comma-separated list of zero-indexed sub-bands.\n"
 	"  -flagedges <count> Flag the given number of edge channels of each sub-band.\n"
 	"  -initflag <sec>    Specify number of seconds to flag at beginning of observation (default: 4s).\n"
-	"  -saveqs <file.qs>  Save the quality statistics to the specified file. Use extension of '.sq'.\n"
+	"  -saveqs <file.qs>  Save the quality statistics to the specified file. Use extension of '.qs'.\n"
 	"\n"
 	"The filenames of the input gpu files should end in '...nn_mm.fits', where nn >= 1 is the\n"
 	"gpu box number and mm >= 0 is the time step number.\n";
