@@ -39,7 +39,7 @@ Cotter::Cotter() :
 	_threadCount(1),
 	_maxBufferSize(0),
 	_subbandCount(24),
-	_quackSampleCount(4),
+	_quackInitSampleCount(4),
 	_subbandEdgeFlagCount(2),
 	_defaultFilename(true),
 	_rfiDetection(true),
@@ -62,9 +62,11 @@ Cotter::Cotter() :
 	_doFlagMissingSubbands(true),
 	_applySBGains(true),
 	_flagDCChannels(true),
+	_skipWriting(false),
 	_customRARad(0.0),
 	_customDecRad(0.0),
-	_initDurationToFlag(4.0)
+	_initDurationToFlag(4.0),
+	_endDurationToFlag(0.0)
 {
 }
 
@@ -120,8 +122,9 @@ void Cotter::Run(size_t timeAvgFactor, size_t freqAvgFactor)
 	}
 	_mwaConfig.CheckSetup();
 	
-	_quackSampleCount = round(_initDurationToFlag / _mwaConfig.Header().integrationTime);
-	std::cout << "The first " << _quackSampleCount << " samples (" << round(10.0 * _quackSampleCount * _mwaConfig.Header().integrationTime)/10.0 << " s) and " << _subbandEdgeFlagCount << " edge channels will be flagged.\n";
+	_quackInitSampleCount = round(_initDurationToFlag / _mwaConfig.Header().integrationTime);
+	_quackEndSampleCount = round(_endDurationToFlag / _mwaConfig.Header().integrationTime);
+	std::cout << "The first " << _quackInitSampleCount << " samples (" << round(10.0 * _quackInitSampleCount * _mwaConfig.Header().integrationTime)/10.0 << " s), last " << _quackEndSampleCount << " samples (" << round(10.0 * _quackInitSampleCount * _mwaConfig.Header().integrationTime)/10.0 << " s) and " << _subbandEdgeFlagCount << " edge channels will be flagged.\n";
 	
 	if(_subbandPassbandFilename.empty())
 		initializeSubbandPassband();
@@ -401,6 +404,12 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 		} else {
 			_missingEndScans = 0;
 		}
+		if(_curChunkEnd + _quackEndSampleCount > _mwaConfig.Header().nScans)
+		{
+			size_t extraSamples = (_curChunkEnd + _quackEndSampleCount) - _mwaConfig.Header().nScans;
+			_missingEndScans += extraSamples;
+			std::cout << "Flagging extra " << extraSamples << " samples at end.\n";
+		}
 		
 		_fullysetMask = new FlagMask(_flagger->MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), true));
 		_correlatorMask = new FlagMask(_flagger->MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), false));
@@ -453,19 +462,25 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 		_processWatch.Pause();
 		_writeWatch.Start();
 		
-		_progressBar.reset(new ProgressBar("Writing"));
-		_outputFlags = new bool[nChannels*4];
-		posix_memalign((void**) &_outputData, 16, nChannels*4*sizeof(std::complex<float>));
-		posix_memalign((void**) &_outputWeights, 16, nChannels*4*sizeof(float));
-		for(size_t t=_curChunkStart; t!=_curChunkEnd; ++t)
+		if(_skipWriting)
 		{
-			_progressBar->SetProgress(t-_curChunkStart, _curChunkEnd-_curChunkStart);
-			processAndWriteTimestep(t);
+			std::cout << "Skipping writing of visibilities.\n";
 		}
-		free(_outputData);
-		free(_outputWeights);
-		delete[] _outputFlags;
-		_progressBar.reset();
+		else {
+			_progressBar.reset(new ProgressBar("Writing"));
+			_outputFlags = new bool[nChannels*4];
+			posix_memalign((void**) &_outputData, 16, nChannels*4*sizeof(std::complex<float>));
+			posix_memalign((void**) &_outputWeights, 16, nChannels*4*sizeof(float));
+			for(size_t t=_curChunkStart; t!=_curChunkEnd; ++t)
+			{
+				_progressBar->SetProgress(t-_curChunkStart, _curChunkEnd-_curChunkStart);
+				processAndWriteTimestep(t);
+			}
+			free(_outputData);
+			free(_outputWeights);
+			delete[] _outputFlags;
+			_progressBar.reset();
+		}
 		
 		for(std::map<std::pair<size_t, size_t>, aoflagger::FlagMask*>::iterator flagBufIter = _flagBuffers.begin();
 				flagBufIter != _flagBuffers.end(); ++flagBufIter)
@@ -1184,12 +1199,12 @@ void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask) const
 	}
 	
 	// Flag first samples
-	if(_quackSampleCount >= _curChunkStart)
+	if(_quackInitSampleCount >= _curChunkStart)
 	{
 		for(size_t ch=0; ch!=flagMask.Height(); ++ch)
 		{
 			bool *channelPtr = flagMask.Buffer() + ch*flagMask.HorizontalStride();
-			const size_t count = std::min(_quackSampleCount - _curChunkStart, flagMask.Width());
+			const size_t count = std::min(_quackInitSampleCount - _curChunkStart, flagMask.Width());
 			for(size_t x=0; x!=count; ++x)
 			{
 				*channelPtr = true;

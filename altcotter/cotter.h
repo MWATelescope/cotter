@@ -70,9 +70,11 @@ class Cotter : private UVWCalculater
 		}
 		void SetFlagAutoCorrelations(bool flagAutoCorrelations) { _flagAutos = flagAutoCorrelations; }
 		void SetInitDurationToFlag(double initDuration) { _initDurationToFlag = initDuration; }
+		void SetEndDurationToFlag(double endDuration) { _endDurationToFlag = endDuration; }
 		void SetApplySBGains(bool applySBGains) { _applySBGains = applySBGains; }
 		void SetFlagDCChannels(bool flagDCChannels) { _flagDCChannels = flagDCChannels; }
 		void SetSaveQualityStatistics(const std::string& file) { _qualityStatisticsFilename = file; }
+		void SetSkipWriting(bool skipWriting) { _skipWriting = skipWriting; }
 		void FlagAntenna(size_t antIndex) { _userFlaggedAntennae.push_back(antIndex); }
 		void FlagSubband(size_t sbIndex) { _flaggedSubbands.insert(sbIndex); }
 		void FlagSubbandEdges(size_t edgeChannelCount) { _subbandEdgeFlagCount = edgeChannelCount; }
@@ -93,7 +95,7 @@ class Cotter : private UVWCalculater
 		size_t _threadCount;
 		size_t _maxBufferSize;
 		size_t _subbandCount;
-		size_t _quackSampleCount;
+		size_t _quackInitSampleCount, _quackEndSampleCount;
 		size_t _subbandEdgeFlagCount;
 		size_t _missingEndScans;
 		size_t _curChunkStart, _curChunkEnd, _curSbStart, _curSbEnd;
@@ -122,9 +124,9 @@ class Cotter : private UVWCalculater
 		std::complex<float> *_outputData;
 		float *_outputWeights;
 		bool _disableGeometricCorrections, _removeFlaggedAntennae, _removeAutoCorrelations, _flagAutos;
-		bool _overridePhaseCentre, _doAlign, _doFlagMissingSubbands, _applySBGains, _flagDCChannels;
+		bool _overridePhaseCentre, _doAlign, _doFlagMissingSubbands, _applySBGains, _flagDCChannels, _skipWriting;
 		long double _customRARad, _customDecRad;
-		double _initDurationToFlag;
+		double _initDurationToFlag, _endDurationToFlag;
 		
 		void processAllContiguousBands(size_t timeAvgFactor, size_t freqAvgFactor);
 		void processOneContiguousBand(const std::string& outputFilename, size_t timeAvgFactor, size_t freqAvgFactor);
