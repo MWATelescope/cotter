@@ -1,0 +1,78 @@
+Extra metadata for MWA measurement sets
+
+Shape of TILEDATA table in metadata fits:
+Input (int), Antenna (int), Tile (int), Pol (char[1]), Rx (int), Slot (int), Flag (int), Length (char[14]), North (float, m), East (float, m), Height (float, m)
+
+I suggest the following table, column and keyword names to be used in Casa Measurement set files. Note that, to keep compatible with the format, the MS format says that all observatory specific names (fields that are not used by other observatories) should have a common prefix. For MWA, the prefix "MWA_" makes sense. New tables start thus with MWA_, but fields within that table do not have to start with MWA_, because the table already does. However, new columns in a predefined table (a table without MWA_), do have to start with MWA_.
+
+Mapping for columns in ANTENNA table:
+- FLAG_ROW (bool), from Flag inside TILEDATA table
+- POSITION (double[3]), from North, East and Height inside TILEDATA table
+- MWA_INPUT (int[2]), from Input inside TILEDATA table, for X and Y
+- MWA_TILE_NR (int), from Tile inside TILEDATA table
+- MWA_RECEIVER (int), from Rx inside TILEDATA table
+- MWA_SLOT (int[2]), from Slot inside TILEDATA table, for X and Y
+- MWA_CABLE_LENGTH (double[2]), from Length inside TILEDATA table, for X and Y
+- Possibly later: MWA_ELEMENT_STATE
+
+Mapping for existing columns in FIELD table:
+- REFERENCE_DIR[0] (double, rad), from HA
+- REFERENCE_DIR[1] (double, rad), from DEC
+- MWA_HAS_CALIBRATOR (bool), from CALIBRAT, whether there is a strong (currently > 25Jy) in the beamcentre (current within 10 degrees).
+
+Mapping for columns in OBSERVATION table:
+- OBSERVER (string), from CREATOR
+- PROJECT (string), from PROJECT
+- MWA_GPS_TIME (double, [s]), from GPSTIME
+- MWA_FILENAME (string), from FILENAME
+- MWA_OBSERVATION_MODE (string), from MODE
+- MWA_FLAG_WINDOW_SIZE, size in nr scans of the flagging window used by Cotter (is dependent on available mem).
+- MWA_DATE_REQUESTED, from DATE-OBS
+
+Mapping for columns in SPECTRAL_WINDOW:
+- MWA_CENTRE_SUBBBAND_NR (int), from CENTCHAN(/CENTRSB)
+
+Mapping for columns in new table MWA_TILE_POINTING
+- INTERVAL (array of double[2], [s]), inferred
+- DELAYS (array of int[16], in delay steps), from DELAYS or subtable.
+- DIRECTION (array of double[2]), tile pointing direction in rad.
+
+Mapping for columns in new table MWA_SUBBAND, containing normally 24 rows:
+- NUMBER (int), the coarse channel number, e.g. 141, from CHANNELS
+- GAIN (double), the coarse channel gain, from CHANGAIN
+- FLAG_ROW (bool), whether the coarse channel is flagged (not in metafile yet)
+
+Added keywords in MAIN table
+- MWA_FIBER_VEL_FACTOR (double, factor), fiber velocity factor
+- MWA_METADATA_VERSION, from VERSION
+
+Possibly to be added later in table MWA_ELEMENT_STATE:
+- ELEMENT_STATE_ID (int), index >=0 to be referred to by ANTENNA::MWA_ELEMENT_STATE
+- GAINS (double[2,16], voltage factor), per-polarization, per-element gains, 1.0 when working optimal, 0.0 when not working, not in metafits yet.
+
+Possibly to be added later in table MWA_SUBBAND_SHAPE:
+- GAINS (double[4, 128], correlation factor), factors used to correct the coarse channel shape.
+
+Keywords in metadata fits that are to be used by Cotter, but without direct mapping:
+- NSCANS -- to determine length of observation
+- DATESTRT -- used to infer start time & all correlation time steps
+- INTTIME -- used for calculating correlation time steps, also maps to INTERVAL (double, s) and EXPOSE (double, s) in Casa main table.
+- NINPUTS -- to get nr of tiles
+- NCHANS -- to determine nr channels and freq res (using BANDWDTH)
+- BANDWDTH -- to determine bandwidth and freq res
+- FREQCNT -- to determine channel frequencies
+
+Currently not used:
+- MJD, SUN-DIST, MOONDIST, LST, AZIMUTH, ALTITUDE, JUP-DIST, SUN-ALT, TILEFLAG, FINECHAN, RECVRS and EXPOSURE, TIMEOFF, DATE (=date that metafits was created)
+These could be provided later by providing a standard interface to the MWA MSes. That way, if e.g. the pointing centre is changed within Casa, the interface would still calculate the right values. 
+
+
+Questions & suggestions for the metadata fits files
+- I would prefer 'DURATION' over 'EXPOSURE', because EXPOSURE means integration time in Casa MS.
+- I'd rather not have redundent metadata in the MS, so I prefer not to copy MJD, SUN-DIST, MOONDIST, LST, AZIMUTH, ALTITUDE, JUP-DIST, SUN-ALT, TILEFLAG, FINECHAN, RECVRS and EXPOSURE into MS.
+- What is allowed for CHANNELS? Are they ordered in the way they are stored or are they just the set of selected coarse channels? Is it allowed to select non-contiguous coarse channels, e.g. "129,131,135,136,..." ?
+- I think that the terminology "coarse channel" will be confusing for outsiders; "channel" is almost always used to refer to measured visibilities over time at native frequency resolution, i.e. to a "fine" channel. "subband" is used more often to refer to a contiguous chunk of channels. So I would prefer "CENTRSB", "SUBBANDS", "SBGAINS" over "CENTCHAN", "CHANNELS", "CHANGAIN", which would I think also makes it more obvious what kind of channel is meant (since e.g. NCHANS is used to refer to fine channels)
+- I would add a "VERSION" field to the fits metadata file, so that we can change the format and increase the number if really necessary, while allowing possibility of reducing older data.
+- It might be necessary at some point to record broken antennae inside a tile, to modify the beam for that tile.
+
+
