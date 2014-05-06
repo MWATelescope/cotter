@@ -11,7 +11,7 @@
 class FlagWriter : public Writer
 {
 	public:
-		FlagWriter(const std::string &filename, int gpsTime, size_t timestepCount, size_t gpuBoxCount);
+		FlagWriter(const std::string &filename, int gpsTime, size_t timestepCount, size_t gpuBoxCount, const std::vector<size_t>& subbandToGPUBoxFileIndex);
 		
 		~FlagWriter();
 		

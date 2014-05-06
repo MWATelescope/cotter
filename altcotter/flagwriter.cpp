@@ -5,7 +5,7 @@ const uint16_t
 	FlagWriter::VERSION_MINOR = 0,
 	FlagWriter::VERSION_MAJOR = 1;
 
-FlagWriter::FlagWriter(const std::string &filename, int gpsTime, size_t timestepCount, size_t gpuBoxCount) :
+FlagWriter::FlagWriter(const std::string &filename, int gpsTime, size_t timestepCount, size_t gpuBoxCount, const std::vector<size_t>& subbandToGPUBoxFileIndex) :
 	_timestepCount(timestepCount),
 	_antennaCount(0),
 	_channelCount(0),
@@ -26,8 +26,9 @@ FlagWriter::FlagWriter(const std::string &filename, int gpsTime, size_t timestep
 	std::string name(filename);
 	for(size_t i=0; i!=gpuBoxCount; ++i)
 	{
-		name[numberPos] = (char) ('0' + (i/10));
-		name[numberPos+1] = (char) ('0' + (i%10));
+		size_t gpuBoxIndex = subbandToGPUBoxFileIndex[i] + 1;
+		name[numberPos] = (char) ('0' + (gpuBoxIndex/10));
+		name[numberPos+1] = (char) ('0' + (gpuBoxIndex%10));
 		_files[i] = new std::ofstream(name.c_str(), std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
 		if(!_files[i]->good())
 			throw std::runtime_error(std::string("Could not open flag file \"") + name + "\" for writing.");

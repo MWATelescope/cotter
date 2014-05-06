@@ -237,7 +237,7 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 				throw std::runtime_error("Aligning was specified, which is incompatible with flag files");
 			if(_removeFlaggedAntennae || _removeAutoCorrelations)
 				throw std::runtime_error("Can't prune flagged/auto-correlated antennas when writing flag file");
-			_writer = new FlagWriter(outputFilename, _mwaConfig.HeaderExt().gpsTime, _mwaConfig.Header().nScans, _subbandCount);
+			_writer = new FlagWriter(outputFilename, _mwaConfig.HeaderExt().gpsTime, _mwaConfig.Header().nScans, _subbandCount, _subbandOrder);
 			break;
 		case FitsOutputFormat:
 			_writer = new FitsWriter(outputFilename);
