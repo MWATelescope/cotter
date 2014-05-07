@@ -77,7 +77,7 @@ class Cotter : private UVWCalculater
 		void SetSkipWriting(bool skipWriting) { _skipWriting = skipWriting; }
 		void FlagAntenna(size_t antIndex) { _userFlaggedAntennae.push_back(antIndex); }
 		void FlagSubband(size_t sbIndex) { _flaggedSubbands.insert(sbIndex); }
-		void FlagSubbandEdges(size_t edgeChannelCount) { _subbandEdgeFlagCount = edgeChannelCount; }
+		void SetSubbandEdgeFlagWidth(double edgeFlagWidth) { _subbandEdgeFlagWidthKHz = edgeFlagWidth; }
 	private:
 		MWAConfig _mwaConfig;
 		Writer *_writer;
@@ -96,6 +96,7 @@ class Cotter : private UVWCalculater
 		size_t _maxBufferSize;
 		size_t _subbandCount;
 		size_t _quackInitSampleCount, _quackEndSampleCount;
+		double _subbandEdgeFlagWidthKHz;
 		size_t _subbandEdgeFlagCount;
 		size_t _missingEndScans;
 		size_t _curChunkStart, _curChunkEnd, _curSbStart, _curSbEnd;

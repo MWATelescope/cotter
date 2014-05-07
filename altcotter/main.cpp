@@ -63,7 +63,7 @@ void usage()
 	std::cout << "usage: cotter [options] <gpufiles> \n"
 	"Options:\n"
 	"  -o <filename>      Save output to given filename. Default is 'preprocessed.ms'.\n"
-	"                     If the file's extension is .uvfits, it will be outputted in uvfits format,\n"
+	"                     If the files' extension is .uvfits, it will be outputted in uvfits format\n"
 	"                     and extension .mwaf is the flag-only format for input into the RTS.\n"
 	"  -m <filename>      Read meta data from given fits filename..\n"
 	"  -a <filename>      Read antenna locations from given text file (overrides the metadata).\n"
@@ -93,7 +93,7 @@ void usage()
 	"                     (default passband does a reasonably good job)\n"
 	"  -flagantenna <lst> Mark the comma-separated list of zero-indexed antennae as flagged antennae.\n"
 	"  -flagsubband <lst> Flag the comma-separated list of zero-indexed sub-bands.\n"
-	"  -flagedges <count> Flag the given number of edge channels of each sub-band.\n"
+	"  -edgewidth <kHz>   Flag the given width of edge channels of each sub-band (default: 80 kHz).\n"
 	"  -initflag <sec>    Specify number of seconds to flag at beginning of observation (default: 4s).\n"
 	"  -endflag <sec>     Specify number of seconds to flag extra at end of observation (default: 0s).\n"
 	"  -saveqs <file.qs>  Save the quality statistics to the specified file. Use extension of '.qs'.\n"
@@ -305,10 +305,10 @@ int cotterMain(int argc, const char* const* argv)
 				}
 				std::cout << "\n";
 			}
-			else if(param == "flagedges")
+			else if(param == "edgewidth")
 			{
 				++argi;
-				cotter.FlagSubbandEdges(atoi(argv[argi]));
+				cotter.SetSubbandEdgeFlagWidth(atoi(argv[argi]));
 			}
 			else if(param == "saveqs")
 			{
