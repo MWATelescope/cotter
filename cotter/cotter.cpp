@@ -40,6 +40,7 @@ Cotter::Cotter() :
 	_maxBufferSize(0),
 	_subbandCount(24),
 	_quackSampleCount(4),
+	_subbandEdgeFlagWidthKHz(80.0),
 	_subbandEdgeFlagCount(2),
 	_defaultFilename(true),
 	_rfiDetection(true),
@@ -118,6 +119,8 @@ void Cotter::Run(size_t timeAvgFactor, size_t freqAvgFactor)
 		_mwaConfig.HeaderRW().decDegs = _mwaConfig.HeaderExt().tilePointingDecRad * (180.0/M_PI);
 	}
 	_mwaConfig.CheckSetup();
+	
+	_subbandEdgeFlagCount = round(_subbandEdgeFlagWidthKHz / (1000.0*_mwaConfig.Header().bandwidthMHz / _mwaConfig.Header().nChannels));
 	
 	_quackSampleCount = round(_initDurationToFlag / _mwaConfig.Header().integrationTime);
 	std::cout << "The first " << _quackSampleCount << " samples (" << round(10.0 * _quackSampleCount * _mwaConfig.Header().integrationTime)/10.0 << " s) and " << _subbandEdgeFlagCount << " edge channels will be flagged.\n";
