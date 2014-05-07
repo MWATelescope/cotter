@@ -127,7 +127,7 @@ void Cotter::Run(size_t timeAvgFactor, size_t freqAvgFactor)
 	
 	_quackInitSampleCount = round(_initDurationToFlag / _mwaConfig.Header().integrationTime);
 	_quackEndSampleCount = round(_endDurationToFlag / _mwaConfig.Header().integrationTime);
-	std::cout << "The first " << _quackInitSampleCount << " samples (" << round(10.0 * _quackInitSampleCount * _mwaConfig.Header().integrationTime)/10.0 << " s), last " << _quackEndSampleCount << " samples (" << round(10.0 * _quackInitSampleCount * _mwaConfig.Header().integrationTime)/10.0 << " s) and " << _subbandEdgeFlagCount << " edge channels will be flagged.\n";
+	std::cout << "The first " << _quackInitSampleCount << " samples (" << round(10.0 * _quackInitSampleCount * _mwaConfig.Header().integrationTime)/10.0 << " s), last " << _quackEndSampleCount << " samples (" << round(10.0 * _quackEndSampleCount * _mwaConfig.Header().integrationTime)/10.0 << " s) and " << _subbandEdgeFlagCount << " edge channels will be flagged.\n";
 	
 	if(_subbandPassbandFilename.empty())
 		initializeSubbandPassband();
