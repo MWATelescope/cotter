@@ -93,7 +93,9 @@ void usage()
 	"  -flagsubband <lst> Flag the comma-separated list of zero-indexed sub-bands.\n"
 	"  -edgewidth <kHz>   Flag the given width of edge channels of each sub-band (default: 80 kHz).\n"
 	"  -initflag <sec>    Specify number of seconds to flag at beginning of observation (default: 4s).\n"
+	"  -endflag <sec>     Specify number of seconds to flag extra at end of observation (default: 0s).\n"
 	"  -saveqs <file.qs>  Save the quality statistics to the specified file. Use extension of '.qs'.\n"
+	"  -skipwrite         Skip the writing step completely: only collect statistics.\n"
 	"\n"
 	"The filenames of the input gpu files should end in '...nn_mm.fits', where nn >= 1 is the\n"
 	"gpu box number and mm >= 0 is the time step number.\n";
@@ -191,6 +193,14 @@ int cotterMain(int argc, const char* const* argv)
 			{
 				cotter.SetCollectStatistics(false);
 			}
+			else if(param == "histograms")
+			{
+				cotter.SetCollectHistograms(true);
+			}
+			else if(param == "nohistograms")
+			{
+				cotter.SetCollectHistograms(false);
+			}
 			else if(param == "nogeom")
 			{
 				cotter.SetDisableGeometricCorrections(true);
@@ -260,6 +270,11 @@ int cotterMain(int argc, const char* const* argv)
 				++argi;
 				cotter.SetInitDurationToFlag(atof(argv[argi]));
 			}
+			else if(param == "endflag")
+			{
+				++argi;
+				cotter.SetEndDurationToFlag(atof(argv[argi]));
+			}
 			else if(param == "flagantenna")
 			{
 				++argi;
@@ -297,6 +312,10 @@ int cotterMain(int argc, const char* const* argv)
 				cotter.SetSaveQualityStatistics(argv[argi]);
 				cotter.SetCollectStatistics(true);
 				saveQualityStatistics = true;
+			}
+			else if(param == "skipwrite")
+			{
+				cotter.SetSkipWriting(true);
 			}
 			else
 			{

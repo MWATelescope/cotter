@@ -41,6 +41,7 @@ class Cotter : private UVWCalculater
 		void SetThreadCount(size_t threadCount) { _threadCount = threadCount; }
 		void SetRFIDetection(bool performRFIDetection) { _rfiDetection = performRFIDetection; }
 		void SetCollectStatistics(bool collectStatistics) { _collectStatistics = collectStatistics; }
+		void SetCollectHistograms(bool collectHistograms) { _collectHistograms = collectHistograms; }
 		void SetHistoryInfo(const std::string &commandLine) { _commandLine = commandLine; }
 		void SetMetaFilename(const char *metaFilename) { _metaFilename = metaFilename; }
 		void SetAntennaLocationsFilename(const char *filename) { _antennaLocationsFilename = filename; }
@@ -69,9 +70,11 @@ class Cotter : private UVWCalculater
 		}
 		void SetFlagAutoCorrelations(bool flagAutoCorrelations) { _flagAutos = flagAutoCorrelations; }
 		void SetInitDurationToFlag(double initDuration) { _initDurationToFlag = initDuration; }
+		void SetEndDurationToFlag(double endDuration) { _endDurationToFlag = endDuration; }
 		void SetApplySBGains(bool applySBGains) { _applySBGains = applySBGains; }
 		void SetFlagDCChannels(bool flagDCChannels) { _flagDCChannels = flagDCChannels; }
 		void SetSaveQualityStatistics(const std::string& file) { _qualityStatisticsFilename = file; }
+		void SetSkipWriting(bool skipWriting) { _skipWriting = skipWriting; }
 		void FlagAntenna(size_t antIndex) { _userFlaggedAntennae.push_back(antIndex); }
 		void FlagSubband(size_t sbIndex) { _flaggedSubbands.insert(sbIndex); }
 		void SetSubbandEdgeFlagWidth(double edgeFlagWidth) { _subbandEdgeFlagWidthKHz = edgeFlagWidth; }
@@ -92,12 +95,12 @@ class Cotter : private UVWCalculater
 		size_t _threadCount;
 		size_t _maxBufferSize;
 		size_t _subbandCount;
-		size_t _quackSampleCount;
+		size_t _quackInitSampleCount, _quackEndSampleCount;
 		double _subbandEdgeFlagWidthKHz;
 		size_t _subbandEdgeFlagCount;
 		size_t _missingEndScans;
 		size_t _curChunkStart, _curChunkEnd, _curSbStart, _curSbEnd;
-		bool _defaultFilename, _rfiDetection, _collectStatistics, _usePointingCentre;
+		bool _defaultFilename, _rfiDetection, _collectStatistics, _collectHistograms, _usePointingCentre;
 		enum OutputFormat _outputFormat;
 		std::string _outputFilename, _commandLine;
 		std::string _metaFilename, _antennaLocationsFilename, _headerFilename, _instrConfigFilename;
@@ -122,9 +125,9 @@ class Cotter : private UVWCalculater
 		std::complex<float> *_outputData;
 		float *_outputWeights;
 		bool _disableGeometricCorrections, _removeFlaggedAntennae, _removeAutoCorrelations, _flagAutos;
-		bool _overridePhaseCentre, _doAlign, _doFlagMissingSubbands, _applySBGains, _flagDCChannels;
+		bool _overridePhaseCentre, _doAlign, _doFlagMissingSubbands, _applySBGains, _flagDCChannels, _skipWriting;
 		long double _customRARad, _customDecRad;
-		double _initDurationToFlag;
+		double _initDurationToFlag, _endDurationToFlag;
 		
 		void processAllContiguousBands(size_t timeAvgFactor, size_t freqAvgFactor);
 		void processOneContiguousBand(const std::string& outputFilename, size_t timeAvgFactor, size_t freqAvgFactor);
