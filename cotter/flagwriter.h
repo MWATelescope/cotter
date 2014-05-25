@@ -2,13 +2,14 @@
 #define FLAG_WRITER_H
 
 #include "writer.h"
+#include "fitsuser.h"
 
 #include <stdint.h>
 
-#include <fstream>
 #include <iostream>
+#include <fitsio.h>
 
-class FlagWriter : public Writer
+class FlagWriter : public Writer, private FitsUser
 {
 	public:
 		FlagWriter(const std::string &filename, int gpsTime, size_t timestepCount, size_t gpuBoxCount, const std::vector<size_t>& subbandToGPUBoxFileIndex);
@@ -47,9 +48,9 @@ class FlagWriter : public Writer
 		
 		void AddRows(size_t rowCount)
 		{
-			if(_rowCount == 0)
+			if(_rowsAdded == 0)
 				writeHeader();
-			_rowCount += rowCount;
+			_rowsAdded += rowCount;
 		}
 		
 		void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights)
@@ -79,14 +80,24 @@ class FlagWriter : public Writer
 			char baselineSelection;
 		};
 		
+		void updateDoubleKey(size_t i, const char* keywordName, double value)
+		{
+			int status = 0;
+			fits_update_key(_files[i], TLONG, keywordName, &value, NULL, &status);
+			checkStatus(status);
+		}
+		
 		size_t _timestepCount, _antennaCount, _channelCount, _channelsPerGPUBox, _polarizationCount;
-		size_t _rowStride, _rowCount, _gpuBoxCount;
+		//size_t _rowStride;
+		size_t _rowsAdded, _rowsWritten, _gpuBoxCount;
 		int _gpsTime;
-		std::vector<std::ofstream*> _files;
+		std::vector<fitsfile*> _files;
 		
 		const static uint16_t VERSION_MINOR, VERSION_MAJOR;
 		
-		std::vector<unsigned char> _singlePolBuffer, _packBuffer;
+		std::vector<size_t> _subbandToGPUBoxFileIndex;
+		std::vector<unsigned char> _singlePolBuffer;
+		//std::vector<unsigned char> _packBuffer;
 };
 
 #endif

@@ -21,7 +21,7 @@ void FitsUser::throwError(int status, const std::string &msg)
 	
 	char statusStr[FLEN_STATUS], errMsg[FLEN_ERRMSG];
 	fits_get_errstatus(status, statusStr);
-	msgStr << "CFitsio reported an error while reading fits files. Status = " << status << ": " << statusStr;
+	msgStr << "CFitsio reported an error while accessing fits files. Status = " << status << ": " << statusStr;
 
 	if(fits_read_errmsg(errMsg))
 	{

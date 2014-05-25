@@ -1,5 +1,9 @@
 #include "flagwriter.h"
+
 #include <stdexcept>
+#include <cstdio>
+
+#include "version.h"
 
 const uint16_t
 	FlagWriter::VERSION_MINOR = 0,
@@ -11,11 +15,13 @@ FlagWriter::FlagWriter(const std::string &filename, int gpsTime, size_t timestep
 	_channelCount(0),
 	_channelsPerGPUBox(0),
 	_polarizationCount(0),
-	_rowStride(0),
-	_rowCount(0),
+//	_rowStride(0),
+	_rowsAdded(0),
+	_rowsWritten(0),
 	_gpuBoxCount(gpuBoxCount),
 	_gpsTime(gpsTime),
-	_files(gpuBoxCount)
+	_files(gpuBoxCount),
+	_subbandToGPUBoxFileIndex(subbandToGPUBoxFileIndex)
 {
 	if(gpuBoxCount == 0)
 		throw std::runtime_error("Flagwriter was initialized with zero gpuboxes");
@@ -26,40 +32,69 @@ FlagWriter::FlagWriter(const std::string &filename, int gpsTime, size_t timestep
 	std::string name(filename);
 	for(size_t i=0; i!=gpuBoxCount; ++i)
 	{
-		size_t gpuBoxIndex = subbandToGPUBoxFileIndex[i] + 1;
+		size_t gpuBoxIndex = _subbandToGPUBoxFileIndex[i] + 1;
 		name[numberPos] = (char) ('0' + (gpuBoxIndex/10));
 		name[numberPos+1] = (char) ('0' + (gpuBoxIndex%10));
-		_files[i] = new std::ofstream(name.c_str(), std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
-		if(!_files[i]->good())
-			throw std::runtime_error(std::string("Could not open flag file \"") + name + "\" for writing.");
+		
+		// If the file already exists, remove it
+		FILE *fp = std::fopen(name.c_str(), "r");
+		if (fp != NULL) {
+			std::fclose(fp);
+			std::remove(name.c_str());
+		}
+  
+		int status = 0;
+		if(fits_create_file(&_files[i], name.c_str(), &status))
+			throwError(status, "Cannot open flag file " + name + " for writing.");
 	}
 }
 
 FlagWriter::~FlagWriter()
 {
-	for(std::vector<std::ofstream*>::iterator i=_files.begin(); i!=_files.end(); ++i)
-		delete *i;
+	for(std::vector<fitsfile*>::iterator i=_files.begin(); i!=_files.end(); ++i)
+	{
+		int status = 0;
+		fits_close_file(*i, &status);
+	}
 }
 
 void FlagWriter::writeHeader()
 {
-	struct Header header;
-	header.fileIdentifier[0] = 'M';
-	header.fileIdentifier[1] = 'W';
-	header.fileIdentifier[2] = 'A';
-	header.fileIdentifier[3] = 'F';
-	header.versionMajor = VERSION_MAJOR;
-	header.versionMinor = VERSION_MINOR;
-	header.timestepCount = _timestepCount;
-	header.antennaCount = _antennaCount;
-	header.channelCount = _channelsPerGPUBox;
-	header.polarizationCount = 1;
-	header.baselineSelection = 'B'; // both
-	header.gpsTime = _gpsTime;
+	std::ostringstream formatOStr;
+	formatOStr << _channelsPerGPUBox << 'X';
+	std::string formatStr = formatOStr.str();
+  const char *columnNames[] = {"FLAGS"};
+  const char *columnFormats[] = {formatStr.c_str()};
+  const char *columnUnits[] = {""};
+	
 	for(size_t i=0; i!=_gpuBoxCount; ++i)
 	{
-		header.gpuBoxIndex = i;
-		_files[i]->write(reinterpret_cast<char*>(&header), sizeof(Header));
+		int status = 0;
+		long dimensionZero = 0;
+		
+		fits_create_img(_files[i], BYTE_IMG, 0, &dimensionZero, &status);
+		checkStatus(status);
+		
+		std::ostringstream versionStr;
+		versionStr << VERSION_MAJOR << '.' << VERSION_MINOR;
+		fits_update_key(_files[i], TSTRING, "VERSION", const_cast<char*>(versionStr.str().c_str()), NULL, &status);
+		checkStatus(status);
+		
+		updateDoubleKey(i, "GPSTIME", _gpsTime);
+		updateDoubleKey(i, "NCHANS", _channelsPerGPUBox);
+		updateDoubleKey(i, "NANTENNA", _antennaCount);
+		updateDoubleKey(i, "NSCANS", _timestepCount);
+		updateDoubleKey(i, "NPOLS", 1);
+		updateDoubleKey(i, "GPUBOXNO", _subbandToGPUBoxFileIndex[i] + 1);
+		
+		fits_update_key(_files[i], TSTRING, "COTVER", const_cast<char*>(COTTER_VERSION_STR), NULL, &status);
+		fits_update_key(_files[i], TSTRING, "COTVDATE", const_cast<char*>(COTTER_VERSION_DATE), NULL, &status);
+		checkStatus(status);
+		
+		fits_create_tbl(_files[i], BINARY_TBL, 0 /*nrows*/, 1 /*tfields*/,
+			const_cast<char**>(columnNames), const_cast<char**>(columnFormats),
+			const_cast<char**>(columnUnits), 0, &status);
+		checkStatus(status);
 	}
 }
 
@@ -70,15 +105,16 @@ void FlagWriter::setStride()
 	_channelsPerGPUBox = _channelCount / _gpuBoxCount;
 	
 	// we assume we write only one polarization here
-	_rowStride = (_channelsPerGPUBox + 7) / 8;
+//	_rowStride = (_channelsPerGPUBox + 7) / 8;
 	
 	_singlePolBuffer.resize(_channelsPerGPUBox);
-	_packBuffer.resize(_rowStride);
+//	_packBuffer.resize(_rowStride);
 }
 
 void FlagWriter::writeRow(size_t antenna1, size_t antenna2, const bool* flags)
 {
-	for(size_t gpuBox=0; gpuBox != _gpuBoxCount; ++gpuBox)
+	++_rowsWritten;
+	for(size_t subband=0; subband != _gpuBoxCount; ++subband)
 	{
 		std::vector<unsigned char>::iterator singlePolIter = _singlePolBuffer.begin();
 		for(size_t i=0; i!=_channelsPerGPUBox; ++i)
@@ -94,9 +130,13 @@ void FlagWriter::writeRow(size_t antenna1, size_t antenna2, const bool* flags)
 			++singlePolIter;
 		}
 		
-		pack(&_packBuffer[0], &_singlePolBuffer[0], _channelsPerGPUBox);
+		int status = 0;
+		fits_write_col(_files[subband], TBIT, 1 /*colnum*/, _rowsWritten /*firstrow*/,
+       1 /*firstelem*/, _channelsPerGPUBox /*nelements*/, &_singlePolBuffer[0], &status);
+		checkStatus(status);
 		
-		_files[gpuBox]->write(reinterpret_cast<char*>(&_packBuffer[0]), _rowStride);
+		//pack(&_packBuffer[0], &_singlePolBuffer[0], _channelsPerGPUBox);
+		//_files[gpuBox]->write(reinterpret_cast<char*>(&_packBuffer[0]), _rowStride);
 	}
 }
 
