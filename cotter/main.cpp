@@ -147,7 +147,6 @@ int cotterMain(int argc, const char* const* argv)
 				{
 					cotter.SetCollectStatistics(saveQualityStatistics);
 					cotter.SetOutputFormat(Cotter::FlagsOutputFormat);
-					cotter.SetDoAlign(false);
 					cotter.SetRemoveFlaggedAntennae(false);
 				}
 			}

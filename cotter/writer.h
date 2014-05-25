@@ -60,6 +60,8 @@ class Writer
 		
 		virtual ~Writer() { }
 		virtual void SetArrayLocation(double x, double y, double z) { }
+		virtual void SetOffsetsPerGPUBox(const std::vector<int>& offsets) { }
+		
 		virtual void WriteBandInfo(const std::string &name, const std::vector<ChannelInfo> &channels, double refFreq, double totalBandwidth, bool flagRow) = 0;
 		virtual void WriteAntennae(const std::vector<AntennaInfo> &antennae, double time) = 0;
 		virtual void WritePolarizationForLinearPols(bool flagRow) = 0;

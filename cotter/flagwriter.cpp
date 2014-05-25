@@ -111,6 +111,13 @@ void FlagWriter::setStride()
 //	_packBuffer.resize(_rowStride);
 }
 
+void FlagWriter::SetOffsetsPerGPUBox(const std::vector<int>& offsets)
+{
+	if(_rowsAdded != 0)
+		throw std::runtime_error("SetOffsetsPerGPUBox() called after rows were added to flagwriter");
+	_hduOffsets = offsets;
+}
+
 void FlagWriter::writeRow(size_t antenna1, size_t antenna2, const bool* flags)
 {
 	++_rowsWritten;
@@ -131,9 +138,13 @@ void FlagWriter::writeRow(size_t antenna1, size_t antenna2, const bool* flags)
 		}
 		
 		int status = 0;
-		fits_write_col(_files[subband], TBIT, 1 /*colnum*/, _rowsWritten /*firstrow*/,
-       1 /*firstelem*/, _channelsPerGPUBox /*nelements*/, &_singlePolBuffer[0], &status);
-		checkStatus(status);
+		if(int(_rowsWritten) > _hduOffsets[_subbandToGPUBoxFileIndex[subband]]+1)
+		{
+			size_t unalignedRow = _rowsWritten - _hduOffsets[_subbandToGPUBoxFileIndex[subband]];
+			fits_write_col(_files[subband], TBIT, 1 /*colnum*/, unalignedRow /*firstrow*/,
+				1 /*firstelem*/, _channelsPerGPUBox /*nelements*/, &_singlePolBuffer[0], &status);
+			checkStatus(status);
+		}
 		
 		//pack(&_packBuffer[0], &_singlePolBuffer[0], _channelsPerGPUBox);
 		//_files[gpuBox]->write(reinterpret_cast<char*>(&_packBuffer[0]), _rowStride);

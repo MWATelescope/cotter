@@ -51,6 +51,11 @@ class ForwardingWriter : public Writer
 			_writer->SetArrayLocation(x, y, z);
 		}
 		
+		virtual void SetOffsetsPerGPUBox(const std::vector<int>& offsets)
+		{
+			_writer->SetOffsetsPerGPUBox(offsets);
+		}
+		
 		virtual void AddRows(size_t rowCount)
 		{
 			_writer->AddRows(rowCount);

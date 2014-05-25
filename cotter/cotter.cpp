@@ -16,6 +16,8 @@
 #include <aoflagger.h>
 
 #include <boost/thread/thread.hpp>
+#include <boost/bind.hpp>
+#include <boost/function.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -236,8 +238,6 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 			std::cout << "Only flags will be outputted.\n";
 			if(freqAvgFactor != 1 || timeAvgFactor != 1)
 				throw std::runtime_error("You have specified time or frequency averaging and outputting only flags: this is incompatible");
-			if(_doAlign)
-				throw std::runtime_error("Aligning was specified, which is incompatible with flag files");
 			if(_removeFlaggedAntennae || _removeAutoCorrelations)
 				throw std::runtime_error("Can't prune flagged/auto-correlated antennas when writing flag file");
 			_writer = new FlagWriter(outputFilename, _mwaConfig.HeaderExt().gpsTime, _mwaConfig.Header().nScans, _subbandCount, _subbandOrder);
@@ -552,6 +552,7 @@ void Cotter::createReader(const std::vector<std::string>& curFileset)
 {
 	delete _reader; // might be 0, but that's ok.
 	_reader = new GPUFileReader(_mwaConfig.NAntennae(), nChannelsInCurSBRange(), _threadCount);
+	_reader->SetHDUOffsetsChangeCallback(boost::bind(&Cotter::onHDUOffsetsChange, this, _1));
 
 	// We need to make the distinction between non-contiguous and contiguous bandwidth mode, because
 	// in 32T data we cannot assume a gpubox file matches a coarse channel. However, 32T
@@ -1404,4 +1405,24 @@ void Cotter::writeMWAFieldsToUVFits(const std::string& outputFilename)
 {
 	MWAFits mwaFits(outputFilename);
 	mwaFits.WriteMWAKeywords(_mwaConfig.HeaderExt().fiberFactor, _mwaConfig.HeaderExt().metaDataVersion, _mwaConfig.HeaderExt().mwaPyVersion, COTTER_VERSION_STR, COTTER_VERSION_DATE);
+}
+
+void Cotter::onHDUOffsetsChange(const std::vector<int>& newHDUOffsets)
+{
+	if(_hduOffsets.empty())
+	{
+		_hduOffsets = newHDUOffsets;
+		if(_doAlign)
+			_writer->SetOffsetsPerGPUBox(_hduOffsets);
+		else {
+			std::vector<int> zeros(newHDUOffsets.size(), 0);
+			_writer->SetOffsetsPerGPUBox(zeros);
+		}
+	}
+	else {
+		if(newHDUOffsets != _hduOffsets)
+		{
+			std::cout << "WARNING! The HDU offsets change over time, this should never happen!\n";
+		}
+	}
 }

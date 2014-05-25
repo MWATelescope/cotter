@@ -66,6 +66,8 @@ class FlagWriter : public Writer, private FitsUser
 		{
 			return true;
 		}
+		
+		virtual void SetOffsetsPerGPUBox(const std::vector<int>& offsets);
 	private:
 		void writeHeader();
 		void writeRow(size_t antenna1, size_t antenna2, const bool* flags);
@@ -97,6 +99,7 @@ class FlagWriter : public Writer, private FitsUser
 		
 		std::vector<size_t> _subbandToGPUBoxFileIndex;
 		std::vector<unsigned char> _singlePolBuffer;
+		std::vector<int> _hduOffsets;
 		//std::vector<unsigned char> _packBuffer;
 };
 

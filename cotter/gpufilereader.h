@@ -1,14 +1,16 @@
+#include "baselinebuffer.h"
+#include "fitsuser.h"
+#include "lane.h"
+
 #include <string>
 #include <vector>
 #include <ctime>
 #include <complex>
-
-#include <fitsio.h>
 #include <stdexcept>
 
-#include "baselinebuffer.h"
-#include "fitsuser.h"
-#include "lane.h"
+#include <fitsio.h>
+
+#include <boost/function.hpp>
 
 /**
  * The GPU file reader, that can read the files produced by the MWA correlator.
@@ -88,6 +90,11 @@ class GPUFileReader : private FitsUser
 			return _isConjugated[(ant1 * 2 + pol1) * _nAntenna * 2 + (ant2 * 2 + pol2)];
 		}
 		std::time_t StartTime() const { return _startTime; }
+		
+		void SetHDUOffsetsChangeCallback(boost::function<void(const std::vector<int>&)> onHDUOffsetsChange)
+		{
+			_onHDUOffsetsChange = onHDUOffsetsChange;
+		}
 	private:
 		struct ShuffleTask
 		{
@@ -133,4 +140,5 @@ class GPUFileReader : private FitsUser
 		std::vector<int> _hduOffsetsPerFile;
 		double _integrationTime;
 		bool _doAlign;
+		boost::function<void(const std::vector<int>&)> _onHDUOffsetsChange;
 };

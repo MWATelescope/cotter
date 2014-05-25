@@ -86,6 +86,7 @@ void GPUFileReader::openFiles()
 	}
 	if(hasWarnedAboutDifferentTimes)
 		std::cout << "]\n";
+	_onHDUOffsetsChange(_hduOffsetsPerFile);
 }
 
 void GPUFileReader::closeFiles()

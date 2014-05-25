@@ -116,6 +116,7 @@ class Cotter : private UVWCalculater
 		std::auto_ptr<ProgressBar> _progressBar;
 		size_t _baselinesToProcessCount;
 		std::vector<size_t> _subbandOrder;
+		std::vector<int> _hduOffsets;
 		
 		boost::mutex _mutex;
 		aoflagger::QualityStatistics *_statistics;
@@ -153,6 +154,7 @@ class Cotter : private UVWCalculater
 		void writeAlignmentScans();
 		void writeMWAFieldsToMS(const std::string& outputFilename, size_t flagWindowSize);
 		void writeMWAFieldsToUVFits(const std::string& outputFilename);
+		void onHDUOffsetsChange(const std::vector<int>& newHDUOffsets);
 		size_t rowsPerTimescan() const
 		{
 			if(_removeFlaggedAntennae && _removeAutoCorrelations)
