@@ -94,6 +94,8 @@ void usage()
 	"  -edgewidth <kHz>   Flag the given width of edge channels of each sub-band (default: 80 kHz).\n"
 	"  -initflag <sec>    Specify number of seconds to flag at beginning of observation (default: 4s).\n"
 	"  -endflag <sec>     Specify number of seconds to flag extra at end of observation (default: 0s).\n"
+	"  -flagfiles <name>  Use previously writted MWAF files to skip RFI detection. Name should have\n"
+	"                     two percentage symbols (%%), which will be replaced by GPU numbers.\n"
 	"  -saveqs <file.qs>  Save the quality statistics to the specified file. Use extension of '.qs'.\n"
 	"  -skipwrite         Skip the writing step completely: only collect statistics.\n"
 	"\n"
@@ -108,13 +110,13 @@ int main(int argc, char **argv)
 	std::cout << "Running Cotter MWA preprocessing pipeline, version " << COTTER_VERSION_STR << " (" << COTTER_VERSION_DATE << ").\n";
 	
 	int result = 0;
-	try {
+	//try {
 		result = cotterMain(argc, argv);
-	} catch(std::exception &e)
-	{
-		std::cerr << "\nAn unhandled exception occured while running Cotter:\n" << e.what() << '\n';
-		return -1;
-	}
+	//} catch(std::exception &e)
+	//{
+	//	std::cerr << "\nAn unhandled exception occured while running Cotter:\n" << e.what() << '\n';
+	//	return -1;
+	//}
 	return result;
 }
 
@@ -304,6 +306,12 @@ int cotterMain(int argc, const char* const* argv)
 			{
 				++argi;
 				cotter.SetSubbandEdgeFlagWidth(atoi(argv[argi]));
+			}
+			else if(param == "flagfiles")
+			{
+				++argi;
+				cotter.SetRFIDetection(false);
+				cotter.SetFlagFileTemplate(argv[argi]);
 			}
 			else if(param == "saveqs")
 			{

@@ -1,6 +1,7 @@
 #include "cotter.h"
 
 #include "baselinebuffer.h"
+#include "flagreader.h"
 #include "flagwriter.h"
 #include "fitswriter.h"
 #include "geometry.h"
@@ -52,6 +53,7 @@ Cotter::Cotter() :
 	_outputFormat(MSOutputFormat),
 	_metaFilename(),
 	_subbandPassbandFilename(),
+	_flagFileTemplate(),
 	_qualityStatisticsFilename(),
 	_statistics(0),
 	_correlatorMask(0),
@@ -461,6 +463,30 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 		threadGroup.join_all();
 		
 		_progressBar.reset();
+		
+		if(!_flagFileTemplate.empty())
+		{
+			_progressBar.reset(new ProgressBar("Reading flags"));
+			if(_flagReader.get() == 0)
+				_flagReader.reset(new FlagReader(_flagFileTemplate, _hduOffsets, _subbandCount, _subbandOrder));
+			size_t baselineIndex = 0;
+			for(size_t t=_curChunkStart; t!=_curChunkEnd; ++t)
+			{
+				_progressBar->SetProgress(t-_curChunkStart, _curChunkEnd-_curChunkStart);
+				for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
+				{
+					for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
+					{
+						FlagMask* mask = _flagBuffers.find(std::make_pair(antenna1, antenna2))->second;
+						size_t stride = mask->HorizontalStride();
+						bool* bufferPos = mask->Buffer() + stride * t;
+						_flagReader->Read(t, baselineIndex, bufferPos, stride);
+						++baselineIndex;
+					}
+				}
+			}
+			_progressBar.reset();
+		}
 		
 		_processWatch.Pause();
 		_writeWatch.Start();

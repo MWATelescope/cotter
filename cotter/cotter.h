@@ -73,6 +73,7 @@ class Cotter : private UVWCalculater
 		void SetEndDurationToFlag(double endDuration) { _endDurationToFlag = endDuration; }
 		void SetApplySBGains(bool applySBGains) { _applySBGains = applySBGains; }
 		void SetFlagDCChannels(bool flagDCChannels) { _flagDCChannels = flagDCChannels; }
+		void SetFlagFileTemplate(const std::string& flagFileTemplate) { _flagFileTemplate = flagFileTemplate; }
 		void SetSaveQualityStatistics(const std::string& file) { _qualityStatisticsFilename = file; }
 		void SetSkipWriting(bool skipWriting) { _skipWriting = skipWriting; }
 		void FlagAntenna(size_t antIndex) { _userFlaggedAntennae.push_back(antIndex); }
@@ -104,7 +105,7 @@ class Cotter : private UVWCalculater
 		enum OutputFormat _outputFormat;
 		std::string _outputFilename, _commandLine;
 		std::string _metaFilename, _antennaLocationsFilename, _headerFilename, _instrConfigFilename;
-		std::string _subbandPassbandFilename, _qualityStatisticsFilename;
+		std::string _subbandPassbandFilename, _flagFileTemplate, _qualityStatisticsFilename;
 		std::vector<size_t> _userFlaggedAntennae;
 		std::set<size_t> _flaggedSubbands;
 		
@@ -117,6 +118,7 @@ class Cotter : private UVWCalculater
 		size_t _baselinesToProcessCount;
 		std::vector<size_t> _subbandOrder;
 		std::vector<int> _hduOffsets;
+		std::auto_ptr<class FlagReader> _flagReader;
 		
 		boost::mutex _mutex;
 		aoflagger::QualityStatistics *_statistics;

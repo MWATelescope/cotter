@@ -82,10 +82,10 @@ class FlagWriter : public Writer, private FitsUser
 			char baselineSelection;
 		};
 		
-		void updateDoubleKey(size_t i, const char* keywordName, double value)
+		void updateIntKey(size_t i, const char* keywordName, int value)
 		{
 			int status = 0;
-			fits_update_key(_files[i], TLONG, keywordName, &value, NULL, &status);
+			fits_update_key(_files[i], TINT, keywordName, &value, NULL, &status);
 			checkStatus(status);
 		}
 		
