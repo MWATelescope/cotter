@@ -713,13 +713,13 @@ void optimalDeltaW(FittingFunc func, double a, double b, double c, double d, dou
 	std::cout << ", mean dw=" << sumDW/count << '\n';
 }*/
 
-void optimalDeltaT(FittingFunc func, const std::string& filename, double a, double b, double c, double d, double e, double f, double za, double nVis, double nPix, double fov, double nChan, bool zeroConstant, double& dt, size_t beamsTimesIters, double lambda, double maxBaseline, double maxHeight)
+void optimalDeltaT(FittingFunc func, const std::string& filename, double a, double b, double c, double d, double e, double f, double za, double nVis, double nPix, double fov, double nChan, bool zeroConstant, double& dt, size_t beamsTimesIters, double lambda, double maxBaseline, double maxHeight, double duration)
 {
 	std::ofstream file(filename);
 	double minY = std::numeric_limits<double>::max(), minDT = 0.0, minFOV = 0.0;
-	double dtTrial = 1.0, prevTrial = 1.0;
+	double dtTrial = 1.0;
 	double fz = zeroConstant ? 0.0 : f;
-	const double totalTime = 60.0*60.0;
+	const double totalTime = duration; //60.0*60.0;
 	while(dtTrial < totalTime)
 	{
 		double tAngle = dtTrial * (360.0 / 60.0 / 60.0 / 24.0);
@@ -734,7 +734,6 @@ void optimalDeltaT(FittingFunc func, const std::string& filename, double a, doub
 			minFOV = trialFOV;
 		}
 		file << dtTrial << '\t' << y << '\n';
-		prevTrial = dtTrial;
 		dtTrial *= 1.001;
 	}
 	dt = minDT;
@@ -773,7 +772,41 @@ void evalSurveyConfig(const std::string& desc, double lambda, double fwhm, size_
 	{
 		double dt, dw, minDWTime;
 		std::string filename = func == WSCleanFunc ? "dt-wsclean.txt" : "dt-casa.txt";
-		optimalDeltaT(func, filename, a, b, c, d, e, f, za, nMVis, nKPix, fov, nChan, false, dt, beams*majorIterationsInversionCount, lambda, maxBaseline, maxDiffHeight);
+		optimalDeltaT(func, filename, a, b, c, d, e, f, za, nMVis, nKPix, fov, nChan, false, dt, beams*majorIterationsInversionCount, lambda, maxBaseline, maxDiffHeight, duration);
+		optimalDeltaW(func, a, b, c, d, e, f, za, nMVis, nKPix, fov, nChan, true, dw, minDWTime, beams*majorIterationsInversionCount, lambda, maxBaseline, maxDiffHeight);
+	}
+}
+
+void evalSurveyConfigWithFixedImageSize(const std::string& desc, double lambda, double fwhm, const double nKPix, size_t beams, double intTimeSec, double bandWidth, double freqRes, size_t antennas, double angRes, double maxBaseline, double maxDiffHeight, FittingFunc func, double a, double b, double c, double d, double e, double f)
+{
+	double maxChannelBWinKHz = 100.0 * (300.0 / lambda) * 2.0 * angRes / fwhm / 10.0;
+	double maxIntTime = 1370.0 * 2.0 * angRes / fwhm / 10.0;
+	// fov is expressed in distance in tangent plane
+	double fov = sin(0.5*fwhm*(M_PI/180.0))*2.0*(180.0/M_PI);
+	
+	const double duration = 112.0;
+	const double za = 20.0;
+	double nMVis = bandWidth / freqRes * (antennas * (antennas-1))/2 * (duration/intTimeSec) * 1e-6;
+	const double nChan = 1;
+	if(func == WSSCleanExtrapolatedFunc)
+	{
+		nMVis *= 300.0 / duration;
+	}
+	const double we = sinZA(za, lambda, maxBaseline, maxDiffHeight) * fovFact(fov);
+	double time = majorIterationsInversionCount * double(beams) * eval(func, za, nMVis, nKPix, fov, nChan, a, b, c, d, e, f, lambda, maxBaseline, maxDiffHeight);
+	if(func == WSSCleanExtrapolatedFunc)
+	{
+		time *= duration / 300.0;
+	}
+	std::cout << "== " << desc << " ==\n"
+		"Baseline=" << maxBaseline << ", channel=" << maxChannelBWinKHz << " kHz, Int time=" << maxIntTime << " s\n"
+		<< "FOV=" << fov << ", fovFact=" << fovFact(fov) << ", ZA=" << za << ", MVis=" << nMVis << ", nKPix=" << nKPix << ", nChan=" << nChan << ", we=" << we << '\n'
+		<< "Time: " << timeToStr(time, duration, nMVis) << "\n";
+	if(func != WSSCleanFunc && func != WSSCleanExtrapolatedFunc)
+	{
+		double dt, dw, minDWTime;
+		std::string filename = func == WSCleanFunc ? "dt-wsclean.txt" : "dt-casa.txt";
+		optimalDeltaT(func, filename, a, b, c, d, e, f, za, nMVis, nKPix, fov, nChan, false, dt, beams*majorIterationsInversionCount, lambda, maxBaseline, maxDiffHeight, duration);
 		optimalDeltaW(func, a, b, c, d, e, f, za, nMVis, nKPix, fov, nChan, true, dw, minDWTime, beams*majorIterationsInversionCount, lambda, maxBaseline, maxDiffHeight);
 	}
 }
@@ -781,6 +814,8 @@ void evalSurveyConfig(const std::string& desc, double lambda, double fwhm, size_
 void evalSurveys(FittingFunc func, double a, double b, double c, double d, double e, double f)
 {
 	evalSurveyConfig("GLEAM",     2.0, 24.7,  1, 2.0, 32000.0, 40.0, 128,    2.0/60.0, 2900.0, 5.5, func, a, b, c, d, e, f);
+
+	evalSurveyConfigWithFixedImageSize("GLEAM-fullsky",2.0,24.7,10.0,1, 2.0, 32000.0, 40.0, 128,    2.0/60.0, 2900.0, 5.5, func, a, b, c, d, e, f);
 
 	evalSurveyConfig("EMU Wide", 0.20,  1.0, 30,10.0, 300000.0,20.0,  36, 10.0/3600.0, 6000.0, 0.2, func, a, b, c, d, e, f);
 
