@@ -287,7 +287,7 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	{
 		std::cout << "WARNING! The given amount of memory is not even enough for one scan and therefore below the minimum that Cotter will need; will use more memory. Expect swapping and very poor flagging accuracy.\nWARNING! This is a *VERY BAD* condition, so better make sure to resolve it!";
 		maxScansPerPart = 1;
-	} else if(maxScansPerPart<20)
+	} else if(maxScansPerPart<20 && _rfiDetection)
 	{
 		std::cout << "WARNING! This computer does not have enough memory for accurate flagging; expect non-optimal flagging accuracy.\n"; 
 	}
