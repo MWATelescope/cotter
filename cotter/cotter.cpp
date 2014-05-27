@@ -469,10 +469,10 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 			_progressBar.reset(new ProgressBar("Reading flags"));
 			if(_flagReader.get() == 0)
 				_flagReader.reset(new FlagReader(_flagFileTemplate, _hduOffsets, _subbandCount, _subbandOrder));
-			size_t baselineIndex = 0;
 			for(size_t t=_curChunkStart; t!=_curChunkEnd; ++t)
 			{
 				_progressBar->SetProgress(t-_curChunkStart, _curChunkEnd-_curChunkStart);
+				size_t baselineIndex = 0;
 				for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
 				{
 					for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
