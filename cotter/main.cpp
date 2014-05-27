@@ -68,6 +68,7 @@ void usage()
 	"  -h <filename>      Read header data from given text file (overrides the metadata.)\n"
 	"  -i <filename>      Read meta data from given fits filename (overrides the metadata).\n"
 	"  -mem <percentage>  Use at most the given percentage of memory.\n"
+	"  -absmem <gb>       Use at most the given amount of memory, specified in gigabytes.\n"
 	"  -j <ncpus>         Number of CPUs to use. Default is to use all.\n"
 	"  -timeavg <factor>  Average 'factor' timesteps together before writing to measurement set.\n"
 	"  -freqavg <factor>  Average 'factor' channels together before writing to measurement set.\n"
@@ -125,7 +126,7 @@ int cotterMain(int argc, const char* const* argv)
 	std::vector<std::string> unsortedFiles;
 	int argi = 1;
 	size_t freqAvg = 1, timeAvg = 1;
-	double memPercentage = 90.0;
+	double memPercentage = 90.0, memLimit = 0.0;
 	Cotter cotter;
 	const char *outputFilename = 0;
 	bool saveQualityStatistics = false;
@@ -181,6 +182,11 @@ int cotterMain(int argc, const char* const* argv)
 			{
 				++argi;
 				memPercentage = atof(argv[argi]);
+			}
+			else if(param == "absmem")
+			{
+				++argi;
+				memLimit = atof(argv[argi]);
 			}
 			else if(param == "noflagautos")
 			{
@@ -387,7 +393,13 @@ int cotterMain(int argc, const char* const* argv)
 	long int pageCount = sysconf(_SC_PHYS_PAGES), pageSize = sysconf(_SC_PAGE_SIZE);
 	int64_t memSize = (int64_t) pageCount * (int64_t) pageSize;
 	double memSizeInGB = (double) memSize / (1024.0*1024.0*1024.0);
-	std::cout << "Detected " << round(memSizeInGB*10.0)/10.0 << " GB of system memory.\n";
+	if(memLimit == 0.0)
+		std::cout << "Detected " << round(memSizeInGB*10.0)/10.0 << " GB of system memory.\n";
+	else {
+		std::cout << "Using " << round(memLimit*10.0)/10.0 << '/' << round(memSizeInGB*10.0)/10.0 << " GB of system memory.\n";
+		memSize = int64_t(memLimit * (1024.0*1024.0*1024.0));
+		memPercentage = 100.0;
+	}
 	
 	cotter.SetFileSets(fileSets);
 	cotter.SetMaxBufferSize(memSize*memPercentage/(100*(sizeof(float)*2+1)));
