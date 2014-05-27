@@ -437,8 +437,39 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 		_readWatch.Pause();
 		_processWatch.Start();
 		
-		if(_mwaConfig.Header().geomCorrection)
-			std::cout << "Will apply geometric delay correction.\n";
+		if(!_flagFileTemplate.empty())
+		{
+			_progressBar.reset(new ProgressBar("Reading flags"));
+			if(_flagReader.get() == 0)
+				_flagReader.reset(new FlagReader(_flagFileTemplate, _hduOffsets, _subbandCount, _subbandOrder));
+			// Create the flag masks
+			for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
+			{
+				for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
+				{
+					FlagMask* mask = new FlagMask(_flagger->MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount()));
+					_flagBuffers.find(std::make_pair(antenna1, antenna2))->second = mask;
+				}
+			}
+			// Fill the flag masks by reading the files
+			for(size_t t=_curChunkStart; t!=_curChunkEnd; ++t)
+			{
+				_progressBar->SetProgress(t-_curChunkStart, _curChunkEnd-_curChunkStart);
+				size_t baselineIndex = 0;
+				for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
+				{
+					for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
+					{
+						FlagMask* mask = _flagBuffers.find(std::make_pair(antenna1, antenna2))->second;
+						size_t stride = mask->HorizontalStride();
+						bool* bufferPos = mask->Buffer() + (t - _curChunkStart);
+						_flagReader->Read(t, baselineIndex, bufferPos, stride);
+						++baselineIndex;
+					}
+				}
+			}
+			_progressBar.reset();
+		}
 		
 		std::string taskDescription;
 		if(_rfiDetection)
@@ -463,31 +494,6 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 		threadGroup.join_all();
 		
 		_progressBar.reset();
-		
-		if(!_flagFileTemplate.empty())
-		{
-			_progressBar.reset(new ProgressBar("Reading flags"));
-			if(_flagReader.get() == 0)
-				_flagReader.reset(new FlagReader(_flagFileTemplate, _hduOffsets, _subbandCount, _subbandOrder));
-			for(size_t t=_curChunkStart; t!=_curChunkEnd; ++t)
-			{
-				_progressBar->SetProgress(t-_curChunkStart, _curChunkEnd-_curChunkStart);
-				size_t baselineIndex = 0;
-				for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
-				{
-					for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
-					{
-						FlagMask* mask = _flagBuffers.find(std::make_pair(antenna1, antenna2))->second;
-						size_t stride = mask->HorizontalStride();
-						bool* bufferPos = mask->Buffer() + stride * t;
-						_flagReader->Read(t, baselineIndex, bufferPos, stride);
-						++baselineIndex;
-					}
-				}
-			}
-			_progressBar.reset();
-		}
-		
 		_processWatch.Pause();
 		_writeWatch.Start();
 		
@@ -658,7 +664,6 @@ void Cotter::processAndWriteTimestep(size_t timeIndex)
 		{
 			if(outputBaseline(antenna1, antenna2))
 			{
-				// TODO these statements should be more efficient
 				const ImageSet &imageSet = *_imageSetBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
 				const FlagMask &flagMask = *_flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
 				
@@ -868,24 +873,34 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 		}
 	}
 	
+	FlagMask *flagMask, *correlatorMask;
 	// Perform RFI detection, if baseline is not flagged.
 	bool skipFlagging = input1X.isFlagged || input1Y.isFlagged || input2X.isFlagged || input2Y.isFlagged || _isAntennaFlaggedMap[antenna1] || _isAntennaFlaggedMap[antenna2];
-
-	FlagMask *flagMask, *correlatorMask;
 	if(skipFlagging)
 	{
-		flagMask = new FlagMask(*_fullysetMask);
+		if(_flagFileTemplate.empty())
+			flagMask = new FlagMask(*_fullysetMask);
+		else
+			flagMask = _flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
 		correlatorMask = _fullysetMask;
 	}
 	else 
 	{
-		if(_rfiDetection && (antenna1 != antenna2))
+		if(!_flagFileTemplate.empty())
+		{
+			flagMask = _flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
+			if(antenna1 == antenna2)
+			{
+				delete flagMask;
+				flagMask = new FlagMask(_flagger->MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), false));
+			}
+		}
+		else if(_rfiDetection && (antenna1 != antenna2))
 			flagMask = new FlagMask(_flagger->Run(*_strategy, *imageSet));
 		else
 			flagMask = new FlagMask(_flagger->MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), false));
-		correlatorMask = _correlatorMask;
-		
 		flagBadCorrelatorSamples(*flagMask);
+		correlatorMask = _correlatorMask;
 	}
 	
 	// Collect statistics

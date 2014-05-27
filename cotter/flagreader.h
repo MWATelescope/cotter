@@ -43,7 +43,7 @@ public:
 			{
 				_channelsPerGPUBox = nChans;
 				_antennaCount = nAnt;
-				_baselineCount = nAnt * (nAnt+1) / 2;
+				_baselineCount = (nAnt * (nAnt+1)) / 2;
 				_scanCount = nScans;
 				_buffer.resize(_channelsPerGPUBox);
 			}
@@ -74,14 +74,15 @@ public:
 	void Read(size_t timestep, size_t baseline, bool* bufferStartPos, size_t bufferStride)
 	{
 		int status = 0;
-		for(size_t i=0; i!=_files.size(); ++i)
+		for(size_t subband=0; subband!=_files.size(); ++subband)
 		{
-			size_t row = (timestep + _hduOffsets[_subbandToGPUBoxFileIndex[i]]) * _baselineCount + baseline + 1;
-			fits_read_col(_files[i], TBIT, /*colnum*/ _colNums[i], /*firstrow*/ row, /*firstelem*/ 1,
+			size_t row = (timestep + _hduOffsets[_subbandToGPUBoxFileIndex[subband]]) * _baselineCount + baseline + 1;
+			fits_read_col(_files[subband], TBIT, /*colnum*/ _colNums[subband], /*firstrow*/ row, /*firstelem*/ 1,
        /*nelements*/ _channelsPerGPUBox, /*(*)nulval*/ 0, &_buffer[0], 0 /*(*)anynul*/, &status);
 			for(size_t ch=0; ch!=_channelsPerGPUBox; ++ch)
 			{
-				bufferStartPos[ch*bufferStride] = bool(_buffer[ch]);
+				size_t channelIndex = ch + subband*_channelsPerGPUBox;
+				bufferStartPos[channelIndex*bufferStride] = bool(_buffer[ch]);
 			}
 		}
 	}
