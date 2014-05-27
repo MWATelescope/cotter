@@ -369,11 +369,13 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 					startTimeTm.tm_sec != _mwaConfig.Header().refSecond)
 				{
 					std::cout << "WARNING: start time according to raw files is "
-						<< startTimeTm.tm_year+1900  << '-' << startTimeTm.tm_mon+1 << '-' << startTimeTm.tm_mday << ' '
-						<< startTimeTm.tm_hour << ':' << startTimeTm.tm_min << ':' << startTimeTm.tm_sec << ",\nbut meta files say "
-						<< _mwaConfig.Header().year << '-' << _mwaConfig.Header().month << '-' << _mwaConfig.Header().day << ' '
-						<< _mwaConfig.Header().refHour << ':' << _mwaConfig.Header().refMinute << ':' << _mwaConfig.Header().refSecond <<
-					" !\nWill use start time from raw file, which should be most accurate.\n";
+						<< startTimeTm.tm_year+1900  << '-' << twoDigits(startTimeTm.tm_mon+1) << '-' << twoDigits(startTimeTm.tm_mday) << ' '
+						<< twoDigits(startTimeTm.tm_hour) << ':' << twoDigits(startTimeTm.tm_min) << ':' << twoDigits(startTimeTm.tm_sec)
+						<< ",\nbut meta files say "
+						<< _mwaConfig.Header().year << '-' << twoDigits(_mwaConfig.Header().month) << '-' << twoDigits(_mwaConfig.Header().day) << ' '
+						<< twoDigits(_mwaConfig.Header().refHour) << ':' << twoDigits(_mwaConfig.Header().refMinute) << ':'
+						<< twoDigits(_mwaConfig.Header().refSecond)
+						<< " !\nWill use start time from raw file, which should be most accurate.\n";
 					_mwaConfig.HeaderRW().year = startTimeTm.tm_year+1900;
 					_mwaConfig.HeaderRW().month = startTimeTm.tm_mon+1;
 					_mwaConfig.HeaderRW().day = startTimeTm.tm_mday;

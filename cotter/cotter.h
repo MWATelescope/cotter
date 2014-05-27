@@ -191,6 +191,13 @@ class Cotter : private UVWCalculater
 		{
 			return _mwaConfig.Header().nChannels * (_curSbEnd - _curSbStart) / _subbandCount;
 		}
+		static std::string twoDigits(int value)
+		{
+			std::string str("  ");
+			str[0] = '0' + (value/10);
+			str[1] = '0' + (value%10);
+			return str;
+		}
 		
 		// Implementing UVWCalculater
 		virtual void CalculateUVW(double date, size_t antenna1, size_t antenna2, double &u, double &v, double &w);
