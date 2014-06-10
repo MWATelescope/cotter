@@ -99,6 +99,7 @@ void usage()
 	"                     two percentage symbols (%%), which will be replaced by GPU numbers.\n"
 	"  -saveqs <file.qs>  Save the quality statistics to the specified file. Use extension of '.qs'.\n"
 	"  -skipwrite         Skip the writing step completely: only collect statistics.\n"
+	"  -version           Output version and exit.\n"
 	"\n"
 	"The filenames of the input gpu files should end in '...nn_mm.fits', where nn >= 1 is the\n"
 	"gpu box number and mm >= 0 is the time step number.\n";
@@ -111,13 +112,13 @@ int main(int argc, char **argv)
 	std::cout << "Running Cotter MWA preprocessing pipeline, version " << COTTER_VERSION_STR << " (" << COTTER_VERSION_DATE << ").\n";
 	
 	int result = 0;
-	//try {
+	try {
 		result = cotterMain(argc, argv);
-	//} catch(std::exception &e)
-	//{
-	//	std::cerr << "\nAn unhandled exception occured while running Cotter:\n" << e.what() << '\n';
-	//	return -1;
-	//}
+	} catch(std::exception &e)
+	{
+		std::cerr << "\nAn unhandled exception occured while running Cotter:\n" << e.what() << '\n';
+		return -1;
+	}
 	return result;
 }
 
@@ -136,6 +137,11 @@ int cotterMain(int argc, const char* const* argv)
 		if(argv[argi][0] == '-')
 		{
 			const std::string param = &argv[argi][1];
+			if(param == "version" || param == "-version")
+			{
+				// Version is already outputted, so just exit
+				return 0;
+			}
 			if(param == "o")
 			{
 				++argi;
