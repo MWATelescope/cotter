@@ -51,6 +51,11 @@ ENDIF("${isSystemDir}" STREQUAL "-1")
 
 add_executable(altcotter main.cpp cotter.cpp averagingwriter.cpp flagwriter.cpp fitsuser.cpp fitswriter.cpp gpufilereader.cpp metafitsfile.cpp mwaconfig.cpp mwafits.cpp mwams.cpp mswriter.cpp progressbar.cpp stopwatch.cpp subbandpassband.cpp threadedwriter.cpp)
 
+set(CMAKE_CXX_FLAGS "-std=c++0x")
+add_executable(concat concat.cpp mswriter.cpp progressbar.cpp)
+
 target_link_libraries(altcotter ${CFITSIO_LIB} ${AOFLAGGER_LIB} ${CASA_LIBS} ${LAPACK_lapack_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${LIBXML2_LIBRARIES} ${FFTW3_LIB} ${LIBSLA_LIB} ${PNG_LIB} ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
+
+target_link_libraries(concat ${CASA_LIBS})
 
 install (TARGETS altcotter DESTINATION bin)

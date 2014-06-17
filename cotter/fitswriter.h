@@ -110,6 +110,10 @@ class FitsWriter : public Writer, private FitsUser
 		double _startTime;
 		double _arrayX, _arrayY, _arrayZ;
 		std::string _sourceName;
+		
+		std::string _historyCommandLine;
+		std::string _historyApplication;
+		std::vector<std::string> _historyParams;
 };
 
 #endif
