@@ -263,7 +263,7 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	writeField();
 	_writer->WritePolarizationForLinearPols(false);
 	writeObservation();
-	
+
 	if(!_qualityStatisticsFilename.empty())
 	{
 		Writer* qsWriter = new MSWriter(_qualityStatisticsFilename);
@@ -303,6 +303,12 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 		double dateMJD = _mwaConfig.Header().dateFirstScanMJD * 86400.0 + t * _mwaConfig.Header().integrationTime;
 		_scanTimes[t] = dateMJD;
 	}
+	
+	std::vector<std::string> params;
+	std::stringstream paramStr;
+	paramStr << "timeavg=" << timeAvgFactor << ",freqavg=" << freqAvgFactor << ",windowSize=" << (_mwaConfig.Header().nScans/partCount);
+	params.push_back(paramStr.str());
+	_writer->WriteHistoryItem(_commandLine, "Cotter MWA preprocessor", params);
 	
 	_strategy = new Strategy(_flagger->MakeStrategy(MWA_TELESCOPE));
 	
@@ -544,12 +550,6 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	_writeWatch.Start();
 	
 	writeAlignmentScans();
-	
-	std::vector<std::string> params;
-	std::stringstream paramStr;
-	paramStr << "timeavg=" << timeAvgFactor << ",freqavg=" << freqAvgFactor << ",windowSize=" << (_mwaConfig.Header().nScans/partCount);
-	params.push_back(paramStr.str());
-	_writer->WriteHistoryItem(_commandLine, "Cotter MWA preprocessor", params);
 	
 	const bool writerSupportsStatistics = _writer->CanWriteStatistics();
 	
