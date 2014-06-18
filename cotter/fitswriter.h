@@ -109,7 +109,7 @@ class FitsWriter : public Writer, private FitsUser
 		double _fieldRA, _fieldDec;
 		double _startTime;
 		double _arrayX, _arrayY, _arrayZ;
-		std::string _sourceName;
+		std::string _sourceName, _historyCommandLine, _historyApplication;
 };
 
 #endif

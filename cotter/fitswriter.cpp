@@ -136,6 +136,12 @@ void FitsWriter::initGroupHeader()
 	if(fits_write_history(_fptr, "AIPS WTSCAL =  1.0", &status))
 		throwError(status, "Could not write history to FITS file");
 	
+  if(fits_write_comment(_fptr, (std::string("Created by ") + _historyApplication).c_str(), &status))
+		throwError(status, std::string("Could not write history comment to uvfits file"));
+	
+  if(fits_write_comment(_fptr, (std::string("Cmdline: ") + _historyCommandLine).c_str(), &status))
+		throwError(status, std::string("Could not write history comment to uvfits file"));
+
 	_groupHeadersInitialized = true;
 }
 
@@ -175,14 +181,10 @@ void FitsWriter::WriteObservation(const std::string& telescopeName, double start
 	_startTime = startTime;
 }
 
-void FitsWriter::WriteHistoryItem(const std::string &commandLine, const std::string &application, const std::vector<std::string> &params)
+void FitsWriter::WriteHistoryItem(const std::string &commandLine, const std::string &application, const std::vector<std::string> &)
 {
-	int status = 0;
-  if(fits_write_comment(_fptr, (std::string("Created by ") + application).c_str(), &status))
-		throwError(status, std::string("Could not write history comment to uvfits file"));
-	
-  if(fits_write_comment(_fptr, (std::string("Cmdline: ") + commandLine).c_str(), &status))
-		throwError(status, std::string("Could not write history comment to uvfits file"));
+	_historyCommandLine = commandLine;
+	_historyApplication = application;
 }
 
 void FitsWriter::AddRows(size_t count)
