@@ -181,11 +181,10 @@ void FitsWriter::WriteObservation(const std::string& telescopeName, double start
 	_startTime = startTime;
 }
 
-void FitsWriter::WriteHistoryItem(const std::string &commandLine, const std::string &application, const std::vector<std::string> &params)
+void FitsWriter::WriteHistoryItem(const std::string &commandLine, const std::string &application, const std::vector<std::string> &)
 {
 	_historyCommandLine = commandLine;
 	_historyApplication = application;
-	_historyParams = params;
 }
 
 void FitsWriter::AddRows(size_t count)

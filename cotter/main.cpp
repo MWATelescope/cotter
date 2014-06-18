@@ -324,6 +324,8 @@ int cotterMain(int argc, const char* const* argv)
 				++argi;
 				cotter.SetRFIDetection(false);
 				cotter.SetFlagFileTemplate(argv[argi]);
+				if(memLimit == 0.0)
+					memLimit = 2.0;
 			}
 			else if(param == "saveqs")
 			{
