@@ -150,6 +150,7 @@ int main(int argc, char* argv[])
 	fftw_free(inputData);
 	
 	std::cout << "Applying window function...\n";
+	transformTasks.resize(cpuCount);
 	std::vector<std::thread> threads;
 	for(size_t i=0; i!=cpuCount; ++i)
 		threads.push_back(std::thread(&applyWindow, fft.NComplex()));
@@ -162,7 +163,6 @@ int main(int argc, char* argv[])
 	threads.clear();
 	
 	std::cout << "Transforming in parallel direction...\n";
-	transformTasks.resize(cpuCount);
 	for(size_t i=0; i!=cpuCount; ++i)
 		threads.push_back(std::thread(&transformParThread, dataCube.size()));
 	for(size_t i=0; i!=fft.NComplex(); ++i)
