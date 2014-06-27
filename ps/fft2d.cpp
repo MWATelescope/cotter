@@ -34,7 +34,7 @@ void FFT2D::runThread(size_t cpuIndex)
 	Task task;
 	while(_tasks.read(task))
 	{
-		std::cout << "FFT::runThread(" << cpuIndex << ") -- " << _width << " x " << _height << "...\n";
+		//std::cout << "FFT::runThread(" << cpuIndex << ") -- " << _width << " x " << _height << "...\n";
 		double powerBefore = Power(task.input);
 		double normFactor = 1.0 / sqrt(_width * _height);
 		for(size_t i=0; i!=_width*_height; ++i)
@@ -43,45 +43,42 @@ void FFT2D::runThread(size_t cpuIndex)
 		}
 		fftw_execute_dft_r2c(_fftPlan, inpBuffer, reinterpret_cast<fftw_complex*>(outBuffer));
 		memcpy(task.output, outBuffer, sizeof(std::complex<double>)*_nComplex);
-		double powerAfter = Power(task.output);
+		double powerAfter = PowerFromWrapped(task.output);
 		std::cout <<"FFT::runThread(" << cpuIndex << ") -- " << powerBefore << " Jy -> " << powerAfter << " Jy\n";
+	}
+}
+
+void FFT2D::Unwrap(const std::complex<double>* uvIn, std::complex<double>* out)
+{
+	const size_t midY = _height/2, midX = _width/2;
+	for(size_t y=0; y!=_height; ++y)
+	{
+		size_t sourceY = y;
+		if(y > midY)
+			sourceY = _height-y;
+		size_t destY = y + midY;
+		if(destY >= _height) destY -= _height;
+		const std::complex<double>* rowIn = &uvIn[sourceY*(_width/2+1)];
+		std::complex<double>* rowOut = &out[destY*_width];
+		for(size_t x=0; x!=_width; ++x)
+		{
+			size_t sourceX = x;
+			if(x > midX)
+				sourceX = _width-x;
+			size_t destX = x + midX;
+			if(destX >= _width) destX -= _width;
+			rowOut[destX] = rowIn[sourceX];
+		}
 	}
 }
 
 void FFT2D::SaveUV(const std::complex<double>* uv, const std::string& filename)
 {
+	ao::uvector<std::complex<double>> unwrapped(_width * _height);
+	Unwrap(uv, unwrapped.data());
 	ao::uvector<double> image(_width * _height);
-	const size_t midX = _width/2, midY = _height/2;
-	for(size_t y=0; y!=midY; ++y)
-	{
-		size_t rowIndex = y*(_width/2+1);
-		const std::complex<double>* uvRow = &uv[rowIndex];
-		double* rowA = &image[(y+midY)*_width];
-		double* rowB = &image[(midY-y)*_width];
-		rowA[midX] = std::norm(uvRow[0]);
-		for(size_t x=1; x!=midX; ++x)
-		{
-			double val = std::norm(uvRow[x]);
-			rowA[x + midX] = val;
-			rowB[_width-x - midX] = val;
-		}
-		rowA[0] = std::norm(uvRow[midX]);
-	}
-	for(size_t y=midY; y!=_height; ++y)
-	{
-		size_t rowIndex = y*(_width/2+1);
-		const std::complex<double>* uvRow = &uv[rowIndex];
-		double* rowA = &image[(y-midY)*_width];
-		double* rowB = &image[(_height+midY-y)*_width];
-		rowA[midX] = std::norm(uvRow[0]);
-		for(size_t x=1; x!=midX; ++x)
-		{
-			double val = std::norm(uvRow[x]);
-			rowA[x + midX] = val;
-			rowB[_width-x - midX] = val;
-		}
-		rowA[0] = std::norm(uvRow[midX]);
-	}
+	for(size_t i=0; i!=_width*_height; ++i)
+		image[i] = std::norm(unwrapped[i]);
 	FitsWriter writer;
 	writer.SetImageDimensions(_width, _height);
 	writer.Write(filename, image.data());

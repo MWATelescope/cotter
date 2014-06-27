@@ -51,6 +51,7 @@ public:
 		_tasks.clear();
 	}
 	
+	void Unwrap(const std::complex<double>* uvIn, std::complex<double>* out);
 	void SaveUV(const std::complex<double>* uv, const std::string& filename);
 
 	double Power(const double* data) const
@@ -61,7 +62,7 @@ public:
 		return total;
 	}
 	
-	double Power(const std::complex<double>* data) const
+	double PowerFromWrapped(const std::complex<double>* data) const
 	{
 		double total = 0.0;
 		for(size_t y=0; y!=_height; ++y)
@@ -76,6 +77,9 @@ public:
 		}
 		return total;
 	}
+	
+	size_t Width() const { return _width; }
+	size_t Height() const { return _height; }
 private:
 	struct Task {
 		double* input;

@@ -6,7 +6,7 @@
 
 #include <iostream>
 
-void read(const FitsReader& templateReader, const std::string& filename, std::vector<double>& data)
+void read(const FitsReader& templateReader, const std::string& filename, std::vector<double>& data, double* weightPtr)
 {
 	if(boost::filesystem::exists(filename))
 	{
@@ -19,6 +19,12 @@ void read(const FitsReader& templateReader, const std::string& filename, std::ve
 			throw std::runtime_error("Not all images had same size");
 		data.resize(width * height);
 		inpReader.Read<double>(&data[0]);
+		if(weightPtr != 0)
+		{
+			*weightPtr = 0.0;
+			if(!inpReader.ReadDoubleKeyIfExists("WSCIMGWG", *weightPtr))
+				std::cout << "Warning: file '" << filename << "' did not have WSCIMGWG field: will have zero weight.\n";
+		}
 	}
 	else {
 		std::cout << "Warning: file '" << filename << "' did not exist, assuming it is zero!\n";
@@ -43,11 +49,11 @@ void performWeighting(const std::string& imagePrefix, const std::string& imagePo
 			{ psPrefix+"-XX-weighted.fits", psPrefix+"-XY-weighted.fits",
 				psPrefix+"-XYi-weighted.fits", psPrefix+"-YY-weighted.fits" };
 	FitsReader firstImage(inpFilenames[0]);
-	std::vector<double> inputData[4], beamData[8];
+	std::vector<double> inputData[4], beamData[8], inputWeights(4);
 	for(size_t i=0; i!=4; ++i)
-		read(firstImage, inpFilenames[i], inputData[i]);
+		read(firstImage, inpFilenames[i], inputData[i], &inputWeights[i]);
 	for(size_t i=0; i!=8; ++i)
-		read(firstImage, beamFilename[i], beamData[i]);
+		read(firstImage, beamFilename[i], beamData[i], 0);
 	
 	const size_t 
 		width = firstImage.ImageWidth(),
@@ -70,10 +76,10 @@ void performWeighting(const std::string& imagePrefix, const std::string& imagePo
 		std::complex<double> tempValues[4];
 		Matrix2x2::ATimesB(tempValues, beamValues, imgValues);
 		Matrix2x2::ATimesHermB(imgValues, tempValues, beamValues);
-		inputData[0][i] = imgValues[0].real();
-		inputData[1][i] = 0.5 * (imgValues[1].real() + imgValues[2].real());
-		inputData[2][i] = 0.5 * (imgValues[1].imag() - imgValues[2].imag());
-		inputData[3][i] = imgValues[3].real();
+		inputData[0][i] = inputWeights[0] * imgValues[0].real();
+		inputData[1][i] = inputWeights[1] * 0.5 * (imgValues[1].real() + imgValues[2].real());
+		inputData[2][i] = inputWeights[2] * 0.5 * (imgValues[1].imag() - imgValues[2].imag());
+		inputData[3][i] = inputWeights[3] * imgValues[3].real();
 	}
 	
 	PolarizationEnum
