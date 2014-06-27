@@ -76,10 +76,10 @@ void performWeighting(const std::string& imagePrefix, const std::string& imagePo
 		std::complex<double> tempValues[4];
 		Matrix2x2::ATimesB(tempValues, beamValues, imgValues);
 		Matrix2x2::ATimesHermB(imgValues, tempValues, beamValues);
-		inputData[0][i] = inputWeights[0] * imgValues[0].real();
-		inputData[1][i] = inputWeights[1] * 0.5 * (imgValues[1].real() + imgValues[2].real());
-		inputData[2][i] = inputWeights[2] * 0.5 * (imgValues[1].imag() - imgValues[2].imag());
-		inputData[3][i] = inputWeights[3] * imgValues[3].real();
+		inputData[0][i] = imgValues[0].real();
+		inputData[1][i] = 0.5 * (imgValues[1].real() + imgValues[2].real());
+		inputData[2][i] = 0.5 * (imgValues[1].imag() - imgValues[2].imag());
+		inputData[3][i] = imgValues[3].real();
 	}
 	
 	PolarizationEnum
@@ -90,6 +90,7 @@ void performWeighting(const std::string& imagePrefix, const std::string& imagePo
 	for(size_t p=0; p!=4; ++p)
 	{
 		writer.SetPolarization(linPols[p]);
+		writer.SetExtraKeyword("WSCIMGWG", inputWeights[p]);
 		writer.Write<double>(outFilenames[p], &inputData[p][0]);
 	}
 }

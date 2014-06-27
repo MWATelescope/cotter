@@ -8,6 +8,7 @@
 #include "fitswriter.h"
 
 #include "aocommon/uvector.h"
+#include "windowfunction.h"
 
 fftw_plan fftPlan;
 
@@ -98,6 +99,19 @@ void averageAnuli(FFT2D* fft)
 	}
 }
 
+void applyWindow(size_t nComplex)
+{
+	size_t channelIndex;
+	
+	while(transformTasks.read(channelIndex))
+	{
+		std::complex<double>* input = dataCube[channelIndex];
+		double windowValue = WindowFunction::blackmanNutallWindow(dataCube.size(), channelIndex);
+		for(size_t i=0; i!=nComplex; ++i)
+			input[i] *= windowValue;
+	}
+}
+
 int main(int argc, char* argv[])
 {
 	if(argc < 2)
@@ -135,9 +149,20 @@ int main(int argc, char* argv[])
 	fftw_free(outputData);
 	fftw_free(inputData);
 	
+	std::cout << "Applying window function...\n";
+	std::vector<std::thread> threads;
+	for(size_t i=0; i!=cpuCount; ++i)
+		threads.push_back(std::thread(&applyWindow, fft.NComplex()));
+	for(size_t i=0; i!=dataCube.size(); ++i)
+		transformTasks.write(i);
+	transformTasks.write_end();
+	for(std::vector<std::thread>::iterator i=threads.begin(); i!=threads.end(); ++i)
+		i->join();
+	transformTasks.clear();
+	threads.clear();
+	
 	std::cout << "Transforming in parallel direction...\n";
 	transformTasks.resize(cpuCount);
-	std::vector<std::thread> threads;
 	for(size_t i=0; i!=cpuCount; ++i)
 		threads.push_back(std::thread(&transformParThread, dataCube.size()));
 	for(size_t i=0; i!=fft.NComplex(); ++i)
