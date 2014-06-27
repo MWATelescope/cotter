@@ -13,8 +13,10 @@
 fftw_plan fftPlan;
 
 ao::uvector<std::complex<double>*> dataCube;
+ao::uvector<double> weightsPerChannel;
 ao::uvector<double*> psData;
 std::map<double, size_t> perpGrid;
+double weightSum;
 
 ao::lane<size_t> transformTasks;
 
@@ -107,6 +109,7 @@ void applyWindow(size_t nComplex)
 	{
 		std::complex<double>* input = dataCube[channelIndex];
 		double windowValue = WindowFunction::blackmanNutallWindow(dataCube.size(), channelIndex);
+		windowValue *= weightsPerChannel[channelIndex] * dataCube.size() / weightSum;
 		for(size_t i=0; i!=nComplex; ++i)
 			input[i] *= windowValue;
 	}
@@ -134,10 +137,15 @@ int main(int argc, char* argv[])
 		if(reader.Frequency() <= frequency)
 			throw std::runtime_error("Files are not sorted on frequency!");
 		frequency = reader.Frequency();
+		double weight = 0.0;
+		if(!reader.ReadDoubleKeyIfExists("WSCIMGWG", weight))
+			std::cout << "Warning: file '" << argv[i] << "' did not have WSCIMGWG field: will have zero weight.\n";
+		weightSum += weight;
 		double* input = new double[width*height];
 		reader.Read(input);
 		std::complex<double>* output = new std::complex<double>[fft.NComplex()];
 		dataCube.push_back(output);
+		weightsPerChannel.push_back(weight);
 		fft.AddTask(input, output);
 	}
 	fft.Finish();
