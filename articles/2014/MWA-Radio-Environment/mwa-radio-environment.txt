@@ -1,0 +1,129 @@
+\documentclass[useAMS,usenatbib]{mn2e}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+%\usepackage[font={it},labelfont={bf}]{caption}
+%\usepackage{units}
+\usepackage{times}
+\usepackage{color}
+\usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+\usepackage{xspace}
+%\usepackage{subcaption}
+
+\usepackage{fixltx2e} % fixes placing of image positions
+
+\definecolor{customhdrcolor}{rgb}{0.0,0.0,0.0}
+\definecolor{customcitecolor}{rgb}{0.0,0.5,0.75}
+\definecolor{customlinkcolor}{rgb}{0.0,0.5,0.75}
+
+\usepackage[colorlinks=true,linkcolor=customlinkcolor,urlcolor=customlinkcolor,citecolor=customcitecolor,pdftex]{hyperref}
+
+\ifpdf\pdfinfo{/Title      (Analysis of the Murchison radio environment for low-frequency astronomy)
+               /Author     (A. R. Offringa et al.)
+               /Keywords   (instrumentation: interferometers;methods: observational;techniques: interferometric;radio continuum: general)
+        }
+\else\usepackage{graphics}\fi
+
+\setlength{\pdfpageheight}{\paperheight}
+\setlength{\pdfpagewidth}{\paperwidth}
+
+\newcommand{\editmark}[1]{#1}
+%\newcommand{\editmark}[1]{{\color{red}{\textbf{#1}}}}
+
+\newcommand{\degree}{\ensuremath{^{\circ}}\xspace}
+
+% To make Dutch ``tussenvoegsels'' work correctly in Latex such as ``de Bruyn'', we use this command
+% It fixes ordering and uppercases.
+% In text, it should be written with uppercase, as in ``De Bruyn''
+\DeclareRobustCommand{\TUSSEN}[3]{#2}
+
+\title[The Murchison radio environment]{The low-frequency Murchison radio environment:\\interference analysis and mitigation}
+
+\def\ANU{$^{1}$}
+\def\CAASTRO{$^{2}$}
+\def\Curtin{$^{3}$}
+
+\author[A.~R.~Offringa et al.]{A.~R.~Offringa$^{1,2}$\thanks{\editmark{Corresponding author.} E-mail: \url{andre.offringa@anu.edu.au}},
+R.~B.~Wayth\Curtin$^,$\CAASTRO, ... , %\newauthor
+builders list
+\\
+\ANU{}Research School of Astronomy and Astrophysics, Australian National University, Canberra, ACT 2611, Australia \\
+\CAASTRO{}ARC Centre of Excellence for All-sky Astrophysics (CAASTRO), Australian National University, Canberra, ACT 2611, Australia \\
+\Curtin{}International Centre for Radio Astronomy Research, Curtin University, Bentley, WA 6102, Australia\\
+}
+
+\begin{document}
+
+\date{Accepted TODO. Received TODO; in original form TODO}
+\pagerange{\pageref{firstpage}--\pageref{lastpage}}
+\pubyear{2014}
+
+\label{firstpage}
+\maketitle
+
+\begin{abstract}
+...
+\end{abstract}
+
+\begin{keywords}
+instrumentation: interferometers -- methods: observational -- techniques: interferometric -- radio continuum: general
+\end{keywords}
+
+\section{Introduction}
+In recent years, the issue of radio-frequency interference (RFI) in radio astronomy caused by man-made transmitters has become larger due to an increased number of transmitters and wider frequency bandwidths of new radio observatories (e.g., the Atacama Large Millimeter Array, the Green Bank Telescope, the Jansky Very Large Array, the Low-Frequency Array, the Murchison Widefield Array, the Parkes Observatory). Spectrum allocation management and radio-quiet zones help to limit the interference, but do not solve interference from air-based transmitters or accidential electromagnetic radiation, for example from cars or wind turbines.
+
+While some success has been seen in filtering interference from observations \citep{spatial-filtering-parkes-multibeam-for-pulses}, in which the data samples are cleaned from the contribution of interference, such an approach is often not feasible or too costly. Therefore, the most common approach is detection of contaminated data and ignoring these samples in further data analysis \citep{post-correlation-rfi-classification}. The consequence of the latter approach is that a certain amount of data is lost due to interference, and that frequencies that are continuously occupied by transmitters can not be observed. Therefore, it is important to analyse the results of interference detection. Improving the understanding of RFI contamination can aid in several ways: understanding the effects on the science; improved observation scheduling; designing hardware and location of future telescopes with a maximal cost/benefit approach; and enforcing spectrum management strategies that are most beneficial for the observatories.
+
+In this article, we will look specifically at the RFI situation of the Murchison Widefield Array (MWA; \citealt{mwa}). The MWA is a low-frequency array consisting of 128 tiles, each with 16 dual-polarized dipoles, which allow observing between 80--300~MHz with a 31~MHz instantaneous bandwidth. Its main science driver is to detect redshifted 21-cm radio signals from the Epoch of Reionization (EoR; \citealt{bowman-science-with-the-mwa-2013}). To avoid as much radio interference as possible, the MWA is located in the Murchison region in Western Australia. Analysing the interference situation of the MWA can improve the MWA observing and processing strategy, but will additionally also provide valuable information for the Square Kilometre Array (SKA), because the the cores of the SKA low-frequency aperture arrays and SKA mid-frequency survey dishes are planned to be build near the location of the MWA.
+
+The interferometric arrays LOFAR, the Precision Array for Probing the Epoch of Reionization (PAPER) and the Long Wavelength Array (LWA) are all designed to perform 21-cm EoR science, and all observe in approximately the same frequency range as the MWA. Comparing the MWA to these arrays therefore allows the comparison of the observatory site and hardware design with respect to the RFI mitigation effectivity. In \citet{lofar-radio-environment} it has been shown that the radio environment of LOFAR does not pose any issues on regular observations despite that, unlike the MWA, LOFAR is build in a populated area. This is confirmed by \citet{ncp-eor-yatawatta}, in which the authors analyse the first imaging of Epoch of Reionization long-integration observations with LOFAR. They reach near-thermal noise sensitivity, and argue that RFI is not a limitation for further increasing the sensitivity. Further analysis showed that RFI models for LOFAR can estimate the leakage of the RFI detection \citep{offringa-rfi-distributions}. This analysis concluded that with sufficient precautions, such as good receiver design and accurate detection methods, the leaked RFI is weak and averages down in longer integrations like Gaussian noise.
+
+TODO paper structure.
+
+\section{Method}
+RFI detection (``data flagging'') is one of the first steps in the data processing. Several observatories or projects have designed pipelines that include RFI mitigation. Examples of pipelines that are used are \textsc{aoflagger} \citep{post-correlation-rfi-classification,scale-invariant-rank-operator}, originally designed for LOFAR but used for various telescopes; \textsc{flagcal} for preprocessing data from the Giant Metrewave Radio Telescope (GMRT; \citealt{prasad-flagcal-2012}); and \textsc{serpent} for preprocessing data from the Multi-Element Radio Linked Interferometer Network (e-MERLIN; \citealt{serpent-peck-2013}). In some projects, simple thresholding is used to mitigate the worst interference. For example, in \citet{parsons-paper-eorlimit-2014} a $3\sigma$ threshold is used for reducing PAPER data. However, more advanced techniques such as the \textsc{sumthreshold} technique have been shown to be more accurate \citep{post-correlation-rfi-classification}.
+
+It is important to perform initial data flagging at high time and frequency resolution, because this increases detection accuracy and decreases the loss of data \citep{lofar-radio-environment}. Consequently, RFI detection has to work on large data volumes, and its computational cost is therefore a concern -- in particular for a many-element array such as the MWA. LOFAR's \textsc{aoflagger} has specifically been designed for high accuracy and has been heavily optimized. It is therefore a logical choice to use for the MWA.
+
+The \textsc{aoflagger} software provides a C++ library\footnote{\url{http://aoflagger.sourceforge.net/doc/api/}} that can be integrated in a pipeline, thereby minimizing reading/writing of data. We have written an MWA-specific preprocessing pipeline named \textsc{cotter} that uses the \textsc{aoflagger} library for RFI detection. Additionally, it converts the raw correlator files into \textsc{casa} measurement sets or uvfits files, applies bandpass corrections, calculates the $uvw$-coordinates and allows averaging the observation in frequency or time direction to reduce the data volume.
+
+\begin{itemize}
+ \item Do we mention miriad and CASA ?
+ \item Describe data flow: correlator, RAW files, Archive, obsresolve, Cotter
+ \item Describe Cotter
+ \item Describe AOFlagger \& AOFlagger's MWA strategy
+\end{itemize}
+
+\section{Data description}
+\begin{itemize}
+ \item Briefly describe GLEAM \& EoR projects (or in introduction?)
+ \item List obs dates
+\end{itemize}
+
+\section{Detection results}
+\begin{itemize}
+ \item An example of RFI found (e.g., the EoR DVB, 
+ \item Percentages per 
+\end{itemize}
+
+\section{Conclusions}
+\begin{itemize}
+ \item Much less RFI than LOFAR (but at a cost)
+ \item About half the observations don't need flagging at all. 
+ \item FM not completely empty
+\end{itemize}
+
+\section*{Acknowledgments}
+This scientific work makes use of the Murchison Radio-astronomy Observatory, operated by CSIRO. We acknowledge the Wajarri Yamatji people as the traditional owners of the Observatory site. Support for the MWA comes from the U.S. National Science Foundation (grants AST-0457585, PHY-0835713, CAREER-0847753, and AST-0908884), the Australian Research Council (LIEF grants LE0775621 and LE0882938), the U.S. Air Force Office of Scientific Research (grant FA9550-0510247), and the Centre for All-sky Astrophysics (an Australian Research Council Centre of Excellence funded by grant CE110001020). Support is also provided by the Smithsonian Astrophysical Observatory, the MIT School of Science, the Raman Research Institute, the Australian National University, and the Victoria University of Wellington (via grant MED-E1799 from the New Zealand Ministry of Economic Development and an IBM Shared University Research Grant). The Australian Federal government provides additional support via the Commonwealth Scientific and Industrial Research Organisation (CSIRO), National Collaborative Research Infrastructure Strategy, Education Investment Fund, and the Australia India Strategic Research Fund, and Astronomy Australia Limited, under contract to Curtin University. We acknowledge the iVEC Petabyte Data Store, the Initiative in Innovative Computing and the CUDA Center for Excellence sponsored by NVIDIA at Harvard University, and the International Centre for Radio Astronomy Research (ICRAR), a Joint Venture of Curtin University and The University of Western Australia, funded by the Western Australian State government. 
+
+% To make Dutch ``tussenvoegsels'' work correctly in Latex such as ``de Bruyn'', we use this command
+% In bibliography, it should be written with lowercase, as in ``de Bruyn''
+\DeclareRobustCommand{\TUSSEN}[3]{#3}
+
+\bibliographystyle{mn2e}
+\bibliography{references}
+
+\label{lastpage}
+
+\end{document}
