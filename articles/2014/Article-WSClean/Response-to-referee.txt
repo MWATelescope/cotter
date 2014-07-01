@@ -1,0 +1,96 @@
+I have asked the director of the MWA board, S. Tingay, to respond to the editor's question on the appropriateness of the large number of coauthors. He asked me to forward the following answer:
+
+"The authorship of this paper, and other similar papers published by the MWA consortium, contain a significant number of authors.  The authorship consists of people who have made a significant intellectual contribution to the establishment of the MWA (development of the instrumentation; deployment, testing, and commissioning of the instrument) as well as people who have undertaken the substantial observations and data analysis, and the interpretation of the data (in the case of this paper, as processed using the WSClean software.  The authors are people either funded to contribute to the MWA or are people who work on the MWA project in the research allocations of their positions.  All contributions are meaningful and are audited by the MWA Director and Board.  These contributions should be justly recognised in publications such as this."
+
+We have marked the first author as a corresponding author, as suggested by the editor.
+
+Additionally, we had taken off one co-author and added co-author B. Pindor, who had accidentially been left off.
+
+We would like to thank the reviewer for his thorough review. We agree on almost all his comments, have changed the paper accordingly, and we think that his improved the clarity of the paper. We will provide detailed answers to his comments below. We have marked all changes with bold and red in the revised article.
+
+p. 2 col. 1: “To reach high dynamic ranges, it can be necessary to deal with DDEs…” As worded, the paragraph seems to imply that A-projection is the complete answer to the DDE problem. A-projection will only correct for DDEs that are known. This can only be done directly for deterministic effects like primary beam rotation; effects like the ionosphere require separate calibration or estimation before A-projection can be applied.
+
+Answer: We've added a sentence to clarify this.
+
+p.2 col. 2: “”which we believe to be the fastest generic wide-field imager” such statements are good for talks, but not for papers. At least two GPU-based imagers purport to be faster, at which point one starts splitting hairs about terms like “generic” and “available”. I’d be more comfortable with a statement like “Our experience suggests that WSClean is anywhere from 2 to 12 times faster than mainstream w-projection imagers (CASA, lwimager) on the same datasets.” This is already impressive enough!
+
+Answer: we have changed this to: "Our new imaging implementation, which in our experience is anywhere from 2 to 12 times faster than the CASA w-projection imager, is publicly released\footnote..."
+
+Section 2: this needs a reference to Cornwell, or whoever suggested the w-stacking approach first.
+
+Answer: We've added a citation to "Analysis of Convolutional Resampling Algorithm Performance" by B. Humphreys and T. J. Cornwell.
+
+p. 3 col. 2: “Using too few w-layers…” The term w-aliasing is introduced unexplained (or is the paragraph meant to be the explanation?) In any case a better explanation of the effect is needed. 
+
+Answer: We've reworded this.
+
+p. 4 Sect 3.2. This section needs more clarity, especially the last paragraph of p. 4. There needs to be a clear comparison between the Cornwell et al. 2012 definition of w-snapshots, and the method proposed here. I recommend splitting Sect. 3.2 in two, and moving the theoretical description of w-snapshots to Section 2, while leaving implementation details in Section 3. 
+
+Answer: We have moved the theoretical description to a new subsection in Section 2 as suggested, and added some text to explain the method more clearly.
+
+Section 3 in general: recommend clearly splitting into generic implementation details, and MWA-specific details, as it is currently not clear how much is MWA-specific and whether this limits functionality in any way.
+
+Answer: We have added a sentence to Sect 3.2 to explain that the method is generic, and renamed Sect 3.3 to include "for the MWA".
+
+p. 7: “Our image-based beam-correction…” This can only work if the beam is also constant in time. How is sky rotation accounted for?
+
+Answer: we account for this by doing snapshot imaging, and assuming a constant beam over the snapshot interval. We have reworded this sentence to say: "Our image-based beam-correction method avoids expensive beam-correcting kernels during gridding, but requires snapshot imaging, because the MWA beam changes over time because of Earth rotation, and only works because all tiles have the same beam."
+
+p.7. “CASA convolves samples” better “CASA’s gridder implementation convolve samples”.
+
+Answer: Reworded.
+
+p.7 Sect 3.5.: “Decreasing inversion resolution” quite a mouthful, suggest revising title. “Lowering the resolution of reverse transforms”, perhaps?
+
+Answer: Renamed to "Lowering the resolution of inversion"
+
+p. 7 Figure 5: This figure needs labels, including axis labels.
+
+Answer: We reworded the axis labels and reworded the figure caption.
+
+p. 7 Sect. 3.5.: suggest use of “PSF” rather than “synthesized-beam” to avoid confusion with primary beam.
+
+Answer: Not changed, we think that 'synthesized beam' should be a known term for readers of the article, and we think that talking about 'synthesized-beam width' makes a bit more sense than talking about 'PSF width'.
+
+p. 7 Sect 3.5: “Therefore inversion at high resolution is not required…” and until end of paragraph, please improve clarity. 
+
+Answer: We have reworded this paragraph.
+
+p. 7 “The outputs with and without rescaling”. The term “rescaling” is dropped in unannounced, does this simply refer to the resolution-lowering optimization described in this section? If so, this should be clearly defined.
+
+Answer: Changed to: "The outputs with and without lowering the inversion and prediction resolution do not visibly differ, but ..."
+
+p. 8 end of Sect 3.5: RMS comparison per se is somewhat meaningless without referencing the source flux (i.e. effectively the DR of the image). Do I interpret the colour bars of Figure 3 correctly, that this is a 10:1 DR image? Have the authors explored whether/how the lowered resolution affects things in mid- to high-DR situations? Given the nature of the optimization, I would expect the errors to scale with model flux, i.e. to be more noticeable at high DR. If so, this is an important caveat that should be noted.
+
+Answer: We have added the peak flux level in the image (10 Jy) and clarified that the quoted noise level was in the residual image. If DR is defined as peak flux / noise level, then this image is a 1:150 DR image. In Section 4.1, a 1:1000 simulated scenario with a simpler model is tested, and as described there, no difference is visible between images with and without the method.
+
+Figure 7: What does R-WSCLEAN refer to? I assume “recentering”, but this should be made clear. Or is it “rescaling”? If the former, and since “recentering” seems to be equivalent to w-snapshots (as Sect 3.2. implies, but could make clearer), perhaps this should be made clear in the figure caption.  
+
+Answer: Clarified in the caption; it refers indeed to recentring.
+
+p.10 col. 2: “Imaging the MWA primary beam requires 3072 pixels… decreases to about 1500…” I thought the low-res optimization does not apply to the clean model image per se, but only kicks in during the reverse transform? if so, this sentence is confusing.
+
+Answer: Reworded to: "If the small-inversion optimisation of \S3.5 is used, the inversion can be performed at an image size of 1500 pixels."
+
+p. 12 Table 5: If R-WSCLEAN is equivalent to w-snapshot, why are we seeing almost exactly the same performance figures for w-stacking and w-snapshot? This seems to contradict the curves of Figure 7.
+
+Answer: This is because Fig. 7 tests larger image sizes with more costly scenarios, which makes the w-snapshot is more effective. However, with the scenarios from Table 4, there is no benefit. We have added the following explanation to clarify this:
+After "The w-snapshot method does not improve the performance much over normal WSCLEAN operation in any of the cases."
+We added: "This might seem to differ from some of the results in Fig. 7, where the w-snapshot method does show improvement in certain cases. This is because Fig. 7 tests somewhat more extreme parameters, in which the w-snapshot method shows more benefit. The w-snapshot might become more valuable at higher ZAs or when the image size needs to be larger than the half-power beam width."
+
+p. 12 Table 5: is the lowered-resolution optimization on for these performance comparisons? This should be stated. If yes, then the DR should be stated -- the caveat is, do we know how the optimization behaves at high DRs?
+
+Answer: We have clarified in 4.6 that this assumes the optimization. We have added to Sect 5 the DR of the simulated observation (1:1000).
+
+p. 12 col. 1: “The image size is set to two times the FOV width divided by the resolution”. Is this justified, given that the authors discuss the need for x5 oversampling for CLEAN earlier on?
+
+Answer: This is justified by the fact that the small-inversion size optimization can be used, which we have no clarified.
+
+p. 14 col. 1: “Our optimisation of lowering the image resolution … has no noticeable effect…” See remarks above, has this been tested at high DR?
+
+Answer: Clarified, see earlier answer.
+
+p. 14 col. 1: “It was suggested that w-snapshots would improve…” I do not understand the sentence, please rephrase.
+
+Answer: Reworded.
+
