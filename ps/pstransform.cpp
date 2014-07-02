@@ -68,7 +68,7 @@ void averageAnuli(FFT2D* fft)
 		sums.assign(perpGrid.size(), 0.0);
 		psData[channelIndex] = output;
 		
-		for(size_t y=0; y!=fft->Height(); ++y)
+		for(size_t y=0; y!=height; ++y)
 		{
 			size_t sourceY = y;
 			if(y > midY)
@@ -76,9 +76,14 @@ void averageAnuli(FFT2D* fft)
 			int destY = y;
 			if(destY >= int(midY)) destY -= height;
 			const std::complex<double>* rowIn = &input[sourceY*(width/2+1)];
-			for(size_t x=0; x!=midX+1; ++x)
+			for(size_t x=0; x!=width; ++x)
 			{
-				double distance = sqrt(destY*destY + x*x);
+				size_t sourceX = x;
+				if(x > midX)
+					sourceX = width-x;
+				int destX = x;
+				if(destX > int(midX)) destX -= width;
+				double distance = sqrt(destY*destY + destX*destX);
 				std::map<double, size_t>::const_iterator perpIndex = perpGrid.lower_bound(distance);
 				if(perpIndex != perpGrid.begin())
 				{
@@ -88,7 +93,7 @@ void averageAnuli(FFT2D* fft)
 						perpIndex = before;
 				}
 				size_t perpIntIndex = perpIndex->second;
-				sums[perpIntIndex] += rowIn[x];
+				sums[perpIntIndex] += rowIn[sourceX];
 				++weights[perpIntIndex];
 			}
 		}
@@ -147,6 +152,9 @@ int main(int argc, char* argv[])
 		dataCube.push_back(output);
 		weightsPerChannel.push_back(weight);
 		fft.AddTask(input, output);
+		//Testing
+		//for(size_t j=0; j!=fft.NComplex(); ++j) output[j] = 0.0;
+		//for(size_t j=0; j!=width/2; ++j) output[j] = width/2-j;
 	}
 	fft.Finish();
 	fft.SaveUV(dataCube.front(), "UV-first-image.fits");
@@ -156,6 +164,16 @@ int main(int argc, char* argv[])
 	fftPlan = fftw_plan_dft_1d(dataCube.size(), reinterpret_cast<fftw_complex*>(inputData), reinterpret_cast<fftw_complex*>(outputData), FFTW_FORWARD, FFTW_ESTIMATE);
 	fftw_free(outputData);
 	fftw_free(inputData);
+	
+	std::cout << "Making image with total uv power...\n";
+	ao::uvector<std::complex<double>> sumImage(fft.NComplex(), 0.0);
+	for(size_t ch=0; ch!=dataCube.size(); ++ch)
+	{
+		for(size_t i=0; i!=fft.NComplex(); ++i)
+			sumImage[i] += dataCube[ch][i];
+	}
+	FitsWriter sumWriter;
+	fft.SaveUV(sumImage.data(), "uv-total.fits");
 	
 	std::cout << "Applying window function...\n";
 	transformTasks.resize(cpuCount);
@@ -182,9 +200,11 @@ int main(int argc, char* argv[])
 	threads.clear();
 	
 	size_t perGridSize = 250;
+	double maxVal = double(width)*0.5*M_SQRT2;
 	for(size_t dist=0; dist!=perGridSize; ++dist)
 	{
-		perpGrid.insert(std::make_pair(double(dist*width)*0.5*M_SQRT2/perGridSize, dist));
+		double logVal = (exp(double(dist)/perGridSize)-1.0)*maxVal/M_E; //dist*maxVal/perGridSize
+		perpGrid.insert(std::make_pair(logVal, dist));
 	}
 	psData.resize(dataCube.size());
 	
@@ -204,9 +224,11 @@ int main(int argc, char* argv[])
 	double* psImagePtr = psImage.data();
 	for(size_t y=0; y!=dataCube.size(); ++y)
 	{
+		size_t sourceY = y+dataCube.size()/2;
+		if(sourceY >= dataCube.size()) sourceY -= dataCube.size();
 		for(size_t x=0; x!=perpGrid.size(); ++x)
 		{
-			*psImagePtr = psData[y][x];
+			*psImagePtr = psData[sourceY][x];
 			++psImagePtr;
 		}
 	}
