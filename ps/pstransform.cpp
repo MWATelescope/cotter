@@ -205,7 +205,8 @@ int main(int argc, char* argv[])
 	double eMin = exp(minVal), eRange = exp(maxVal)-eMin;
 	for(size_t dist=0; dist!=perGridSize; ++dist)
 	{
-		double logVal = log(double(dist)/perGridSize*eRange+eMin); //dist*maxVal/perGridSize
+		double logVal = log(double(dist)*eRange/perGridSize+eMin); //dist*maxVal/perGridSize
+		std::cout << logVal << ' ';
 		perpGrid.insert(std::make_pair(logVal, dist));
 	}
 	psData.resize(dataCube.size());
