@@ -58,7 +58,7 @@ void averageAnuli(FFT2D* fft)
 		width = fft->Width(), midX = width/2;
 	size_t channelIndex;
 	ao::uvector<double> weights(perpGrid.size());
-	ao::uvector<std::complex<double>> sums(perpGrid.size());
+	ao::uvector<double> sums(perpGrid.size());
 	
 	while(transformTasks.read(channelIndex))
 	{
@@ -93,13 +93,13 @@ void averageAnuli(FFT2D* fft)
 						perpIndex = before;
 				}
 				size_t perpIntIndex = perpIndex->second;
-				sums[perpIntIndex] += rowIn[sourceX];
+				sums[perpIntIndex] += std::norm(rowIn[sourceX]);
 				++weights[perpIntIndex];
 			}
 		}
 		for(size_t i=0; i!=perpGrid.size(); ++i)
 		{
-			output[i] = std::norm(sums[i]) / weights[i];
+			output[i] = sums[i] / weights[i];
 		}
 		
 		delete[] input;
@@ -199,16 +199,21 @@ int main(int argc, char* argv[])
 	transformTasks.clear();
 	threads.clear();
 	
-	size_t perGridSize = 250;
+	size_t perGridSize = 500;
 	double maxVal = double(width)*0.5*M_SQRT2;
-	double minVal = 1e-4 * maxVal;
-	double eMin = exp(minVal), eRange = exp(maxVal)-eMin;
-	for(size_t dist=0; dist!=perGridSize; ++dist)
+	double minVal = 1e-3 * maxVal;
+	double nmin = 0, nmax = perGridSize;
+	double eRange = (log(maxVal)-log(minVal))/(nmax-nmin);
+	std::cout << "eRange="<< eRange << "(" << minVal << ',' << maxVal << ")\n";
+	perpGrid.insert(std::make_pair(0.0, 0));
+	for(size_t dist=0; dist!=perGridSize-1; ++dist)
 	{
-		double logVal = log(double(dist)*eRange/perGridSize+eMin); //dist*maxVal/perGridSize
+		double x = dist;
+		double logVal = minVal * exp(eRange * x) - nmin; //dist*maxVal/perGridSize
 		std::cout << logVal << ' ';
-		perpGrid.insert(std::make_pair(logVal, dist));
+		perpGrid.insert(std::make_pair(logVal, dist+1));
 	}
+	std::cout << '\n';
 	psData.resize(dataCube.size());
 	
 	std::cout << "Averaging anuli...\n";
