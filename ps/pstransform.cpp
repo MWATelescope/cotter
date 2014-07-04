@@ -15,6 +15,7 @@ fftw_plan fftPlan;
 ao::uvector<std::complex<double>*> dataCube;
 ao::uvector<double> weightsPerChannel;
 ao::uvector<double*> psData;
+ao::uvector<size_t> psDataCount;
 std::map<double, size_t> perpGrid;
 double weightSum;
 
@@ -57,14 +58,14 @@ void averageAnuli(FFT2D* fft)
 		height = fft->Height(), midY = height/2,
 		width = fft->Width(), midX = width/2;
 	size_t channelIndex;
-	ao::uvector<double> weights(perpGrid.size());
+	ao::uvector<size_t> weights(perpGrid.size());
 	ao::uvector<double> sums(perpGrid.size());
 	
 	while(transformTasks.read(channelIndex))
 	{
 		std::complex<double>* input = dataCube[channelIndex];
 		double* output = new double[perpGrid.size()];
-		weights.assign(perpGrid.size(), 0.0);
+		weights.assign(perpGrid.size(), 0);
 		sums.assign(perpGrid.size(), 0.0);
 		psData[channelIndex] = output;
 		
@@ -100,6 +101,7 @@ void averageAnuli(FFT2D* fft)
 		for(size_t i=0; i!=perpGrid.size(); ++i)
 		{
 			output[i] = sums[i] / weights[i];
+			psDataCount[i] += weights[i];
 		}
 		
 		delete[] input;
@@ -230,7 +232,25 @@ int main(int argc, char* argv[])
 		i->join();
 	transformTasks.clear();
 	threads.clear();
-	
+
+	std::cout << "Interpolating in perpendicular direction...\n";
+	for(size_t x=0; x!=perpGrid.size(); ++x)
+	{
+		if(psDataCount[x] == 0)
+		{
+			int xRight = x, xLeft = x;
+			while(xRight < int(perpGrid.size()) && psDataCount[x]==0) ++xRight;
+			while(xLeft >= 0 && psDataCount[x]==0) --xLeft;
+			size_t nearestX;
+			if(xRight<int(perpGrid.size()) && xRight - x < x - xLeft)
+				nearestX = xRight;
+			else
+				nearestX = xLeft;
+			for(size_t y=0; x!=dataCube.size(); ++x)
+				psData[y][x] = psData[y][nearestX];
+		}
+	}
+		
 	std::cout << "Making image with linear scale for parallel direction...\n";
 	ao::uvector<double> psLinearImage(perpGrid.size() * dataCube.size());
 	double* psImagePtr = psLinearImage.data();
@@ -276,13 +296,10 @@ int main(int argc, char* argv[])
 	}
 	double* imagePtr = psLogImage.data();
 	size_t* weightPtr = psLogWeights.data();
-	double *lastRowWithData = psLogImage.data();
-	// This interpolates "upwards", i.e., its nearest upward neighbour interpolation -- TODO have to fix this to
 	for(size_t y=0; y!=dataCube.size(); ++y)
 	{
 		if(*weightPtr != 0)
 		{
-			lastRowWithData = imagePtr;
 			for(size_t x=0; x!=perpGrid.size(); ++x)
 			{
 				*imagePtr /= *weightPtr;
@@ -291,9 +308,18 @@ int main(int argc, char* argv[])
 			}
 		}
 		else {
+			// Find nearest row with values
+			int yUp = y, yDown = y;
+			while(yUp < int(dataCube.size()) && weightPtr[yUp*perpGrid.size()]==0) ++yUp;
+			while(yDown >= 0 && weightPtr[yDown*perpGrid.size()]==0) --yDown;
+			double *nearestRowWithData;
+			if(yUp<int(dataCube.size()) && yUp - y < y - yDown)
+				nearestRowWithData = psLogImage.data() + yUp*perpGrid.size();
+			else
+				nearestRowWithData = psLogImage.data() + yDown*perpGrid.size();
 			for(size_t x=0; x!=perpGrid.size(); ++x)
 			{
-				*imagePtr = lastRowWithData[x];
+				*imagePtr = nearestRowWithData[x];
 				++imagePtr;
 			}
 			weightPtr += perpGrid.size();
