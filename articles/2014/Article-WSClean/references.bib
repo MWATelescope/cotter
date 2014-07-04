@@ -588,8 +588,8 @@ archivePrefix = "arXiv",
 
 @article{mwa-interferometric-imaging,
   title = "Interferometric Imaging with the 32 Element {Murchison Wide-Field Array}",
-  author = {Ord, S. M. and Mitchell, D. A. and Wayth, R. B. and Greenhill, L. J. and Bernardi, G. and Gleadow, S. and Edgar, R. G. and Clark, M. A. and others},
-  journal = {PASA},
+  author = {Ord, S. M. and others},
+  journal = "PASP",
   volume = {122},
   number = {897},
   pages = "1353--1366",
@@ -1427,18 +1427,18 @@ year = {2011},
 
 @article{mwa,
   title = "{The Murchison Widefield Array: the Square Kilometre Array Precursor at low radio frequencies}",
-  author = "S. J. Tingay and R. Goeke and J. D. Bowman and others",
+  author = "S. J. Tingay and others",
   year = 2013,
   month = jan,
-  journal = "PASA",
+  journal = "Pub. of the Astr. Soc. of Australia",
   volume = 30,
-  issue = "e007"
+  pages = "e007"
 }
 
-@ARTICLE{mwa-design-2009,
-  author={Lonsdale, C.J. and Cappallo, R.J. and Morales, M.F. and Briggs, F.H. and Benkevitch, L. and Bowman, J.D. and Bunton, J.D. and Burns, S. and others},
-  journal={Proc. IEEE},
-  title={The Murchison Widefield Array: Design Overview},
+@inproceedings{mwa-design-2009,
+  author={Lonsdale, C. J. and others},
+  booktitle={Proc. of the IEEE},
+  title={The {Murchison Widefield Array}: Design Overview},
   year={2009},
   month={Aug},
   volume={97},
@@ -1480,10 +1480,10 @@ year = {2011},
   pages = 353
 }
 
-@inbook{perley-noncoplanar-arrays,
+@inproceedings{perley-noncoplanar-arrays,
   title = "{Imaging with Non-Coplanar Arrays}",
   author = "R. A. Perley",
-  booktitle = "ASP Conference Series",
+  booktitle = "ASP Conference Series, Imaging in Radio Astronomy II, A Collection of Lectures from the Sixth NRAO/NMIMT Synthesis Imaging Summer School,",
   vol = 180,
   year = 1999,
   editor = "G. B. Taylor and C. L. Carilli and R. A. Perley",
@@ -1503,10 +1503,11 @@ year = {2011},
 @inproceedings{casa-2008,
   author="Jaegar, S.",
   year=2008,
+  title="The {Common Astronomy Software Application (CASA)}",
   booktitle="ASP Conf. Series",
   volume=394,
   conference="Astronomical Data Analysis Software and Systems XVII",
-  page=623,
+  pages=623,
   editor="Argyle, Robert W. and Bunclark, Peter S. and Lewis, James R.",
   location="London, UK"
 }
@@ -1514,12 +1515,13 @@ year = {2011},
 @inproceedings{casa-2007,
   author="McMullin, J. P. and Waters, B. and Schiebel, D. and Young, W. and Golap, K.",
   year=2007,
+  title="{CASA} Architecture and Applications",
   booktitle="ASP Conf. Series",
   volume=376,
   conference="Astronomical Data Analysis Software and Systems XVI",
   editor="R. A. Shaw and F. Hill and D. J. Bell",
   location="San Francisco",
-  page=127
+  pages=127
 }
 
 @article{wcs-in-fits,
@@ -1542,8 +1544,8 @@ year = {2011},
 
 @ARTICLE{rts-mwa,
   author={Mitchell, D.A. and Greenhill, L.J. and Wayth, R.B. and Sault, R.J. and Lonsdale, C.J. and Cappallo, R.J. and Morales, M.F. and Ord, S.M.},
-  journal={Selected Topics in Sig. Proc., IEEE Journal of},
-  title={{Real-Time Calibration of the Murchison Widefield Array}},
+  journal={IEEE Journal of Selected Topics in Signal Processing},
+  title={Real-Time Calibration of the {Murchison Widefield Array}},
   year={2008},
   volume={2},
   number={5},
@@ -1621,17 +1623,17 @@ journal = "MNRAS"
 }
 
 @article{emu-norris-2011,
-  author={Norris, Ray P. and Hopkins A. M. and others},
+  author={Norris, Ray P. and others},
   year=2011,
   title={{EMU: Evolutionary Map of the Universe}},
-  journal="APSA",
+  journal="Pub. of the Astr. Soc. of Australia",
   volume=28,
   pages={215--248}
 }
 
 @article{vlss-2007,
   title={{The VLA Low-frequency Sky Survey}},
-  author="Cohen, A. S. and Lane, W. M. and Cotton, W. D. and Kassim, N. E. and Lazio, T.J.W. and Perley, R. A. and Condon, J.J. and Erickson W.C.",
+  author="Cohen, A. S. and others",
   journal="AJ",
   volume=134,
   pages={1245--1262},
@@ -1640,7 +1642,7 @@ journal = "MNRAS"
 
 @article{ska-phase1-2010,
   title="SKA Phase 1: Preliminary System Description",
-  author="P. Dewdney and J-G bij de Vaate and K. Cloete and A. Gunst and D. Hall and R. McCool and N. Roddis and W. Turner",
+  author="P. Dewdney and others",
   journal="SKA memo 130",
   comment="Tech. rep.",
   month=nov,
@@ -1650,16 +1652,15 @@ journal = "MNRAS"
 @article{ska-phase1-2013,
   title="{SKA1} System Baseline Design",
   author="P. Dewdney and W. Turner and R. Millenaar and R. McCool and J. Lazio and T. J. Cornwell",
-  journal="SKA office",
-  comment="Tech. rep.",
+  journal="SKA office, https://www.skatelescope.org/uploaded/21705\_130\_Memo\_Dew dney.pdf",
   month=mar,
   year=2013
 }
 
-@ARTICLE{fftw-2005,
+@inproceedings{fftw-2005,
   author={Frigo, M. and Johnson, S.G.},
-  journal={IEEE, Proc. of},
-  title={The Design and Implementation of FFTW3},
+  booktitle={Proc. of the IEEE},
+  title={The Design and Implementation of {FFTW3}},
   year={2005},
   month={Feb},
   volume={93},
@@ -1668,19 +1669,20 @@ journal = "MNRAS"
  }
 
 @article{bowman-science-with-the-mwa-2013,
-  author = {Bowman,Judd D. and Cairns,Iver and Kaplan,David L. and Murphy,Tara and Oberoi,Divya and Staveley-Smith,Lister and Arcus,Wayne and Barnes,David G. and others},
+  author = {Bowman, Judd D. and others},
   title = {{Science with the Murchison Widefield Array}},
-  journal = {PASA},
+  journal = {Pub. of the Astr. Soc. of Australia},
   volume = {30},
   month = {1},
-  year = {2013}
+  year = {2013},
+  pages = "e031"
 }
 
 @inproceedings{karma-1996,
   title= "Karma: a Visualization Test-Bed",
   booktitle="Astronomical Data Analysis Software and Systems V, ASPConf Series",
   volume = 101,
-  page = 80,
+  pages = 80,
   author = "Gooch, Richard",
   year = 1996,
   editor = "Jacoby, George H. and Barnes, Jeannette"
@@ -1688,7 +1690,7 @@ journal = "MNRAS"
 
 @article{multiscale-clean-cornwell-2008,
   author={Cornwell, T.J.},
-  journal={Selected Topics in Sig. Proc., IEEE Journal of},
+  journal={IEEE Journal of Selected Topics in Signal Processing},
   title={Multiscale CLEAN Deconvolution of Radio Synthesis Images},
   year={2008},
   month={Oct},
@@ -1720,7 +1722,7 @@ journal = "MNRAS"
 @article{pindor-subtracting-sources-2011,
   author = {Pindor, B. and Wyithe, J. S. B. and Mitchell, D. A. and Ord, S. M. and Wayth, R. B. and Greenhill, L. J.},
   title = {Subtraction of Bright Point Sources from Synthesis Images of the Epoch of Reionization},
-  journal = {PASA},
+  journal = {Pub. of the Astr. Soc. of Australia},
   volume = {28},
   issue = {01},
   month = {1},
@@ -1731,7 +1733,7 @@ journal = "MNRAS"
 
 @article{rau-msmfs-2011,
   author = {Rau, U. and Cornwell, T. J.},
-  title = {A multi-scale multi-frequency deconvolution algorithm  for synthesis imaging in radio interferometry},
+  title = {A multi-scale multi-frequency deconvolution algorithm for synthesis imaging in radio interferometry},
   journal = {A\&A},
   year = 2011,
   volume = 532,
@@ -1740,8 +1742,8 @@ journal = "MNRAS"
 
 @inproceedings{gpu-gridding-romein-2012,
   author = {Romein, John W.},
-  title = {An Efficient Work-distribution Strategy for Gridding Radio-telescope Data on GPUs},
-  booktitle = {Proceedings of the 26th ACM International Conference on Supercomputing},
+  title = {An Efficient Work-distribution Strategy for Gridding Radio-telescope Data on {GPUs}},
+  booktitle = {Proc. of the 26th ACM Int. Conf. on Supercomputing},
   series = {ICS '12},
   year = {2012},
   isbn = {978-1-4503-1316-2},
