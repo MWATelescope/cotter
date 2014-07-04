@@ -19,4 +19,4 @@ plot \
      "timings-ZA010-fov-wssc.txt" using (2*asin(column(2)/2*(3.1415926535/180.0))*(180.0/3.1415926535)):((column(3)+132.6)/60):(column(4)*5/60) with errorbars lc rgb "#008000" lt 1 title "", \
      "timings-ZA010-fov-casa.txt" using (2*asin(column(2)/2*(3.1415926535/180.0))*(180.0/3.1415926535)):(column(3)/60) with lines lw 3.0 lt 1 lc 3 title "CASA", \
      "timings-ZA010-fov-casa.txt" using (2*asin(column(2)/2*(3.1415926535/180.0))*(180.0/3.1415926535)):(column(3)/60):(column(4)*5/60) with errorbars lt 1 lc 3 title "", \
-		 NaN lc rgb "#000000" lt 1 title "ZA=10", NaN lc rgb "#000000" lt 3 title "ZA=0"
+		 NaN lw 2 lc rgb "#000000" lt 1 title "ZA=10", NaN lw 2 lc rgb "#000000" lt 3 title "ZA=0"

@@ -19,5 +19,5 @@ plot "timings-ZA010-channels-wsclean.txt" using 2:(column(3)/60) with lines lw 2
      "timings-channels-wssclean.txt" using 2:(column(3)/60+132.6/60):(column(4)/60*5) with errorbars lc rgb "#B0B0B0" lt 1 title "", \
      "timings-channels-casa.txt" using 2:(column(3)/60) with lines lw 2.0 lt 3 lc rgb "#808080" title "", \
      "timings-channels-casa.txt" using 2:(column(3)/60):(column(4)/60*5) with errorbars lt 1 lc rgb "#808080" title "", \
-		 NaN lt 1 lw 3 lc rgb "#000000" title "ZA=10", NaN lt 3 lw 3 lc rgb "#000000" title "ZA=0"
+		 NaN lt 1 lw 2 lc rgb "#000000" title "ZA=10", NaN lt 3 lw 2 lc rgb "#000000" title "ZA=0"
 		 

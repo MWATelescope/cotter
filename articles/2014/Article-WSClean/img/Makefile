@@ -25,13 +25,20 @@ fit-all:	fit
 	./fit all-casa
 
 plots:	benchmark-zenith-angle/za.plt benchmark-nsamples/nsamples.plt benchmark-resolution/resolution.plt
-	cd benchmark-resolution ; gnuplot resolution.plt ; cd ..
+	cd benchmark-resolution ; gnuplot resolution.plt ; gnuplot resolution-bw.plt ; cd ..
 	cd benchmark-resolution ; gnuplot resolution-fit.plt ; cd ..
-	cd benchmark-nsamples ; gnuplot nsamples.plt ; cd ..
+	cd benchmark-nsamples ; gnuplot nsamples.plt ; gnuplot nsamples-bw.plt ; cd ..
 	cd benchmark-nsamples ; gnuplot nsamples-fit.plt ; cd ..
-	cd benchmark-zenith-angle ; gnuplot za.plt ; cd ..
+	cd benchmark-zenith-angle ; gnuplot za.plt ; gnuplot za-bw.plt ; cd ..
 	cd benchmark-zenith-angle ; gnuplot za-fit.plt ; cd ..
-	cd benchmark-fov ; gnuplot fov.plt ; cd ..
+	cd benchmark-fov ; gnuplot fov.plt ; gnuplot fov-bw.plt ; cd ..
 	cd benchmark-fov ; gnuplot fov-fit.plt ; cd ..
-	cd benchmark-channels ; gnuplot channels.plt ; cd ..
+	cd benchmark-channels ; gnuplot channels.plt ; gnuplot channels-bw.plt ; cd ..
 	cd benchmark-channels ; gnuplot channels-fit.plt ; cd ..
+
+pdfs:
+	cd benchmark-resolution ; ps2pdf resolution.ps ; ps2pdf resolution-bw.ps ; cd ..
+	cd benchmark-nsamples ; ps2pdf nsamples.ps ; ps2pdf nsamples-bw.ps ; cd ..
+	cd benchmark-zenith-angle ; ps2pdf za.ps ; ps2pdf za-bw.ps ; cd ..
+	cd benchmark-fov ; ps2pdf fov.ps ; ps2pdf fov-bw.ps ; cd ..
+	cd benchmark-channels ; ps2pdf channels.ps ; ps2pdf channels-bw.ps ; cd ..

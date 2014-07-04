@@ -33,6 +33,10 @@
 
 \newcommand{\degree}{\ensuremath{^{\circ}}\xspace}
 
+% By changing this definition from {} to {-bw}, the grayscale plots are used in Figure 7.
+%\newcommand{\bwimgextension}{-bw}
+\newcommand{\bwimgextension}{}
+
 % To make Dutch ``tussenvoegsels'' work correctly in Latex such as ``de Bruyn'', we use this command
 % It fixes ordering and uppercases.
 % In text, it should be written with uppercase, as in ``De Bruyn''
@@ -427,23 +431,23 @@ In the $\textrm{ZA}=10\degree$ case, \textsc{casa} is slightly less accurate. Ex
 
 \begin{figure*}%
 \begin{subfigure}{.5\linewidth}%
-\includegraphics[width=\linewidth]{img/benchmark-nsamples/nsamples}%
+\includegraphics[width=\linewidth]{img/benchmark-nsamples/nsamples\bwimgextension}%
 \caption{}\label{fig:timing-nsamples}%
 \end{subfigure}%
 \hspace{-.05\linewidth}\begin{subfigure}{.5\linewidth}%
-\includegraphics[width=\linewidth]{img/benchmark-zenith-angle/za}%
+\includegraphics[width=\linewidth]{img/benchmark-zenith-angle/za\bwimgextension}%
 \caption{}\label{fig:timing-zenith-angle}%
 \end{subfigure}\\
 \begin{subfigure}{.5\linewidth}%
-\includegraphics[width=\linewidth]{img/benchmark-resolution/resolution}
+\includegraphics[width=\linewidth]{img/benchmark-resolution/resolution\bwimgextension}
 \caption{}\label{fig:timing-resolution}%
 \end{subfigure}%
 \hspace{-.05\linewidth}\begin{subfigure}{.5\linewidth}%
-\includegraphics[width=\linewidth]{img/benchmark-channels/channels}
+\includegraphics[width=\linewidth]{img/benchmark-channels/channels\bwimgextension}
 \caption{}\label{fig:timing-channels}%
 \end{subfigure}\\
 \begin{subfigure}{.5\linewidth}%
-\includegraphics[width=\linewidth]{img/benchmark-fov/fov}
+\includegraphics[width=\linewidth]{img/benchmark-fov/fov\bwimgextension}
 \caption{}\label{fig:timing-fov}%
 \end{subfigure}%
 \caption{Imaging performance as a function of several parameters. Error bars show 5$\sigma$ level. Unfinished lines indicate the imager could not run the specific configuration successfully. The label ``R+\textsc{wsclean}'' refers to using WSClean with the recentring technique described in \S\ref{sec:snapshot-imaging-theory}.}\label{fig:timings}
