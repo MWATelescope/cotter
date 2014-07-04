@@ -28,6 +28,8 @@
 \setlength{\pdfpageheight}{\paperheight}
 \setlength{\pdfpagewidth}{\paperwidth}
 
+% Changes between revision are marked like \editmark{this is a change}, which becomes
+% bold and red. To turn this off, uncomment the next line and comment the subsequent line.
 %\newcommand{\editmark}[1]{#1}
 \newcommand{\editmark}[1]{{\color{red}{\textbf{#1}}}}
 
@@ -573,7 +575,8 @@ Offringa would like to thank O.~M.~Smirnov for testing \textsc{wsclean} on VLA d
 This scientific work makes use of the Murchison Radio-astronomy Observatory, operated by CSIRO. We acknowledge the Wajarri Yamatji people as the traditional owners of the Observatory site. Support for the MWA comes from the U.S. National Science Foundation (grants AST-0457585, PHY-0835713, CAREER-0847753, and AST-0908884), the Australian Research Council (LIEF grants LE0775621 and LE0882938), the U.S. Air Force Office of Scientific Research (grant FA9550-0510247), and the Centre for All-sky Astrophysics (an Australian Research Council Centre of Excellence funded by grant CE110001020). Support is also provided by the Smithsonian Astrophysical Observatory, the MIT School of Science, the Raman Research Institute, the Australian National University, and the Victoria University of Wellington (via grant MED-E1799 from the New Zealand Ministry of Economic Development and an IBM Shared University Research Grant). The Australian Federal government provides additional support via the Commonwealth Scientific and Industrial Research Organisation (CSIRO), National Collaborative Research Infrastructure Strategy, Education Investment Fund, and the Australia India Strategic Research Fund, and Astronomy Australia Limited, under contract to Curtin University. We acknowledge the iVEC Petabyte Data Store, the Initiative in Innovative Computing and the CUDA Center for Excellence sponsored by NVIDIA at Harvard University, and the International Centre for Radio Astronomy Research (ICRAR), a Joint Venture of Curtin University and The University of Western Australia, funded by the Western Australian State government. 
 
 % To make Dutch ``tussenvoegsels'' work correctly in Latex such as ``de Bruyn'', we use this command
-% In bibliography, it should be written with lowercase, as in ``de Bruyn''
+% In bibliography, it should be written with lowercase, as in ``de Bruyn''.
+% This comment switches to the bibliography style.
 \DeclareRobustCommand{\TUSSEN}[3]{#3}
 
 \bibliographystyle{mn2e}
