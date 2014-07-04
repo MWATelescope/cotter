@@ -44,7 +44,7 @@ void FFT2D::runThread(size_t cpuIndex)
 		fftw_execute_dft_r2c(_fftPlan, inpBuffer, reinterpret_cast<fftw_complex*>(outBuffer));
 		memcpy(task.output, outBuffer, sizeof(std::complex<double>)*_nComplex);
 		double powerAfter = PowerFromWrapped(task.output);
-		std::cout <<"FFT::runThread(" << cpuIndex << ") -- " << powerBefore << " Jy -> " << powerAfter << " Jy\n";
+		//std::cout <<"FFT::runThread(" << cpuIndex << ") -- " << powerBefore << " Jy -> " << powerAfter << " Jy\n";
 	}
 }
 

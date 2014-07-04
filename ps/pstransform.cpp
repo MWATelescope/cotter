@@ -36,16 +36,16 @@ void transformParThread(size_t n)
 	const double factor = 1.0 / sqrt(dataCube.size());
 	while(transformTasks.read(pixelIndex))
 	{
-		double powerBefore = 0.0;
-		if(pixelIndex%133700==0)
-			powerBefore = Power(pixelIndex);
+		//double powerBefore = 0.0;
+		//if(pixelIndex%133700==0)
+		//	powerBefore = Power(pixelIndex);
 		for(size_t i=0; i!=dataCube.size(); ++i)
 			inputData[i] = dataCube[i][pixelIndex];
 		fftw_execute_dft(fftPlan, reinterpret_cast<fftw_complex*>(inputData), reinterpret_cast<fftw_complex*>(outputData));
 		for(size_t i=0; i!=dataCube.size(); ++i)
 			dataCube[i][pixelIndex] = outputData[i] * factor;
-		if(pixelIndex%133700==0)
-			std::cout << pixelIndex << " -- " << powerBefore << " Jy --> " << Power(pixelIndex) << " Jy\n";
+		//if(pixelIndex%133700==0)
+		//	std::cout << pixelIndex << " -- " << powerBefore << " Jy --> " << Power(pixelIndex) << " Jy\n";
 	}
 	fftw_free(outputData);
 	fftw_free(inputData);
@@ -120,6 +120,22 @@ void applyWindow(size_t nComplex)
 	}
 }
 
+void makePerpGrid(size_t width)
+{
+	size_t perGridSize = 500;
+	double maxVal = double(width)*0.5*M_SQRT2;
+	double minVal = 4e-3 * maxVal;
+	double nmin = 0, nmax = perGridSize;
+	double eRange = (log(maxVal)-log(minVal))/(nmax-nmin);
+	perpGrid.insert(std::make_pair(0.0, 0));
+	for(size_t dist=0; dist!=perGridSize-1; ++dist)
+	{
+		double x = dist;
+		double logVal = minVal * exp(eRange * x) - nmin; //dist*maxVal/perGridSize
+		perpGrid.insert(std::make_pair(logVal, dist+1));
+	}
+}
+
 int main(int argc, char* argv[])
 {
 	if(argc < 2)
@@ -136,6 +152,7 @@ int main(int argc, char* argv[])
 	FFT2D fft(width, height, cpuCount);
 	fft.Start();
 	double frequency = 0;
+	std::cout << "Reading and Fourier transforming images...\n";
 	for(int i=1; i!=argc; ++i)
 	{
 		FitsReader reader(argv[i]);
@@ -199,21 +216,8 @@ int main(int argc, char* argv[])
 	transformTasks.clear();
 	threads.clear();
 	
-	size_t perGridSize = 500;
-	double maxVal = double(width)*0.5*M_SQRT2;
-	double minVal = 1e-3 * maxVal;
-	double nmin = 0, nmax = perGridSize;
-	double eRange = (log(maxVal)-log(minVal))/(nmax-nmin);
-	std::cout << "eRange="<< eRange << "(" << minVal << ',' << maxVal << ")\n";
-	perpGrid.insert(std::make_pair(0.0, 0));
-	for(size_t dist=0; dist!=perGridSize-1; ++dist)
-	{
-		double x = dist;
-		double logVal = minVal * exp(eRange * x) - nmin; //dist*maxVal/perGridSize
-		std::cout << logVal << ' ';
-		perpGrid.insert(std::make_pair(logVal, dist+1));
-	}
-	std::cout << '\n';
+	makePerpGrid(width);
+	
 	psData.resize(dataCube.size());
 	
 	std::cout << "Averaging anuli...\n";
@@ -227,9 +231,9 @@ int main(int argc, char* argv[])
 	transformTasks.clear();
 	threads.clear();
 	
-	std::cout << "Making final image...\n";
-	ao::uvector<double> psImage(perpGrid.size() * dataCube.size());
-	double* psImagePtr = psImage.data();
+	std::cout << "Making image with linear scale for parallel direction...\n";
+	ao::uvector<double> psLinearImage(perpGrid.size() * dataCube.size());
+	double* psImagePtr = psLinearImage.data();
 	for(size_t y=0; y!=dataCube.size(); ++y)
 	{
 		size_t sourceY = y+dataCube.size()/2;
@@ -242,5 +246,59 @@ int main(int argc, char* argv[])
 	}
 	FitsWriter writer;
 	writer.SetImageDimensions(perpGrid.size(), dataCube.size());
-	writer.Write("ps.fits", psImage.data());
+	writer.Write("ps-linear.fits", psLinearImage.data());
+	
+	std::cout << "Making log-log power spectrum...\n";
+	ao::uvector<double> psLogImage(perpGrid.size() * dataCube.size(), 0.0);
+	ao::uvector<size_t> psLogWeights(perpGrid.size() * dataCube.size(), 0);
+	double minY = dataCube.size()*1e-2, maxY = dataCube.size();
+	size_t midY = dataCube.size()/2;
+	for(size_t y=0; y!=dataCube.size(); ++y)
+	{
+		size_t destY;
+		if(y >= midY)
+			destY = (y-midY)*2;
+		else
+			destY = (midY-y)*2;
+		int yLog = int(round(maxY/(log(maxY)-log(minY))*log(destY/minY)));
+		if(yLog < 0) yLog = 0;
+		else if(yLog >= int(dataCube.size())) yLog = dataCube.size()-1;
+		double
+			*srcRow = &psLinearImage[y * perpGrid.size()],
+			*destRow = &psLogImage[yLog * perpGrid.size()];
+		size_t
+			*destWeightRow = &psLogWeights[yLog * perpGrid.size()];
+		for(size_t x=0; x!=perpGrid.size(); ++x)
+		{
+			destRow[x] += srcRow[x];
+			++destWeightRow[x];
+		}
+	}
+	double* imagePtr = psLogImage.data();
+	size_t* weightPtr = psLogWeights.data();
+	double *lastRowWithData = psLogImage.data();
+	// This interpolates "upwards", i.e., its nearest upward neighbour interpolation -- TODO have to fix this to
+	for(size_t y=0; y!=dataCube.size(); ++y)
+	{
+		if(*weightPtr != 0)
+		{
+			lastRowWithData = imagePtr;
+			for(size_t x=0; x!=perpGrid.size(); ++x)
+			{
+				*imagePtr /= *weightPtr;
+				++imagePtr;
+				++weightPtr;
+			}
+		}
+		else {
+			for(size_t x=0; x!=perpGrid.size(); ++x)
+			{
+				*imagePtr = lastRowWithData[x];
+				++imagePtr;
+			}
+			weightPtr += perpGrid.size();
+		}
+	}
+	writer.SetImageDimensions(perpGrid.size(), dataCube.size());
+	writer.Write("ps.fits", psLogImage.data());
 }
