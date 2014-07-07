@@ -12,12 +12,20 @@
 
 fftw_plan fftPlan;
 
+const double SPEED_OF_LIGHT = 299792458.0;
+const double BOLTZMANN = 1.3806488e-23;
+
+const size_t gridSizeX = 1024, gridSizeY = 768;
+const bool convertToTemperature = true;
+
 ao::uvector<std::complex<double>*> dataCube;
 ao::uvector<double> weightsPerChannel;
+ao::uvector<double> frequencies;
+ao::uvector<double> beamOmegas;
 ao::uvector<double*> psData;
 ao::uvector<size_t> psDataCount;
 std::map<double, size_t> perpGrid;
-double weightSum;
+double weightSum, windowSum;
 
 ao::lane<size_t> transformTasks;
 
@@ -116,7 +124,14 @@ void applyWindow(size_t nComplex)
 	{
 		std::complex<double>* input = dataCube[channelIndex];
 		double windowValue = WindowFunction::blackmanNutallWindow(dataCube.size(), channelIndex);
-		windowValue *= weightsPerChannel[channelIndex] * dataCube.size() / weightSum;
+		if(convertToTemperature) {
+			double f = frequencies[channelIndex];
+			double jToT = 1e-23 * SPEED_OF_LIGHT*SPEED_OF_LIGHT / (2.0 * BOLTZMANN * f * f * beamOmegas[channelIndex]);
+			//std::cout << jToT << '\n';
+			windowValue *= jToT * weightsPerChannel[channelIndex] / (weightSum * windowSum);
+		}
+		else
+			windowValue *= weightsPerChannel[channelIndex] / (weightSum * windowSum);
 		for(size_t i=0; i!=nComplex; ++i)
 			input[i] *= windowValue;
 	}
@@ -124,13 +139,12 @@ void applyWindow(size_t nComplex)
 
 void makePerpGrid(size_t width)
 {
-	size_t perGridSize = 500;
 	double maxVal = double(width)*0.5*M_SQRT2;
 	double minVal = 4e-3 * maxVal;
-	double nmin = 0, nmax = perGridSize;
+	double nmin = 0, nmax = gridSizeX;
 	double eRange = (log(maxVal)-log(minVal))/(nmax-nmin);
 	perpGrid.insert(std::make_pair(0.0, 0));
-	for(size_t dist=0; dist!=perGridSize-1; ++dist)
+	for(size_t dist=0; dist!=gridSizeX-1; ++dist)
 	{
 		double x = dist;
 		double logVal = minVal * exp(eRange * x) - nmin; //dist*maxVal/perGridSize
@@ -164,12 +178,18 @@ int main(int argc, char* argv[])
 		double weight = 0.0;
 		if(!reader.ReadDoubleKeyIfExists("WSCIMGWG", weight))
 			std::cout << "Warning: file '" << argv[i] << "' did not have WSCIMGWG field: will have zero weight.\n";
+		double beam = 0.0;
+		if(!reader.ReadDoubleKeyIfExists("BMAJ", beam))
+			std::cout << "Warning: file '" << argv[i] << "' did not have BMAJ field: will have zero beam.\n";
 		weightSum += weight;
 		double* input = new double[width*height];
 		reader.Read(input);
 		std::complex<double>* output = new std::complex<double>[fft.NComplex()];
 		dataCube.push_back(output);
 		weightsPerChannel.push_back(weight);
+		frequencies.push_back(frequency);
+		beam *= M_PI/180.0;
+		beamOmegas.push_back(M_PI*beam*beam/(4.0*M_LN2));
 		fft.AddTask(input, output);
 		//Testing
 		//for(size_t j=0; j!=fft.NComplex(); ++j) output[j] = 0.0;
@@ -194,7 +214,10 @@ int main(int argc, char* argv[])
 	FitsWriter sumWriter;
 	fft.SaveUV(sumImage.data(), "uv-total.fits");
 	
-	std::cout << "Applying window function...\n";
+	std::cout << "Applying window function... " << std::flush;
+	windowSum = 0.0;
+	for(size_t channelIndex=0; channelIndex!=dataCube.size(); ++channelIndex)
+		windowSum += WindowFunction::blackmanNutallWindow(dataCube.size(), channelIndex);
 	transformTasks.resize(cpuCount);
 	std::vector<std::thread> threads;
 	for(size_t i=0; i!=cpuCount; ++i)
@@ -206,6 +229,7 @@ int main(int argc, char* argv[])
 		i->join();
 	transformTasks.clear();
 	threads.clear();
+	std::cout << "Average weight=" << (windowSum/dataCube.size()) << '\n';
 	
 	std::cout << "Transforming in parallel direction...\n";
 	for(size_t i=0; i!=cpuCount; ++i)
@@ -221,6 +245,7 @@ int main(int argc, char* argv[])
 	makePerpGrid(width);
 	
 	psData.resize(dataCube.size());
+	psDataCount.assign(perpGrid.size(), 0);
 	
 	std::cout << "Averaging anuli...\n";
 	for(size_t i=0; i!=cpuCount; ++i)
@@ -239,14 +264,14 @@ int main(int argc, char* argv[])
 		if(psDataCount[x] == 0)
 		{
 			int xRight = x, xLeft = x;
-			while(xRight < int(perpGrid.size()) && psDataCount[x]==0) ++xRight;
-			while(xLeft >= 0 && psDataCount[x]==0) --xLeft;
+			while(xRight < int(perpGrid.size()) && psDataCount[xRight]==0) ++xRight;
+			while(xLeft >= 0 && psDataCount[xLeft]==0) --xLeft;
 			size_t nearestX;
 			if(xRight<int(perpGrid.size()) && xRight - x < x - xLeft)
 				nearestX = xRight;
 			else
 				nearestX = xLeft;
-			for(size_t y=0; x!=dataCube.size(); ++x)
+			for(size_t y=0; y!=dataCube.size(); ++y)
 				psData[y][x] = psData[y][nearestX];
 		}
 	}
@@ -269,8 +294,9 @@ int main(int argc, char* argv[])
 	writer.Write("ps-linear.fits", psLinearImage.data());
 	
 	std::cout << "Making log-log power spectrum...\n";
-	ao::uvector<double> psLogImage(perpGrid.size() * dataCube.size(), 0.0);
-	ao::uvector<size_t> psLogWeights(perpGrid.size() * dataCube.size(), 0);
+	size_t logGridSize = gridSizeY;
+	ao::uvector<double> psLogImage(perpGrid.size() * logGridSize, 0.0);
+	ao::uvector<size_t> psLogWeights(perpGrid.size() * logGridSize, 0);
 	double minY = dataCube.size()*1e-2, maxY = dataCube.size();
 	size_t midY = dataCube.size()/2;
 	for(size_t y=0; y!=dataCube.size(); ++y)
@@ -280,9 +306,9 @@ int main(int argc, char* argv[])
 			destY = (y-midY)*2;
 		else
 			destY = (midY-y)*2;
-		int yLog = int(round(maxY/(log(maxY)-log(minY))*log(destY/minY)));
+		int yLog = int(round(double(logGridSize)/(log(maxY)-log(minY))*log(destY/minY)));
 		if(yLog < 0) yLog = 0;
-		else if(yLog >= int(dataCube.size())) yLog = dataCube.size()-1;
+		else if(yLog >= int(logGridSize)) yLog = logGridSize-1;
 		double
 			*srcRow = &psLinearImage[y * perpGrid.size()],
 			*destRow = &psLogImage[yLog * perpGrid.size()];
@@ -296,7 +322,7 @@ int main(int argc, char* argv[])
 	}
 	double* imagePtr = psLogImage.data();
 	size_t* weightPtr = psLogWeights.data();
-	for(size_t y=0; y!=dataCube.size(); ++y)
+	for(size_t y=0; y!=logGridSize; ++y)
 	{
 		if(*weightPtr != 0)
 		{
@@ -308,23 +334,28 @@ int main(int argc, char* argv[])
 			}
 		}
 		else {
+			imagePtr += perpGrid.size();
+			weightPtr += perpGrid.size();
+		}
+	}
+	for(size_t y=0; y!=logGridSize; ++y)
+	{
+		if(psLogWeights[y * perpGrid.size()] == 0) {
 			// Find nearest row with values
 			int yUp = y, yDown = y;
-			while(yUp < int(dataCube.size()) && weightPtr[yUp*perpGrid.size()]==0) ++yUp;
-			while(yDown >= 0 && weightPtr[yDown*perpGrid.size()]==0) --yDown;
-			double *nearestRowWithData;
-			if(yUp<int(dataCube.size()) && yUp - y < y - yDown)
+			while(yUp < int(logGridSize) && psLogWeights[yUp*perpGrid.size()]==0) ++yUp;
+			while(yDown >= 0 && psLogWeights[yDown*perpGrid.size()]==0) --yDown;
+			double
+				*row = &psLogImage[y * perpGrid.size()],
+				*nearestRowWithData;
+			if(yUp<int(logGridSize) && yUp - y < y - yDown)
 				nearestRowWithData = psLogImage.data() + yUp*perpGrid.size();
 			else
 				nearestRowWithData = psLogImage.data() + yDown*perpGrid.size();
 			for(size_t x=0; x!=perpGrid.size(); ++x)
-			{
-				*imagePtr = nearestRowWithData[x];
-				++imagePtr;
-			}
-			weightPtr += perpGrid.size();
+				row[x] = nearestRowWithData[x];
 		}
 	}
-	writer.SetImageDimensions(perpGrid.size(), dataCube.size());
+	writer.SetImageDimensions(perpGrid.size(), logGridSize);
 	writer.Write("ps.fits", psLogImage.data());
 }
