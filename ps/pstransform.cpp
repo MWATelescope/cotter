@@ -8,6 +8,7 @@
 #include "fitswriter.h"
 
 #include "aocommon/uvector.h"
+#include "universe.h"
 #include "windowfunction.h"
 
 fftw_plan fftPlan;
@@ -197,6 +198,12 @@ int main(int argc, char* argv[])
 	}
 	fft.Finish();
 	fft.SaveUV(dataCube.front(), "UV-first-image.fits");
+
+	double redshiftLo = Universe::HIRedshift(frequencies.back()), redshiftHi = Universe::HIRedshift(frequencies.front());
+	std::cout << "- Redshift range: " << redshiftLo << " - " << redshiftHi << '\n';
+	std::cout << "- Distance: " << Universe::ComovingDistanceInMPC(redshiftLo) << " - " << Universe::ComovingDistanceInMPC(redshiftHi) << " Mpc\n";
+	double distanceRange = (Universe::ComovingDistanceInMPC(redshiftHi)-Universe::ComovingDistanceInMPC(redshiftLo))/dataCube.size();
+	std::cout << "- Grid step: " << distanceRange << " Mpc\n";
 	
 	std::complex<double>* inputData = reinterpret_cast<std::complex<double>*>(fftw_malloc(dataCube.size() * sizeof(std::complex<double>)));
 	std::complex<double>* outputData = reinterpret_cast<std::complex<double>*>(fftw_malloc(dataCube.size() * sizeof(std::complex<double>)));
@@ -290,6 +297,10 @@ int main(int argc, char* argv[])
 		}
 	}
 	FitsWriter writer;
+	writer.SetExtraKeyword("PSXMIN", perpGrid.begin()->first);
+	writer.SetExtraKeyword("PSXMAX", perpGrid.rbegin()->first);
+	writer.SetExtraKeyword("PSYMIN", 0);
+	writer.SetExtraKeyword("PSYMAX", distanceRange);
 	writer.SetImageDimensions(perpGrid.size(), dataCube.size());
 	writer.Write("ps-linear.fits", psLinearImage.data());
 	
@@ -357,5 +368,10 @@ int main(int argc, char* argv[])
 		}
 	}
 	writer.SetImageDimensions(perpGrid.size(), logGridSize);
+	// TODO need to fix X axis min so that it is more accurate
+	writer.SetExtraKeyword("PSXMIN", (++perpGrid.begin())->first);
+	writer.SetExtraKeyword("PSXMAX", perpGrid.rbegin()->first);
+	writer.SetExtraKeyword("PSYMIN", (minY/maxY)*distanceRange);
+	writer.SetExtraKeyword("PSYMAX", distanceRange);
 	writer.Write("ps.fits", psLogImage.data());
 }

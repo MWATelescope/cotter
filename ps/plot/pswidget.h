@@ -178,6 +178,10 @@ class PSWidget : public Gtk::DrawingArea {
 			_yStart = 0;
 			_yEnd = height;
 		}
+		void SetXAxisMin(double xAxisMin) { _xAxisMin = xAxisMin; }
+		void SetXAxisMax(double xAxisMax) { _xAxisMax = xAxisMax; }
+		void SetYAxisMin(double yAxisMin) { _yAxisMin = yAxisMin; }
+		void SetYAxisMax(double yAxisMax) { _yAxisMax = yAxisMax; }
 	private:
 		void findMinMax(double& min, double& max);
 		ColorMap* createColorMap();
@@ -214,6 +218,7 @@ class PSWidget : public Gtk::DrawingArea {
 		bool _showZAxisDescription;
 		bool _showTitle;
 		double _max, _min;
+		double _xAxisMin, _xAxisMax, _yAxisMin, _yAxisMax;
 		std::string _titleText, _manualTitleText;
 		enum Range _range;
 		Cairo::Filter _cairoFilter;

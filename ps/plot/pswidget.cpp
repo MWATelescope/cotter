@@ -27,6 +27,8 @@ PSWidget::PSWidget() :
 	_showZAxisDescription(true),
 	_showTitle(true),
 	_max(1.0), _min(0.0),
+	_xAxisMin(1.0), _xAxisMax(10.0),
+	_yAxisMin(1.0), _yAxisMax(10.0),
 	_range(MinMax),
 	_cairoFilter(Cairo::FILTER_BEST),
 	_manualTitle(false),
@@ -154,11 +156,11 @@ void PSWidget::update(Cairo::RefPtr<Cairo::Context> cairo, unsigned width, unsig
 	}
 	if(_showXYAxes)
 	{
-		_vertScale->InitializeLogarithmicTicks(0.1, 10.0);
-		_vertScale->SetUnitsCaption("k\u2225 (h/Mpc)\u00B3");
+		_vertScale->InitializeLogarithmicTicks(_yAxisMin, _yAxisMax);
+		_vertScale->SetUnitsCaption("k\u2225 (h/Mpc)"); // \u00B3 = ^3
 	
-		_horiScale->InitializeLogarithmicTicks(0.1, 10.0);
-		_horiScale->SetUnitsCaption("k\u22A5 (h/Mpc)\u00B3"); // \u27C2 is official perp symbol
+		_horiScale->InitializeLogarithmicTicks(_xAxisMin, _xAxisMax);
+		_horiScale->SetUnitsCaption("k\u22A5 (h/Mpc)"); // \u27C2 is official perp symbol
 		
 		if(_manualXAxisDescription)
 			_horiScale->SetUnitsCaption(_xAxisDescription);
@@ -170,7 +172,7 @@ void PSWidget::update(Cairo::RefPtr<Cairo::Context> cairo, unsigned width, unsig
 		if(_manualZAxisDescription)
 			_colorScale->SetUnitsCaption(_zAxisDescription);
 		else
-			_colorScale->SetUnitsCaption("mK");
+			_colorScale->SetUnitsCaption("Power spectrum value (mK\u00B2[Mpc/h]\u00B3)");
 		if(_logZScale)
 			_colorScale->InitializeLogarithmicTicks(min, max);
 		else
@@ -333,12 +335,17 @@ void PSWidget::findMinMax(double& min, double& max)
 		min -= 1.0;
 		max += 1.0;
 	}
-	if(_logZScale && min<=0.0)
+	if(_logZScale)
 	{
-		if(max <= 0.0)
-			max = 1.0;
-		
-		min = max / 10000.0;
+		if(min<=0.0)
+		{
+			if(max <= 0.0)
+				max = 1.0;
+			
+			min = max / 10000.0;
+		}
+		else if(max / min >= 1e7)
+			min = max / 1e7;
 	}
 	_max = max;
 	_min = min;

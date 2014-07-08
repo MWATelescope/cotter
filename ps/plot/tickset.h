@@ -197,11 +197,11 @@ class LogarithmicTickSet : public TickSet
 					return;
 				if(tickEnd > tickStart)
 				{
-					const unsigned distance = (unsigned) log10(tickEnd / tickStart);
+					const unsigned distance = (unsigned) round(log10(tickEnd / tickStart));
 					const unsigned step = (distance + sizeRequest - 1) / sizeRequest;
 					const double factor = exp10((double) step);
 					double pos = tickStart * factor;
-					while(pos <= tickEnd && _ticks.size() < sizeRequest)
+					while(pos <= _max && _ticks.size() < sizeRequest)
 					{
 						_ticks.push_back(pos);
 						pos *= factor;
@@ -227,20 +227,6 @@ class LogarithmicTickSet : public TickSet
 					double base = tickStart / 10.0;
 					do {
 						for(double i=2.0;i<9.0;i+=2.0)
-						{
-							double val = base * i;
-							if(val >= _min && val <= _max)
-								_ticks.push_back(val);
-						}
-						base *= 10.0;
-					} while(base < _max);
-				}
-				// can we add two and five?
-				else if((_ticks.size()+1)*3 < sizeRequest)
-				{
-					double base = tickStart / 10.0;
-					do {
-						for(double i=2.0;i<6.0;i+=3.0)
 						{
 							double val = base * i;
 							if(val >= _min && val <= _max)
