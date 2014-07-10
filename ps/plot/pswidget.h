@@ -186,7 +186,9 @@ class PSWidget : public Gtk::DrawingArea {
 		void findMinMax(double& min, double& max);
 		ColorMap* createColorMap();
 		void update(Cairo::RefPtr<Cairo::Context> cairo, unsigned width, unsigned height);
+		void postRender(Cairo::RefPtr<Cairo::Context> cairo, unsigned width, unsigned height);
 		void redrawWithoutChanges(Cairo::RefPtr<Cairo::Context> cairo, unsigned width, unsigned height);
+		void getPlotPos(double& cairoX, double& cairoY, double plotX, double plotY, unsigned int width, unsigned int height);
 		bool onDraw(const Cairo::RefPtr<Cairo::Context>& cr);
 		std::string actualTitleText() const
 		{

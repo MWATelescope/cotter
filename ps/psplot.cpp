@@ -30,7 +30,6 @@ class PSWindow : public Gtk::Window {
 			if(!kwExists)
 				std::cout << "Warning: PS range keywords missing -- axes won't have proper units.\n";
 			else {
-				std::cout << "Y: " << minY << '-' << maxY << '\n';
 				_psWidget.SetXAxisMin(minX);
 				_psWidget.SetYAxisMin(minY);
 				_psWidget.SetXAxisMax(maxX);

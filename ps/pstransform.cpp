@@ -10,6 +10,7 @@
 #include "aocommon/uvector.h"
 #include "universe.h"
 #include "windowfunction.h"
+#include "imagecoordinates.h"
 
 fftw_plan fftPlan;
 
@@ -138,10 +139,10 @@ void applyWindow(size_t nComplex)
 	}
 }
 
-void makePerpGrid(size_t width)
+void makePerpGrid(size_t width, double& minVal, double& maxVal)
 {
-	double maxVal = double(width)*0.5*M_SQRT2;
-	double minVal = 4e-3 * maxVal;
+	maxVal = double(width)*0.5*M_SQRT2;
+	minVal = 4e-3 * maxVal;
 	double nmin = 0, nmax = gridSizeX;
 	double eRange = (log(maxVal)-log(minVal))/(nmax-nmin);
 	perpGrid.insert(std::make_pair(0.0, 0));
@@ -170,6 +171,7 @@ int main(int argc, char* argv[])
 	fft.Start();
 	double frequency = 0;
 	std::cout << "Reading and Fourier transforming images...\n";
+	double pixelSizeX=0.0, pixelSizeY=0.0, phaseCentreRA=0.0, phaseCentreDec=0.0;
 	for(int i=1; i!=argc; ++i)
 	{
 		FitsReader reader(argv[i]);
@@ -192,6 +194,13 @@ int main(int argc, char* argv[])
 		beam *= M_PI/180.0;
 		beamOmegas.push_back(M_PI*beam*beam/(4.0*M_LN2));
 		fft.AddTask(input, output);
+		if(i == 1)
+		{
+			pixelSizeX = reader.PixelSizeX();
+			pixelSizeY = reader.PixelSizeY();
+			phaseCentreRA = reader.PhaseCentreRA();
+			phaseCentreDec = reader.PhaseCentreDec();
+		}
 		//Testing
 		//for(size_t j=0; j!=fft.NComplex(); ++j) output[j] = 0.0;
 		//for(size_t j=0; j!=width/2; ++j) output[j] = width/2-j;
@@ -199,11 +208,26 @@ int main(int argc, char* argv[])
 	fft.Finish();
 	fft.SaveUV(dataCube.front(), "UV-first-image.fits");
 
-	double redshiftLo = Universe::HIRedshift(frequencies.back()), redshiftHi = Universe::HIRedshift(frequencies.front());
+	double
+		redshiftLo = Universe::HIRedshift(frequencies.back()), redshiftHi = Universe::HIRedshift(frequencies.front()),
+		distLo = Universe::ComovingDistanceInMPCoverH(redshiftLo), distHi = Universe::ComovingDistanceInMPCoverH(redshiftHi);
 	std::cout << "- Redshift range: " << redshiftLo << " - " << redshiftHi << '\n';
-	std::cout << "- Distance: " << Universe::ComovingDistanceInMPC(redshiftLo) << " - " << Universe::ComovingDistanceInMPC(redshiftHi) << " Mpc\n";
-	double distanceRange = (Universe::ComovingDistanceInMPC(redshiftHi)-Universe::ComovingDistanceInMPC(redshiftLo))/dataCube.size();
-	std::cout << "- Grid step: " << distanceRange << " Mpc\n";
+	std::cout << "- Distance: " << distLo << " - " << distHi << " Mpc/h\n";
+	double distanceRange = (distHi-distLo)/dataCube.size();
+	std::cout << "- Grid step: " << distanceRange << " Mpc/h\n";
+	double lLeft, mLeft, raLeft, decLeft, lTop, mTop, raTop, decTop;
+	ImageCoordinates::XYToLM(0, height/2, pixelSizeX, pixelSizeY, width, height, lLeft, mLeft);
+	ImageCoordinates::LMToRaDec(lLeft, mLeft, phaseCentreRA, phaseCentreDec, raLeft, decLeft);
+	ImageCoordinates::XYToLM(width/2, 0, pixelSizeX, pixelSizeY, width, height, lTop, mTop);
+	ImageCoordinates::LMToRaDec(lTop, mTop, phaseCentreRA, phaseCentreDec, raTop, decTop);
+	double
+		horAngle = 2.0*ImageCoordinates::AngularDistance(phaseCentreRA, phaseCentreDec, raLeft, decLeft),
+		vertAngle = 2.0*ImageCoordinates::AngularDistance(phaseCentreRA, phaseCentreDec, raTop, decTop),
+		transverseDistance = (distHi+distLo)*0.5*(horAngle+vertAngle)*0.5,
+		transverseGridStep = transverseDistance/(0.5*(width+height));
+	std::cout << "- Image width: " << 0.1*round(horAngle*1800.0/M_PI) << " deg, height: " << 0.1*round(vertAngle*1800.0/M_PI) << " deg\n";
+	std::cout << "- Transverse distance: " << transverseDistance << " Mpc/h.\n";
+	std::cout << "- Transverse grid step: " << transverseGridStep << " Mpc/h.\n";
 	
 	std::complex<double>* inputData = reinterpret_cast<std::complex<double>*>(fftw_malloc(dataCube.size() * sizeof(std::complex<double>)));
 	std::complex<double>* outputData = reinterpret_cast<std::complex<double>*>(fftw_malloc(dataCube.size() * sizeof(std::complex<double>)));
@@ -249,7 +273,11 @@ int main(int argc, char* argv[])
 	transformTasks.clear();
 	threads.clear();
 	
-	makePerpGrid(width);
+	double perpMinVal, perpMaxVal;
+	makePerpGrid(width, perpMinVal, perpMaxVal);
+	// Convert to Mpc
+	perpMinVal /= transverseGridStep*width;
+	perpMaxVal /= transverseGridStep*width;
 	
 	psData.resize(dataCube.size());
 	psDataCount.assign(perpGrid.size(), 0);
@@ -297,8 +325,8 @@ int main(int argc, char* argv[])
 		}
 	}
 	FitsWriter writer;
-	writer.SetExtraKeyword("PSXMIN", perpGrid.begin()->first);
-	writer.SetExtraKeyword("PSXMAX", perpGrid.rbegin()->first);
+	writer.SetExtraKeyword("PSXMIN", perpMinVal);
+	writer.SetExtraKeyword("PSXMAX", perpMaxVal);
 	writer.SetExtraKeyword("PSYMIN", 0);
 	writer.SetExtraKeyword("PSYMAX", distanceRange);
 	writer.SetImageDimensions(perpGrid.size(), dataCube.size());
@@ -369,8 +397,8 @@ int main(int argc, char* argv[])
 	}
 	writer.SetImageDimensions(perpGrid.size(), logGridSize);
 	// TODO need to fix X axis min so that it is more accurate
-	writer.SetExtraKeyword("PSXMIN", (++perpGrid.begin())->first);
-	writer.SetExtraKeyword("PSXMAX", perpGrid.rbegin()->first);
+	writer.SetExtraKeyword("PSXMIN", perpMinVal);
+	writer.SetExtraKeyword("PSXMAX", perpMaxVal);
 	writer.SetExtraKeyword("PSYMIN", (minY/maxY)*distanceRange);
 	writer.SetExtraKeyword("PSYMAX", distanceRange);
 	writer.Write("ps.fits", psLogImage.data());

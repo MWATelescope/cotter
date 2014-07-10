@@ -280,13 +280,78 @@ void PSWidget::update(Cairo::RefPtr<Cairo::Context> cairo, unsigned width, unsig
 	}
 	delete colorMap;
 
-	_imageSurface->mark_dirty();
 
 	_isInitialized = true;
 	_initializedWidth = width;
 	_initializedHeight = height;
+	
+	_imageSurface->mark_dirty();
 	redrawWithoutChanges(cairo, width, height);
 } 
+
+#include <iostream>
+void PSWidget::postRender(Cairo::RefPtr<Cairo::Context> cairo, unsigned int width, unsigned int height)
+{
+	double
+		windowX1 = 1e-2,    windowY1 = 1.8e-2,
+		windowX2 = 2.3e-1,  windowY2 = 3.3e0,
+		foreground1Y1 = windowY1,
+		foreground2Y1 = 3.8e-2,
+		foreground3Y1 = 5.1e-2;
+	
+	if(windowX1 < _xAxisMin) windowX1 = _xAxisMin;
+	if(windowX2 > _xAxisMax) windowX2 = _xAxisMax;
+	if(windowY1 < _yAxisMin) windowY1 = _yAxisMin;
+	if(windowY2 > _yAxisMax) windowY2 = _yAxisMax;
+	double x1, y1, x2, y2;
+	getPlotPos(x1, y1, windowX1, windowY1, width, height);
+	getPlotPos(x2, y2, windowX2, windowY2, width, height);
+	
+	cairo->set_source_rgb(0.0, 0.0, 0.0);
+	cairo->set_line_width(2.0);
+	cairo->rectangle(x1, y1, x2-x1, y2-y1);
+	cairo->stroke();
+	
+	double f1Y2 = windowX2 * foreground1Y1/windowX1;
+	getPlotPos(x1, y1, windowX1, foreground1Y1, width, height);
+	std::vector<double> dashes{3.0, 5.0};
+	cairo->set_dash(dashes, 0.0);
+	cairo->move_to(x1, y1);
+	getPlotPos(x2, y2, windowX2, f1Y2, width, height);
+	cairo->line_to(x2, y2);
+	cairo->stroke();
+	
+	double f2Y2 = windowX2 * foreground2Y1/windowX1;
+	getPlotPos(x1, y1, windowX1, foreground2Y1, width, height);
+	dashes = std::vector<double>{8.0, 8.0};
+	cairo->set_dash(dashes, 0.0);
+	cairo->move_to(x1, y1);
+	getPlotPos(x2, y2, windowX2, f2Y2, width, height);
+	cairo->line_to(x2, y2);
+	cairo->stroke();
+	
+	double f3Y2 = windowX2 * foreground3Y1/windowX1;
+	getPlotPos(x1, y1, windowX1, foreground3Y1, width, height);
+	cairo->move_to(x1, y1);
+	cairo->unset_dash();
+	getPlotPos(x2, y2, windowX2, f3Y2, width, height);
+	cairo->line_to(x2, y2);
+	cairo->stroke();
+}
+
+void PSWidget::getPlotPos(double& cairoX, double& cairoY, double plotX, double plotY, unsigned int width, unsigned int height)
+{
+	int
+		destWidth = width - (int) floor(_leftBorderSize + _rightBorderSize),
+		destHeight = height - (int) floor(_topBorderSize + _bottomBorderSize),
+		xOffset = round(_leftBorderSize),
+		yOffset = round(_topBorderSize);
+	
+	cairoX = xOffset +
+		log(plotX/_xAxisMin) * destWidth / (log(_xAxisMax)-log(_xAxisMin));
+	cairoY = yOffset + destHeight -
+		log(plotY/_yAxisMin) * destHeight / (log(_yAxisMax)-log(_yAxisMin));
+}
 
 ColorMap *PSWidget::createColorMap()
 {
@@ -387,5 +452,7 @@ void PSWidget::redrawWithoutChanges(Cairo::RefPtr<Cairo::Context> cairo, unsigne
 		}
 		if(_plotTitle != 0)
 			_plotTitle->Draw(cairo);
+		
+		postRender(cairo, width, height);
 	}
 }

@@ -65,7 +65,7 @@ public:
 		return sqrt(OmegaM()*(1.0+z)*(1.0+z)*(1.0+z) + OmegaK()*(1.0+z)*(1.0+z) + OmegaL());
 	}
 	
-	static double ComovingDistanceInMPC(double z)
+	static double ComovingDistanceInMPCoverH(double z)
 	{
 		double d = 0.0;
 		for(size_t i=0; i!=10001; ++i)
@@ -73,7 +73,7 @@ public:
 			d += 1.0 / E(double(i)*z/10000.0);
 		}
 		// We integrate over 10001 samples :
-		return d * DHinMPC() * z / 10001.0;
+		return d * DHinMPC() * z * H0() / 10001.0;
 	}
 	
 	static double HIRestFrequencyInHz()
