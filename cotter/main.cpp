@@ -3,6 +3,8 @@
 #include "radeccoord.h"
 #include "version.h"
 
+#include <aoflagger.h>
+
 #include <boost/algorithm/string.hpp>
 
 #include <iostream>
@@ -110,7 +112,9 @@ int cotterMain(int argc, const char* const* argv);
 
 int main(int argc, char **argv)
 {
-	std::cout << "Running Cotter MWA preprocessing pipeline, version " << COTTER_VERSION_STR << " (" << COTTER_VERSION_DATE << ").\n";
+	std::cout << "Running Cotter MWA preprocessing pipeline, version " << COTTER_VERSION_STR <<
+		" (" << COTTER_VERSION_DATE << ").\n"
+		"Flagging is performed by AOFlagger " << aoflagger::AOFlagger::GetVersionString() << " (" << aoflagger::AOFlagger::GetVersionDate() << ").\n";
 	
 	int result = 0;
 	try {
