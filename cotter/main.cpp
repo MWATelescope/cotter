@@ -81,8 +81,9 @@ void usage()
 	"  -noantennapruning  Do not remove the flagged antennae.\n"
 	"  -noautos           Do not output auto-correlations.\n"
 	"  -noflagautos       Do not flag auto-correlations (default for uvfits file output).\n"
-	"  -noflagmissings    Do not flag missing gpu box files.\n"
 	"  -nosbgains         Do not correct for the digital gains.\n"
+	"  -noflagmissings    Do not flag missing gpu box files (only makes sense with -allowmissing).\n"
+	"  -allowmissing      Do not abort when not all GPU box files are available (default is to abort).\n"
 	"  -flagdcchannels    Flag the centre channel of each sub-band (currently the default).\n"
 	"  -noflagdcchannels  Do not flag the centre channel of each sub-band.\n"
 	"  -centre <ra> <dec> Set alternative phase centre, e.g. -centre 00h00m00.0s 00d00m00.0s.\n"
@@ -131,6 +132,7 @@ int cotterMain(int argc, const char* const* argv)
 	Cotter cotter;
 	const char *outputFilename = 0;
 	bool saveQualityStatistics = false;
+	bool allowMissingFiles = false;
 	size_t nCPUs = 0;
 	while(argi!=argc)
 	{
@@ -230,13 +232,17 @@ int cotterMain(int argc, const char* const* argv)
 			{
 				cotter.SetRemoveAutoCorrelations(true);
 			}
+			else if(param == "nosbgains")
+			{
+				cotter.SetApplySBGains(false);
+			}
 			else if(param == "noflagmissings")
 			{
 				cotter.SetDoFlagMissingSubbands(false);
 			}
-			else if(param == "nosbgains")
+			else if(param == "allowmissing")
 			{
-				cotter.SetApplySBGains(false);
+				allowMissingFiles = true;
 			}
 			else if(param == "flagdcchannels")
 			{
@@ -380,6 +386,7 @@ int cotterMain(int argc, const char* const* argv)
 		if(gpuNum+1 > gpuBoxCount) gpuBoxCount = gpuNum+1;
 	}
 	
+	bool aFileIsMissing = false;
 	for(size_t j=0; j!=fileSets.size(); ++j)
 	{
 		for(size_t i=0; i!=gpuBoxCount; ++i)
@@ -387,8 +394,13 @@ int cotterMain(int argc, const char* const* argv)
 			if(i >= fileSets[j].size() || fileSets[j][i].empty()) {
 				std::ostringstream errstr;
 				std::cout << "Missing information from GPU box " << (i+1) << ", timerange " << j << ". Maybe you are missing an input file?\n";
+				aFileIsMissing = true;
 			}
 		}
+	}
+	if(aFileIsMissing && !allowMissingFiles)
+	{
+		throw std::runtime_error("Because at least one input file is missing, I will refuse to continue to prevent incomplete observations due to download errors. If you are missing input files because some of the files are not availabl at all (e.g. because of a correlator GPU box failure), specify '-allowmissing' to continue with missing files.");
 	}
 	std::cout << "Input filenames succesfully parsed: using " << unsortedFiles.size() << " files covering " << fileSets.size() << " timeranges from " << gpuBoxCount << " GPU boxes.\n";
 	
