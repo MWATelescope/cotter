@@ -101,6 +101,8 @@ void usage()
 	"  -flagfiles <name>  Use previously writted MWAF files to skip RFI detection. Name should have\n"
 	"                     two percentage symbols (%%), which will be replaced by GPU numbers.\n"
 	"  -saveqs <file.qs>  Save the quality statistics to the specified file. Use extension of '.qs'.\n"
+	"  -histograms        Also collect 'log N log S' histograms of the visibilities (slower).\n"
+	"                     These will be stored in the quality statistics tables viewable with aoqplot.\n"
 	"  -skipwrite         Skip the writing step completely: only collect statistics.\n"
 	"  -version           Output version and exit.\n"
 	"\n"

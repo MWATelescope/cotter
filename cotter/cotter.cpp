@@ -798,7 +798,7 @@ void Cotter::CalculateUVW(double date, size_t antenna1, size_t antenna2, double 
 void Cotter::baselineProcessThreadFunc()
 {
 	QualityStatistics threadStatistics =
-		_flagger->MakeQualityStatistics(&_scanTimes[_curChunkStart], _curChunkEnd-_curChunkStart, &_channelFrequenciesHz[0], _channelFrequenciesHz.size(), 4);
+		_flagger->MakeQualityStatistics(&_scanTimes[_curChunkStart], _curChunkEnd-_curChunkStart, &_channelFrequenciesHz[0], _channelFrequenciesHz.size(), 4, _collectHistograms);
 	
 	boost::mutex::scoped_lock lock(_mutex);
 	while(!_baselinesToProcess.empty())
