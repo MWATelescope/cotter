@@ -406,7 +406,7 @@ int cotterMain(int argc, const char* const* argv)
 	}
 	if(aFileIsMissing && !allowMissingFiles)
 	{
-		throw std::runtime_error("Because at least one input file is missing, I will refuse to continue to prevent incomplete observations due to download errors. If you are missing input files because some of the files are not availabl at all (e.g. because of a correlator GPU box failure), specify '-allowmissing' to continue with missing files.");
+		throw std::runtime_error("Because at least one input file is missing, I will refuse to continue. This is to prevent download errors cause incomplete observations. If you are missing input files because some of the files are not available (e.g. because of a correlator GPU box failure), specify '-allowmissing' to continue with missing files.");
 	}
 	std::cout << "Input filenames succesfully parsed: using " << unsortedFiles.size() << " files covering " << fileSets.size() << " timeranges from " << gpuBoxCount << " GPU boxes.\n";
 	
