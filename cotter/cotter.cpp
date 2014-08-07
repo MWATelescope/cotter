@@ -516,7 +516,10 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 			for(size_t t=_curChunkStart; t!=_curChunkEnd; ++t)
 			{
 				_progressBar->SetProgress(t-_curChunkStart, _curChunkEnd-_curChunkStart);
-				processAndWriteTimestep(t);
+				if(_outputFormat == FlagsOutputFormat)
+					processAndWriteTimestepFlagsOnly(t);
+				else
+					processAndWriteTimestep(t);
 			}
 			free(_outputData);
 			free(_outputWeights);
