@@ -33,7 +33,7 @@ class Cotter : private UVWCalculater
 		Cotter();
 		~Cotter();
 		
-		void Run(size_t timeAvgFactor, size_t freqAvgFactor);
+		void Run(double timeRes_s, double freqRes_kHz);
 		
 		void SetOutputFilename(const std::string& outputFilename) { _outputFilename = outputFilename; _defaultFilename = false; }
 		void SetOutputFormat(enum OutputFormat format) { _outputFormat = format; }

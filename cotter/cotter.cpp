@@ -87,7 +87,7 @@ Cotter::~Cotter()
 	delete[] _isAntennaFlaggedMap;
 }
 
-void Cotter::Run(size_t timeAvgFactor, size_t freqAvgFactor)
+void Cotter::Run(double timeRes_s, double freqRes_kHz)
 {
 	_readWatch.Start();
 	bool lockPointing = false;
@@ -126,6 +126,16 @@ void Cotter::Run(size_t timeAvgFactor, size_t freqAvgFactor)
 		_mwaConfig.HeaderRW().decDegs = _mwaConfig.HeaderExt().tilePointingDecRad * (180.0/M_PI);
 	}
 	_mwaConfig.CheckSetup();
+	
+	size_t timeAvgFactor = round(timeRes_s/_mwaConfig.Header().integrationTime);
+	if(timeAvgFactor == 0)
+		timeAvgFactor = 1;
+	timeRes_s = timeAvgFactor*_mwaConfig.Header().integrationTime;
+	size_t freqAvgFactor = round(freqRes_kHz/(1000.0*_mwaConfig.Header().bandwidthMHz / _mwaConfig.Header().nChannels));
+	if(freqAvgFactor == 0)
+		freqAvgFactor = 1;
+	freqRes_kHz = freqAvgFactor*(1000.0*_mwaConfig.Header().bandwidthMHz / _mwaConfig.Header().nChannels);
+	std::cout << "Output resolution: " << timeRes_s << " s / " << freqRes_kHz << " kHz (time avg: " << timeAvgFactor << "x, freq avg: " << freqAvgFactor << "x).\n";
 	
 	_subbandEdgeFlagCount = round(_subbandEdgeFlagWidthKHz / (1000.0*_mwaConfig.Header().bandwidthMHz / _mwaConfig.Header().nChannels));
 	

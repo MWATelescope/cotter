@@ -72,8 +72,8 @@ void usage()
 	"  -mem <percentage>  Use at most the given percentage of memory.\n"
 	"  -absmem <gb>       Use at most the given amount of memory, specified in gigabytes.\n"
 	"  -j <ncpus>         Number of CPUs to use. Default is to use all.\n"
-	"  -timeavg <factor>  Average 'factor' timesteps together before writing to measurement set.\n"
-	"  -freqavg <factor>  Average 'factor' channels together before writing to measurement set.\n"
+	"  -timeres <s>       Average nr of sec of timesteps together before writing to measurement set.\n"
+	"  -freqres <kHz>     Average kHz bandwidth of channels together before writing to measurement set.\n"
 	"                     When averaging: flagging, collecting statistics and cable length fixes are done\n"
 	"                     at highest resolution. UVW positions are recalculated for new timesteps.\n"
 	"  -norfi             Disable RFI detection.\n"
@@ -133,7 +133,7 @@ int cotterMain(int argc, const char* const* argv)
 {
 	std::vector<std::string> unsortedFiles;
 	int argi = 1;
-	size_t freqAvg = 1, timeAvg = 1;
+	double freqRes = 0.0, timeRes = 0.0;
 	double memPercentage = 90.0, memLimit = 0.0;
 	Cotter cotter;
 	const char *outputFilename = 0;
@@ -258,15 +258,15 @@ int cotterMain(int argc, const char* const* argv)
 			{
 				cotter.SetFlagDCChannels(false);
 			}
-			else if(param == "timeavg")
+			else if(param == "timeres")
 			{
 				++argi;
-				timeAvg = atoi(argv[argi]);
+				timeRes = atof(argv[argi]);
 			}
-			else if(param == "freqavg")
+			else if(param == "freqres")
 			{
 				++argi;
-				freqAvg = atoi(argv[argi]);
+				freqRes = atof(argv[argi]);
 			}
 			else if(param == "centre")
 			{
@@ -435,7 +435,7 @@ int cotterMain(int argc, const char* const* argv)
 		cotter.SetThreadCount(nCPUs);
 	if(outputFilename != 0)
 		cotter.SetOutputFilename(outputFilename);
-	cotter.Run(timeAvg, freqAvg);
+	cotter.Run(timeRes, freqRes);
 	
 	return 0;
 }
