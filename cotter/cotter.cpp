@@ -245,13 +245,12 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 			_writer = new FlagWriter(outputFilename, _mwaConfig.HeaderExt().gpsTime, _mwaConfig.Header().nScans, _subbandCount, _subbandOrder);
 			break;
 		case FitsOutputFormat:
-			_writer = new FitsWriter(outputFilename);
+			_writer = new ThreadedWriter(new FitsWriter(outputFilename));
 			break;
 		case MSOutputFormat:
-			_writer = new MSWriter(outputFilename);
+			_writer = new ThreadedWriter(new MSWriter(outputFilename));
 			break;
 	}
-	_writer = new ThreadedWriter(_writer);
 	
 	if(freqAvgFactor != 1 || timeAvgFactor != 1)
 	{
@@ -769,6 +768,44 @@ void Cotter::processAndWriteTimestep(size_t timeIndex)
 	#endif
 				
 				_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, u, v, w, _mwaConfig.Header().integrationTime, _outputData, _outputFlags, _outputWeights);
+			}
+		}
+	}
+}
+
+void Cotter::processAndWriteTimestepFlagsOnly(size_t timeIndex)
+{
+	const size_t antennaCount = _mwaConfig.NAntennae();
+	const size_t nChannels = nChannelsInCurSBRange();
+	const double dateMJD = _mwaConfig.Header().dateFirstScanMJD + timeIndex * _mwaConfig.Header().integrationTime/86400.0;
+	
+	_writer->AddRows(rowsPerTimescan());
+	
+	initializeWeights(_outputWeights);
+	for(size_t antenna1=0; antenna1!=antennaCount; ++antenna1)
+	{
+		for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
+		{
+			if(outputBaseline(antenna1, antenna2))
+			{
+				const FlagMask &flagMask = *_flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
+				
+				const size_t flagStride = flagMask.HorizontalStride();
+				
+				size_t bufferIndex = timeIndex - _curChunkStart;
+				for(size_t p=0; p!=4; ++p)
+				{
+					const bool *flagPtr = flagMask.Buffer()+bufferIndex;
+					bool *outputFlagPtr = &_outputFlags[p];
+					for(size_t ch=0; ch!=nChannels; ++ch)
+					{
+						*outputFlagPtr = *flagPtr;
+						flagPtr += flagStride;
+						outputFlagPtr += 4;
+					}
+				}
+				
+				_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, 0.0, 0.0, 0.0, _mwaConfig.Header().integrationTime, _outputData, _outputFlags, _outputWeights);
 			}
 		}
 	}
