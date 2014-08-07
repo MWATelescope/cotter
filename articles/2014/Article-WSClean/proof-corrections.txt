@@ -1,0 +1,26 @@
+
+Q3
+Affiliation 18 should read:
+National Radio Astronomy Observatory, Charlottesville and Greenbank, Charlottesville, VA 22903-2475, USA
+ 
+Q8
+VLA should be written as "Very Large Array"
+
+Q9
+GMRT should be written as "Giant Metrewave Radio Telescope"
+
+Q12
+"Phase-changing program" refers to a computer program, so I think it is better to write it as "program".
+
+Q13
+"EoR" should be written as "Epoch of Reionization"
+
+Q14
+The reference Offringa, van de Gronde & Roerdink 2012 has an article number "A95" which can be listed, but does not have a volume or page number, as it is published online by A&A.
+
+Q15
+No editor is available for the reference Romein 2012: The conference book does not list any editors. Its doi is 10.1145/2304576.2304620 .
+
+Q16
+The page number for reference Schwab 1983 is 333.
+
