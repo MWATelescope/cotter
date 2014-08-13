@@ -90,7 +90,7 @@ It is important to perform initial data flagging at high time and frequency reso
 
 \begin{figure}
 \begin{center}\hspace*{-0.8cm}\includegraphics[width=10.5cm]{img/bandpass}
-\caption{Correlator output RMS over frequency in an MWA high-frequency observation, calculated over all baselines and 112 seconds of data. In this band, the band-pass shows two large discontinuities over frequency, because the MWA receivers apply different digital gains at different frequencies to minimize quantization noise. TODO explain subband bandpass somewhere %TODO
+\caption{Correlator output RMS over frequency in an MWA high-frequency observation, calculated over all cross-correlated baselines and 112 seconds of data. In this band, the band-pass shows two large discontinuities over frequency, because the MWA receivers apply different digital gains at different frequencies to minimize quantization noise. TODO explain subband bandpass somewhere %TODO
 }
 \label{fig:bandpass}
 \end{center}
@@ -126,7 +126,7 @@ One particular issue in implementing \textsc{cotter} is that both the raw correl
 \noindent\begin{figure*}
 % obs data: 1061583576, 2013-08-26.
 \begin{center}\hspace*{-0.2cm}\includegraphics[width=9.1cm]{img/amateur-2m-band-example}\includegraphics[width=9.1cm]{img/amateur-2m-band-flagged}
-\caption{Strong RFI contamination found in the Amateur-band (2 m, 146 MHz), which falls in the lower band of the MWA EoR observations. These panels show the Stokes I amplitudes. In the right panel, the result of RFI detection is shown with purple. The thin horizontal lines are flagged because they are 1.28-MHz subband edge or centre channels, which are unusable because of aliasing of the poly-phase filter bank and DC offsets, respectively. Two more transmitters are detected in these data: at 150.17 and 156.7 Mhz, which are both one 40 kHz channel wide. These transmitters are not distinguishable in this plot, but are shown in the next figures.}
+\caption{Strong RFI contamination found in the 2 m amateur band (146 MHz), which falls in the lower band of the MWA EoR observations. These panels show the Stokes I amplitudes. In the right panel, the result of RFI detection is shown with purple. The thin horizontal lines are flagged because they are 1.28-MHz subband edge or centre channels, which are unusable because of aliasing of the poly-phase filter bank and DC offsets, respectively. Two more transmitters are detected in these data: at 150.17 and 156.7 Mhz, which are both one 40 kHz channel wide. These transmitters are not distinguishable in this plot, but are shown in the next figures.}
 \label{fig:amateur-2m}
 \end{center}
 \end{figure*}
