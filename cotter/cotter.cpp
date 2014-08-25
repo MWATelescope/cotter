@@ -207,7 +207,7 @@ void Cotter::processAllContiguousBands(size_t timeAvgFactor, size_t freqAvgFacto
 		
 		size_t numberPos = bandFilename.find("%b");
 		if(numberPos == std::string::npos)
-			throw std::runtime_error("When processing observations with a non-contiguous bandwidth, multiple files will be written. Therefore, the output filename should contain a percent symbol followed by the letter b (\"%b\"), e.g. \"HydraObservation-%b.ms\". This will be replaced by the coarse channel numbers (e.g. \"HydraObservation-093-100.ms\".");
+			throw std::runtime_error("When processing observations with a non-contiguous bandwidth, multiple files will be written. Therefore, the output filename should contain a percent symbol followed by the letter b (\"%b\"), e.g. \"HydAObservation-%b.ms\". This will be replaced by the coarse channel numbers (e.g. \"HydAObservation-093-100.ms\".");
 		bandFilename = bandFilename.substr(0, numberPos) + "\?\?\?-\?\?\?" + bandFilename.substr(numberPos+2);
 		for(size_t bandIndex = 0; bandIndex!=contiguousSBRanges.size(); ++bandIndex)
 		{
