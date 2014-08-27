@@ -9,7 +9,7 @@ const uint16_t
 	FlagWriter::VERSION_MINOR = 0,
 	FlagWriter::VERSION_MAJOR = 1;
 
-FlagWriter::FlagWriter(const std::string &filename, int gpsTime, size_t timestepCount, size_t gpuBoxCount, const std::vector<size_t>& subbandToGPUBoxFileIndex) :
+FlagWriter::FlagWriter(const std::string &filename, int gpsTime, size_t timestepCount, size_t sbStart, size_t sbEnd, const std::vector<size_t>& subbandToGPUBoxFileIndex) :
 	_timestepCount(timestepCount),
 	_antennaCount(0),
 	_channelCount(0),
@@ -18,19 +18,20 @@ FlagWriter::FlagWriter(const std::string &filename, int gpsTime, size_t timestep
 //	_rowStride(0),
 	_rowsAdded(0),
 	_rowsWritten(0),
-	_gpuBoxCount(gpuBoxCount),
+	_sbStart(sbStart),
+	_sbEnd(sbEnd),
 	_gpsTime(gpsTime),
-	_files(gpuBoxCount),
+	_files(sbEnd - sbStart),
 	_subbandToGPUBoxFileIndex(subbandToGPUBoxFileIndex)
 {
-	if(gpuBoxCount == 0)
+	if(_sbEnd - _sbStart == 0)
 		throw std::runtime_error("Flagwriter was initialized with zero gpuboxes");
 		
 	size_t numberPos = filename.find("%%");
 	if(numberPos == std::string::npos)
 		throw std::runtime_error("When writing flag files, multiple files will be written. Therefore, the name of the flagfile should contain two percent symbols (\"%%\"), e.g. \"Flagfile%%.mwaf\". These will be replaced by the gpubox number.");
 	std::string name(filename);
-	for(size_t i=0; i!=gpuBoxCount; ++i)
+	for(size_t i=_sbStart; i!=_sbEnd; ++i)
 	{
 		size_t gpuBoxIndex = _subbandToGPUBoxFileIndex[i] + 1;
 		name[numberPos] = (char) ('0' + (gpuBoxIndex/10));
@@ -44,7 +45,7 @@ FlagWriter::FlagWriter(const std::string &filename, int gpsTime, size_t timestep
 		}
   
 		int status = 0;
-		if(fits_create_file(&_files[i], name.c_str(), &status))
+		if(fits_create_file(&_files[i-_sbStart], name.c_str(), &status))
 			throwError(status, "Cannot open flag file " + name + " for writing.");
 	}
 }
@@ -67,7 +68,7 @@ void FlagWriter::writeHeader()
   const char *columnFormats[] = {formatStr.c_str()};
   const char *columnUnits[] = {""};
 	
-	for(size_t i=0; i!=_gpuBoxCount; ++i)
+	for(size_t i=0; i!=_sbEnd-_sbStart; ++i)
 	{
 		int status = 0;
 		long dimensionZero = 0;
@@ -85,7 +86,7 @@ void FlagWriter::writeHeader()
 		updateIntKey(i, "NANTENNA", _antennaCount);
 		updateIntKey(i, "NSCANS", _timestepCount);
 		updateIntKey(i, "NPOLS", 1);
-		updateIntKey(i, "GPUBOXNO", _subbandToGPUBoxFileIndex[i] + 1);
+		updateIntKey(i, "GPUBOXNO", _subbandToGPUBoxFileIndex[i+_sbStart] + 1);
 		
 		fits_update_key(_files[i], TSTRING, "COTVER", const_cast<char*>(COTTER_VERSION_STR), NULL, &status);
 		fits_update_key(_files[i], TSTRING, "COTVDATE", const_cast<char*>(COTTER_VERSION_DATE), NULL, &status);
@@ -100,9 +101,9 @@ void FlagWriter::writeHeader()
 
 void FlagWriter::setStride()
 {
-	if(_channelCount % _gpuBoxCount != 0)
+	if(_channelCount % (_sbEnd-_sbStart) != 0)
 		throw std::runtime_error("Something is wrong: number of channels requested to be written by the flagwriter is not divisable by the gpubox count");
-	_channelsPerGPUBox = _channelCount / _gpuBoxCount;
+	_channelsPerGPUBox = _channelCount / (_sbEnd-_sbStart);
 	
 	// we assume we write only one polarization here
 //	_rowStride = (_channelsPerGPUBox + 7) / 8;
@@ -122,7 +123,7 @@ void FlagWriter::writeRow(size_t antenna1, size_t antenna2, const bool* flags)
 {
 	++_rowsWritten;
 	const size_t baselineCount = _antennaCount * (_antennaCount+1) / 2;
-	for(size_t subband=0; subband != _gpuBoxCount; ++subband)
+	for(size_t subband=_sbStart; subband != _sbEnd; ++subband)
 	{
 		std::vector<unsigned char>::iterator singlePolIter = _singlePolBuffer.begin();
 		for(size_t i=0; i!=_channelsPerGPUBox; ++i)
@@ -139,75 +140,13 @@ void FlagWriter::writeRow(size_t antenna1, size_t antenna2, const bool* flags)
 		}
 		
 		int status = 0;
-		if(_rowsWritten > _hduOffsets[_subbandToGPUBoxFileIndex[subband]] * baselineCount + 1)
+		int offset = _hduOffsets[_subbandToGPUBoxFileIndex[subband]];
+		if(_rowsWritten > offset * baselineCount + 1)
 		{
-			size_t unalignedRow = _rowsWritten - _hduOffsets[_subbandToGPUBoxFileIndex[subband]] * baselineCount;
-			fits_write_col(_files[subband], TBIT, 1 /*colnum*/, unalignedRow /*firstrow*/,
+			size_t unalignedRow = _rowsWritten - offset * baselineCount;
+			fits_write_col(_files[subband-_sbStart], TBIT, 1 /*colnum*/, unalignedRow /*firstrow*/,
 				1 /*firstelem*/, _channelsPerGPUBox /*nelements*/, &_singlePolBuffer[0], &status);
 			checkStatus(status);
-		}
-		
-		//pack(&_packBuffer[0], &_singlePolBuffer[0], _channelsPerGPUBox);
-		//_files[gpuBox]->write(reinterpret_cast<char*>(&_packBuffer[0]), _rowStride);
-	}
-}
-
-void FlagWriter::pack(unsigned char* output, const unsigned char* input, size_t count)
-{
-	const unsigned char* endPtr = input + count;
-	const unsigned char* fullBytesEndPtr = input + (count/8)*8;
-	while(input != fullBytesEndPtr)
-	{
-		*output = *input;
-		++input;
-		*output |= *input << 1;
-		++input;
-		*output |= *input << 2;
-		++input;
-		*output |= *input << 3;
-		++input;
-		*output |= *input << 4;
-		++input;
-		*output |= *input << 5;
-		++input;
-		*output |= *input << 6;
-		++input;
-		*output |= *input << 7;
-		++input;
-		++output;
-	}
-	if(input != endPtr)
-	{
-		*output = *input;
-		++input;
-		if(input != endPtr)
-		{
-			*output |= *input << 1;
-			++input;
-			if(input != endPtr)
-			{
-				*output |= *input << 2;
-				++input;
-				if(input != endPtr)
-				{
-					*output |= *input << 3;
-					++input;
-					if(input != endPtr)
-					{
-						*output |= *input << 4;
-						++input;
-						if(input != endPtr)
-						{
-							*output |= *input << 5;
-							++input;
-							if(input != endPtr)
-							{
-								*output |= *input << 6;
-							}
-						}
-					}
-				}
-			}
 		}
 	}
 }

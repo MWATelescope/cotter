@@ -117,7 +117,7 @@ class Cotter : private UVWCalculater
 		std::auto_ptr<ProgressBar> _progressBar;
 		size_t _baselinesToProcessCount;
 		std::vector<size_t> _subbandOrder;
-		std::vector<int> _hduOffsets;
+		std::vector<int> _hduOffsetsPerGPUBox;
 		std::auto_ptr<class FlagReader> _flagReader;
 		
 		boost::mutex _mutex;

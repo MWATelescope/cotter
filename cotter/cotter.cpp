@@ -201,14 +201,19 @@ void Cotter::processAllContiguousBands(size_t timeAvgFactor, size_t freqAvgFacto
 		
 		std::string bandFilename;
 		if(_defaultFilename)
-			bandFilename = "preprocessed-%b.ms";
+			bandFilename = "preprocessed.ms";
 		else
 			bandFilename = _outputFilename;
 		
-		size_t numberPos = bandFilename.find("%b");
-		if(numberPos == std::string::npos)
-			throw std::runtime_error("When processing observations with a non-contiguous bandwidth, multiple files will be written. Therefore, the output filename should contain a percent symbol followed by the letter b (\"%b\"), e.g. \"HydAObservation-%b.ms\". This will be replaced by the coarse channel numbers (e.g. \"HydAObservation-093-100.ms\".");
-		bandFilename = bandFilename.substr(0, numberPos) + "\?\?\?-\?\?\?" + bandFilename.substr(numberPos+2);
+		size_t dotPos = bandFilename.find(".");
+		if(dotPos == std::string::npos)
+			throw std::runtime_error("Something is wrong with the output filename.");
+		
+		if(_outputFormat != FlagsOutputFormat)
+		{
+			bandFilename = bandFilename.substr(0, dotPos) + "\?\?\?-\?\?\?" + bandFilename.substr(dotPos);
+		}
+		
 		for(size_t bandIndex = 0; bandIndex!=contiguousSBRanges.size(); ++bandIndex)
 		{
 			_curSbStart = contiguousSBRanges[bandIndex].first;
@@ -229,12 +234,15 @@ void Cotter::processAllContiguousBands(size_t timeAvgFactor, size_t freqAvgFacto
 				}
 			}
 			
-			bandFilename[numberPos] = (char) ('0' + (chStartNo/100));
-			bandFilename[numberPos+1] = (char) ('0' + ((chStartNo/10)%10));
-			bandFilename[numberPos+2] = (char) ('0' + (chStartNo%10));
-			bandFilename[numberPos+4] = (char) ('0' + (chEndNo/100));
-			bandFilename[numberPos+5] = (char) ('0' + ((chEndNo/10)%10));
-			bandFilename[numberPos+6] = (char) ('0' + (chEndNo%10));
+			if(_outputFormat != FlagsOutputFormat)
+			{
+				bandFilename[dotPos] = (char) ('0' + (chStartNo/100));
+				bandFilename[dotPos+1] = (char) ('0' + ((chStartNo/10)%10));
+				bandFilename[dotPos+2] = (char) ('0' + (chStartNo%10));
+				bandFilename[dotPos+4] = (char) ('0' + (chEndNo/100));
+				bandFilename[dotPos+5] = (char) ('0' + ((chEndNo/10)%10));
+				bandFilename[dotPos+6] = (char) ('0' + (chEndNo%10));
+			}
 			std::cout << " |=== BAND " << (bandIndex+1) << " / " << contiguousSBRanges.size() << " ===|\n";
 			std::cout << "Writing contiguous band " << (bandIndex+1) << " to " << bandFilename << ".\n";
 			processOneContiguousBand(bandFilename, timeAvgFactor, freqAvgFactor);
@@ -252,7 +260,7 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 				throw std::runtime_error("You have specified time or frequency averaging and outputting only flags: this is incompatible");
 			if(_removeFlaggedAntennae || _removeAutoCorrelations)
 				throw std::runtime_error("Can't prune flagged/auto-correlated antennas when writing flag file");
-			_writer = new FlagWriter(outputFilename, _mwaConfig.HeaderExt().gpsTime, _mwaConfig.Header().nScans, _subbandCount, _subbandOrder);
+			_writer = new FlagWriter(outputFilename, _mwaConfig.HeaderExt().gpsTime, _mwaConfig.Header().nScans, _curSbStart, _curSbEnd, _subbandOrder);
 			break;
 		case FitsOutputFormat:
 			_writer = new ThreadedWriter(new FitsWriter(outputFilename));
@@ -286,7 +294,8 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 		std::swap(qsWriter, _writer);
 		delete qsWriter;
 	}
-		
+	
+	_hduOffsetsPerGPUBox.assign(_subbandCount, 9999);
 	const size_t
 		nChannels = nChannelsInCurSBRange(),
 		antennaCount = _mwaConfig.NAntennae();
@@ -458,7 +467,7 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 		{
 			_progressBar.reset(new ProgressBar("Reading flags"));
 			if(_flagReader.get() == 0)
-				_flagReader.reset(new FlagReader(_flagFileTemplate, _hduOffsets, _subbandCount, _subbandOrder));
+				_flagReader.reset(new FlagReader(_flagFileTemplate, _hduOffsetsPerGPUBox, _subbandOrder, _curSbStart, _curSbEnd));
 			// Create the flag masks
 			for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
 			{
@@ -570,6 +579,9 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	delete _reader;
 	_reader = 0;
 	
+	// Necessary to make sure it is reinitialized in the following cont band:
+	_flagReader.reset();
+	
 	if(_collectStatistics && writerSupportsStatistics) {
 		std::cout << "Writing statistics to measurement set...\n";
 		_flagger->WriteStatistics(*_statistics, outputFilename);
@@ -600,6 +612,17 @@ void Cotter::createReader(const std::vector<std::string>& curFileset)
 	_reader = new GPUFileReader(_mwaConfig.NAntennae(), nChannelsInCurSBRange(), _threadCount);
 	_reader->SetHDUOffsetsChangeCallback(boost::bind(&Cotter::onHDUOffsetsChange, this, _1));
 
+	// Add the gpubox files in the right order
+	for(size_t sb=_curSbStart; sb!=_curSbEnd; ++sb)
+	{
+		size_t fileBelongingToSB = _subbandOrder[sb];
+		_reader->AddFile(curFileset[fileBelongingToSB].c_str());
+	}
+
+	/**
+	 * This is old stuff that still supported 32 T, but the flagwriter doesn't understand 
+	 * the contiguous mode data like this anymore, so always order the files right away.
+	 * 
 	// We need to make the distinction between non-contiguous and contiguous bandwidth mode, because
 	// in 32T data we cannot assume a gpubox file matches a coarse channel. However, 32T
 	// will always be contiguous.
@@ -610,14 +633,14 @@ void Cotter::createReader(const std::vector<std::string>& curFileset)
 			_reader->AddFile(i->c_str());
 	}
 	else {
-		// If we are in non-contiguous mode, add only those required in this freq range and add
+		// If we are in non-contiguous mode, add only those files required in this freq range and add
 		// them in the right order
 		for(size_t sb=_curSbStart; sb!=_curSbEnd; ++sb)
 		{
 			size_t fileBelongingToSB = _subbandOrder[sb];
 			_reader->AddFile(curFileset[fileBelongingToSB].c_str());
 		}
-	}
+	} */
 	
 	_reader->Initialize(_mwaConfig.Header().integrationTime, _doAlign);
 }
@@ -893,7 +916,8 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 		correctConjugated(*imageSet, 7);
 	}
 	
-	reorderSubbands(*imageSet);
+	// Now disabled: already ordered during reading.
+	// reorderSubbands(*imageSet);
 	
 	// Correct cable delay
 	correctCableLength(*imageSet, 0, input2X.cableLenDelta - input1X.cableLenDelta);
@@ -1341,6 +1365,9 @@ void Cotter::initializeWeights(float* outputWeights)
 
 void Cotter::reorderSubbands(ImageSet& imageSet) const
 {
+	// This function is no longer called ; the sub-bands are reordered right
+	// away when reading the gpubox fits files.
+	
 	// Reorder only in contiguous mode; in non-contiguous mode, coarse channels will be
 	// read in the right order by the reader.
 	if(_curSbStart==0 && _curSbEnd == _subbandCount)
@@ -1502,20 +1529,24 @@ void Cotter::writeMWAFieldsToUVFits(const std::string& outputFilename)
 
 void Cotter::onHDUOffsetsChange(const std::vector<int>& newHDUOffsets)
 {
-	if(_hduOffsets.empty())
+	bool isChanged = false;
+	for(size_t sb=_curSbStart; sb!=_curSbEnd; ++sb)
 	{
-		_hduOffsets = newHDUOffsets;
+		size_t gpuboxIndex = _subbandOrder[sb];
+		if(_hduOffsetsPerGPUBox[gpuboxIndex] == 9999) {
+			_hduOffsetsPerGPUBox[gpuboxIndex] = newHDUOffsets[sb-_curSbStart];
+			isChanged = true;
+		}
+		else if(_hduOffsetsPerGPUBox[gpuboxIndex] != newHDUOffsets[sb-_curSbStart])
+			std::cout << "WARNING! The HDU offsets change over time, this should never happen!\n";
+	}
+	
+	if(isChanged) {
 		if(_doAlign)
-			_writer->SetOffsetsPerGPUBox(_hduOffsets);
+			_writer->SetOffsetsPerGPUBox(_hduOffsetsPerGPUBox);
 		else {
 			std::vector<int> zeros(newHDUOffsets.size(), 0);
 			_writer->SetOffsetsPerGPUBox(zeros);
-		}
-	}
-	else {
-		if(newHDUOffsets != _hduOffsets)
-		{
-			std::cout << "WARNING! The HDU offsets change over time, this should never happen!\n";
 		}
 	}
 }

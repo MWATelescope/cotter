@@ -13,12 +13,14 @@
 class FlagReader : private FitsUser
 {
 public:
-	FlagReader(const std::string& templateName, const std::vector<int>& hduOffsets, size_t gpuBoxCount, const std::vector<size_t>& subbandToGPUBoxFileIndex)
+	FlagReader(const std::string& templateName, const std::vector<int>& hduOffsetsPerGPUBox, const std::vector<size_t>& subbandToGPUBoxFileIndex, size_t sbStart, size_t sbEnd)
 		:
-		_hduOffsets(hduOffsets),
-		_files(gpuBoxCount),
-		_colNums(gpuBoxCount),
-		_subbandToGPUBoxFileIndex(subbandToGPUBoxFileIndex)
+		_hduOffsets(hduOffsetsPerGPUBox),
+		_files(sbEnd - sbStart),
+		_colNums(sbEnd - sbStart),
+		_subbandToGPUBoxFileIndex(subbandToGPUBoxFileIndex),
+		_sbStart(sbStart),
+		_sbEnd(sbEnd)
 	{
 		size_t numberPos = templateName.find("%%");
 		if(numberPos == std::string::npos)
@@ -26,20 +28,21 @@ public:
 		std::string name(templateName);
 
 		int status = 0;
-		for(size_t i=0; i!=gpuBoxCount; ++i)
+		for(size_t sb=_sbStart; sb!=_sbEnd; ++sb)
 		{
-			size_t gpuBoxNumber = _subbandToGPUBoxFileIndex[i] + 1;
+			size_t fileIndex = sb - _sbStart;
+			size_t gpuBoxNumber = _subbandToGPUBoxFileIndex[sb] + 1;
 			name[numberPos] = (char) ('0' + (gpuBoxNumber/10));
 			name[numberPos+1] = (char) ('0' + (gpuBoxNumber%10));
-			if(fits_open_file(&_files[i], name.c_str(), READONLY, &status))
+			if(fits_open_file(&_files[fileIndex], name.c_str(), READONLY, &status))
 				throwError(status, std::string("Cannot open file ") + name);
 			
 			int nChans, nAnt, nScans;
-			fits_read_key(_files[i], TINT, "NCHANS", &nChans, 0 /*comment*/, &status);
-			fits_read_key(_files[i], TINT, "NANTENNA", &nAnt, 0 /*comment*/, &status);
-			fits_read_key(_files[i], TINT, "NSCANS", &nScans, 0 /*comment*/, &status);
+			fits_read_key(_files[fileIndex], TINT, "NCHANS", &nChans, 0 /*comment*/, &status);
+			fits_read_key(_files[fileIndex], TINT, "NANTENNA", &nAnt, 0 /*comment*/, &status);
+			fits_read_key(_files[fileIndex], TINT, "NSCANS", &nScans, 0 /*comment*/, &status);
 			checkStatus(status);
-			if(i==0)
+			if(sb==_sbStart)
 			{
 				_channelsPerGPUBox = nChans;
 				_antennaCount = nAnt;
@@ -55,9 +58,9 @@ public:
 			}
 			
 			int hduType;
-			fits_movabs_hdu(_files[i], 2, &hduType, &status);
+			fits_movabs_hdu(_files[fileIndex], 2, &hduType, &status);
 			checkStatus(status);
-			fits_get_colnum(_files[i], CASESEN, const_cast<char*>("FLAGS"), &_colNums[i], &status);
+			fits_get_colnum(_files[fileIndex], CASESEN, const_cast<char*>("FLAGS"), &_colNums[fileIndex], &status);
 			checkStatus(status);
 		}
 	}
@@ -74,14 +77,15 @@ public:
 	void Read(size_t timestep, size_t baseline, bool* bufferStartPos, size_t bufferStride)
 	{
 		int status = 0;
-		for(size_t subband=0; subband!=_files.size(); ++subband)
+		for(size_t subband=_sbStart; subband!=_sbEnd; ++subband)
 		{
+			size_t fileIndex = subband - _sbStart;
 			size_t row = (timestep + _hduOffsets[_subbandToGPUBoxFileIndex[subband]]) * _baselineCount + baseline + 1;
-			fits_read_col(_files[subband], TBIT, /*colnum*/ _colNums[subband], /*firstrow*/ row, /*firstelem*/ 1,
+			fits_read_col(_files[fileIndex], TBIT, /*colnum*/ _colNums[fileIndex], /*firstrow*/ row, /*firstelem*/ 1,
        /*nelements*/ _channelsPerGPUBox, /*(*)nulval*/ 0, &_buffer[0], 0 /*(*)anynul*/, &status);
 			for(size_t ch=0; ch!=_channelsPerGPUBox; ++ch)
 			{
-				size_t channelIndex = ch + subband*_channelsPerGPUBox;
+				size_t channelIndex = ch + fileIndex*_channelsPerGPUBox;
 				bufferStartPos[channelIndex*bufferStride] = bool(_buffer[ch]);
 			}
 		}
@@ -97,6 +101,7 @@ private:
 	std::vector<char> _buffer;
 	const std::vector<size_t> _subbandToGPUBoxFileIndex;
 	size_t _channelsPerGPUBox, _antennaCount, _baselineCount, _scanCount;
+	size_t _sbStart, _sbEnd;
 };
 
 #endif
