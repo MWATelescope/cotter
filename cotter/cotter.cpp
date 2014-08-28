@@ -619,29 +619,6 @@ void Cotter::createReader(const std::vector<std::string>& curFileset)
 		_reader->AddFile(curFileset[fileBelongingToSB].c_str());
 	}
 
-	/**
-	 * This is old stuff that still supported 32 T, but the flagwriter doesn't understand 
-	 * the contiguous mode data like this anymore, so always order the files right away.
-	 * 
-	// We need to make the distinction between non-contiguous and contiguous bandwidth mode, because
-	// in 32T data we cannot assume a gpubox file matches a coarse channel. However, 32T
-	// will always be contiguous.
-	if(_curSbStart==0 && _curSbEnd == _subbandCount)
-	{
-		// We are in contiguous bandwidth mode: just add all files
-		for(std::vector<std::string>::const_iterator i=curFileset.begin(); i!=curFileset.end(); ++i)
-			_reader->AddFile(i->c_str());
-	}
-	else {
-		// If we are in non-contiguous mode, add only those files required in this freq range and add
-		// them in the right order
-		for(size_t sb=_curSbStart; sb!=_curSbEnd; ++sb)
-		{
-			size_t fileBelongingToSB = _subbandOrder[sb];
-			_reader->AddFile(curFileset[fileBelongingToSB].c_str());
-		}
-	} */
-	
 	_reader->Initialize(_mwaConfig.Header().integrationTime, _doAlign);
 }
 
@@ -915,9 +892,6 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 	if(_reader->IsConjugated(antenna1, antenna2, 1, 1)) {
 		correctConjugated(*imageSet, 7);
 	}
-	
-	// Now disabled: already ordered during reading.
-	// reorderSubbands(*imageSet);
 	
 	// Correct cable delay
 	correctCableLength(*imageSet, 0, input2X.cableLenDelta - input1X.cableLenDelta);
@@ -1360,35 +1334,6 @@ void Cotter::initializeWeights(float* outputWeights)
 			for(size_t p=0; p!=4; ++p)
 				outputWeights[(ch+channelsPerSubband*sb)*4 + p] = weightFactor / (_subbandCorrectionFactors[p][ch]);
 		}
-	}
-}
-
-void Cotter::reorderSubbands(ImageSet& imageSet) const
-{
-	// This function is no longer called ; the sub-bands are reordered right
-	// away when reading the gpubox fits files.
-	
-	// Reorder only in contiguous mode; in non-contiguous mode, coarse channels will be
-	// read in the right order by the reader.
-	if(_curSbStart==0 && _curSbEnd == _subbandCount)
-	{
-		float *temp = new float[imageSet.HorizontalStride() * imageSet.Height()];
-		const size_t channelsPerSubband = imageSet.Height()/_subbandCount;
-		const size_t valuesPerSubband = imageSet.HorizontalStride()*channelsPerSubband;
-		for(size_t i=0;i!=8;++i)
-		{
-			memcpy(temp, imageSet.ImageBuffer(i), imageSet.HorizontalStride()*imageSet.Height()*sizeof(float));
-			
-			float *tempBfr = temp;
-			for(size_t sb=0;sb!=_subbandCount;++sb)
-			{
-				float *destBfr = imageSet.ImageBuffer(i) + valuesPerSubband * _subbandOrder[sb];
-				memcpy(destBfr, tempBfr, valuesPerSubband*sizeof(float));
-					
-				tempBfr += valuesPerSubband;
-			}
-		}
-		delete[] temp;
 	}
 }
 
