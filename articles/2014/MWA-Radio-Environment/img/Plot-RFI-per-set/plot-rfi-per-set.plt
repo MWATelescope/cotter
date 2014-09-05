@@ -17,4 +17,4 @@ plot \
 "2014-03-17-gleam.txt" using 2:3 with points lw 0.5 ps 0.5 lt 1 lc 11 title "GLEAM 2014-03-17", \
 "2014-04-10-eor.txt" using 2:3 with points lw 0.5 ps 0.5 lt 1 lc rgb "#8080FF" title "EoR 2014-04-10", \
 "2014-06-18-gleam.txt" using 2:3 with points lw 0.5 ps 0.5 lt 1 lc rgb "#800080" title "GLEAM 2014-06-18", \
-"2014-08-27-Band117.txt" using 2:3 with points lw 0.5 ps 0.5 lt 1 lc rgb "#808080" title "Orbcom 2014-08-27"
+"2014-08-27-Band117.txt" using 2:3 with points lw 0.5 ps 0.5 lt 1 lc rgb "#808080" title "Test 2014-08-27"

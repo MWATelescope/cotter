@@ -110,40 +110,36 @@ One particular issue in implementing \textsc{cotter} is that both the raw correl
 
 \section{Data description}
 
-\begin{table}
-\caption{..}\label{tbl:obs-list}
-\begin{tabular}{|l|l|r|r|}
+\begin{table*}
+\caption{List of observations used in the analyses}\label{tbl:obs-list}
+\begin{tabular}{|l|l|r|r|r|c|}
 \hline
-\textbf{Project} &\textbf{Date} & \textbf{Frequencies (MHz)} & \textbf{Duration} \\
+\textbf{Project} &\textbf{Date} & \textbf{Frequencies (MHz)} & \textbf{Duration} & RFI & DVB? \\
 \hline
-EoR   & 2013-08-23 & 138.9--197.7 & 3h\\
-GLEAM & 2013-08-25 & 72.3--133.8, 138.8--230.8 & 7h \\
-EoR   & 2013-08-26 & 138.9--197.7 & 6h \\
-GLEAM & 2013-11-25 & 72.3--133.8, 138.8--230.8 & 7h \\
-GLEAM & 2014-03-16 & 72.3--133.8, 138.8--230.8 & 7h \\
-EoR   & 2014-04-10 & 138.9--197.7 & 6h \\
-GLEAM & 2013-11-05 & 72.3--133.8, 138.8--230.8 & 7h \\
-EoR   & 2014-02-05 & 138.9--197.7 & 6h\\
-GLEAM & 2014-03-17 & 72.3--133.8, 138.8--230.8 & 7h\\
-GLEAM & 2014-06-18 & 72.3--133.8, 138.8--230.8 & 7h \\
-RFI test&2014-08-27& 131.2--161.9 & 2$\times$8 m \\
+EoR   & 2013-08-23 & 138.8--197.7              & 3h & 0.53\% & ---\\
+GLEAM & 2013-08-25 & 72.3--133.8, 138.8--230.8 & 7h & 0.94\% & no \\
+EoR   & 2013-08-26 & 138.8--197.7              & 6h & 0.81\% & ---\\
+GLEAM & 2013-11-05 & 72.3--133.8, 138.8--230.8 & 7h &  1.3\% & no \\
+GLEAM & 2013-11-25 & 72.3--133.8, 138.8--230.8 & 7h & 0.69\% & no \\
+EoR   & 2014-02-05 & 138.8--197.7              & 6h & 0.54\% & -- \\
+GLEAM & 2014-03-16 & 72.3--133.8, 138.8--230.8 & 7h & 0.79\% & no \\
+GLEAM & 2014-03-17 & 72.3--133.8, 138.8--230.8 & 7h & 1.64\% & yes \\
+EoR   & 2014-04-10 & 138.8--197.7              & 6h & 0.68\% & ---\\
+GLEAM & 2014-06-18 & 72.3--133.8, 138.8--230.8 & 7h & 0.98\% & no \\
+RFI test&2014-08-27& 131.2--161.9     & 2$\times$8 m& 1.85\% & --- \\
 \hline
-\multicolumn{3}{|r|}{\textbf{Total}} & \textbf{63h} \\
+\multicolumn{3}{|r|}{\textbf{Total}} & \textbf{63h} & \textbf{0.97\%} & \textbf{1/6}\\
 \hline
 \end{tabular}
-\end{table}
+\end{table*}
 
 We analyze the RFI in 10 nights of data from two different MWA projects: the MWA EoR project \citep{bowman-science-with-the-mwa-2013} and the GaLactic and ExtrAgalactic MWA (GLEAM) survey (TODO cite Randall). The observations are listen in Table~\ref{tbl:obs-list}.
 
-The MWA EoR project observes primarily in the 138.9--197.7~MHz range, covering the HI 21-cm line with redshift 6.1--9.2. Because the MWA has a 30.72~MHz instantaneous bandwidth, this range has been split up so that each night observes with a central frequency of either 154.2 or 182.4~MHz, with an overlap of 2.6 MHz. In these observations, the beamformers track a selected EoR field such that the sensitivity of the primary beam is maximal towards the field.
+The MWA EoR project observes primarily in the 138.9--197.7~MHz range, covering the HI 21-cm line with redshift 6.1--9.2. Because the MWA has a 30.72~MHz instantaneous bandwidth, this range has been split up so that each night observes with a central frequency of either 154.2 or 182.4~MHz, with an overlap of 2.6 MHz. In these observations, the selected EoR field is tracked byt the primary beam, such that the sensitivity towards the field is maximal.
 
 The GLEAM survey covers 72.3--230.8 MHz split into 5 bands of 30.72 MHz. Because the GLEAM observations are made in drift-scan mode, 5 subsequent snapshots observe all 5 bands.
 
 Both projects avoid the subbands that cover the frequency range 133.8--138.8~MHz, because the ORBCOMM low Earth orbitting (LEO) satellites transmit in these subbands. When these frequencies are observed, the subbands are often so strongly contaminated that it affects imaging sensitivity. For completeness, we include an 16-min observation that covers this frequency range.
-
-\begin{itemize}
- \item List obs dates
-\end{itemize}
 
 \section{Detection results}
 
@@ -158,7 +154,7 @@ Both projects avoid the subbands that cover the frequency range 133.8--138.8~MHz
 \noindent\begin{figure*}
 % obs data: 1061583576, 2013-08-26.
 \begin{center}\hspace*{-0.2cm}\includegraphics[width=9.1cm]{img/150_2_mhz_example}\includegraphics[width=9.1cm]{img/150_2_mhz_flagged}
-\caption{Short RFI burst of 2 s centred on 150.17 MHz}
+\caption{Short RFI burst of 2 s centred on 150.17 MHz. This shows that flagging at high time and frequency resolution is necessary to accurately detect RFI.}
 \label{fig:150_2}
 \end{center}
 \end{figure*}
@@ -166,10 +162,18 @@ Both projects avoid the subbands that cover the frequency range 133.8--138.8~MHz
 \noindent\begin{figure*}
 % obs data: 1061583576, 2013-08-26.
 \begin{center}\hspace*{-0.2cm}\includegraphics[width=9.1cm]{img/156_7_mhz_example}\includegraphics[width=9.1cm]{img/156_7_mhz_flagged}
-\caption{A weakly-observed transmitter centred on 156.66 MHz.}
+\caption{A weakly-observed transmitter centred on 156.66 MHz. Although it is hard to identify in such a time-frequency plot, the same frequency is flagged in several correlations, and it can therefore be assumed this is real RFI. This is an example in which the AOFlagger detect an event that would not be detected by regular thresholding. }
 \label{fig:156_7}
 \end{center}
 \end{figure*}
+
+\noindent\begin{figure}
+% obs data: 1061583576, 2013-08-26.
+\begin{center}\hspace*{-0.2cm}\includegraphics[width=9.1cm]{img/dvb_example}
+\caption{RFI from Digital Video Broadcasting (DVB). Because of its broadband nature, this kind of RFI is not well flagged in the initial AOFlagger step. It is detected by a later step by checking the global statistics. This type of RFI makes most of the 30.72~MHz bandwidth unusable. It is not seen very often (1 out of 6 observed nights). }
+\label{fig:dvb_example}
+\end{center}
+\end{figure}
 
 \noindent\begin{figure*}
 \begin{center}\hspace*{-0.2cm}\includegraphics[width=18cm]{img/plot-stddev-per-set}\vspace{-1cm}
@@ -185,10 +189,19 @@ Both projects avoid the subbands that cover the frequency range 133.8--138.8~MHz
 \end{center}
 \end{figure*}
 
+\noindent\begin{figure*}
+\begin{center}\hspace*{-0.2cm}\includegraphics[width=18cm]{img/2014-03-17-dvb-stddevs}\vspace{-1cm}
+\caption{..}
+\label{fig:rfi-per-set}
+\end{center}
+\end{figure*}
+
 \begin{itemize}
- \item An example of RFI found (e.g., the EoR DVB, 
- \item Percentages per 
+ \item Total RFI statistics
+ \item Percentages + stddev per frequency + discuss
+ \item An example of RFI found (e.g., the EoR DVB, ..)
  \item Performance
+ \item Log N log S Histograms
 \end{itemize}
 
 \section{Discussion}
