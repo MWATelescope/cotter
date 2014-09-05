@@ -111,24 +111,24 @@ One particular issue in implementing \textsc{cotter} is that both the raw correl
 \section{Data description}
 
 \begin{table*}
-\caption{List of observations used in the analyses}\label{tbl:obs-list}
+\caption{List of observations used in the analyses. The RFI column contains the fraction of visibilities that the initial \textsc{aoflagger} run has detected (which includes false positives). The DVB column displays the fraction of visibilities that were unusable because of the presence of DVB signals. Because the DVB frequencies are only observed in GLEAM observations, this fraction is only given for those. }\label{tbl:obs-list}
 \begin{tabular}{|l|l|r|r|r|c|}
 \hline
-\textbf{Project} &\textbf{Date} & \textbf{Frequencies (MHz)} & \textbf{Duration} & RFI & DVB? \\
+\textbf{Project} &\textbf{Date} & \textbf{Frequencies (MHz)} & \textbf{Duration} & RFI & DVB \\
 \hline
 EoR   & 2013-08-23 & 138.8--197.7              & 3h & 0.53\% & ---\\
-GLEAM & 2013-08-25 & 72.3--133.8, 138.8--230.8 & 7h & 0.94\% & no \\
+GLEAM & 2013-08-25 & 72.3--133.8, 138.8--230.8 & 7h & 0.94\% & 0\% \\
 EoR   & 2013-08-26 & 138.8--197.7              & 6h & 0.81\% & ---\\
-GLEAM & 2013-11-05 & 72.3--133.8, 138.8--230.8 & 7h &  1.3\% & no \\
-GLEAM & 2013-11-25 & 72.3--133.8, 138.8--230.8 & 7h & 0.69\% & no \\
+GLEAM & 2013-11-05 & 72.3--133.8, 138.8--230.8 & 7h & 1.30\% & 0\% \\
+GLEAM & 2013-11-25 & 72.3--133.8, 138.8--230.8 & 7h & 0.69\% & 0\% \\
 EoR   & 2014-02-05 & 138.8--197.7              & 6h & 0.54\% & -- \\
-GLEAM & 2014-03-16 & 72.3--133.8, 138.8--230.8 & 7h & 0.79\% & no \\
-GLEAM & 2014-03-17 & 72.3--133.8, 138.8--230.8 & 7h & 1.64\% & yes \\
+GLEAM & 2014-03-16 & 72.3--133.8, 138.8--230.8 & 7h & 0.79\% & 0\% \\
+GLEAM & 2014-03-17 & 72.3--133.8, 138.8--230.8 & 7h & 1.64\% & 3\% \\
 EoR   & 2014-04-10 & 138.8--197.7              & 6h & 0.68\% & ---\\
-GLEAM & 2014-06-18 & 72.3--133.8, 138.8--230.8 & 7h & 0.98\% & no \\
+GLEAM & 2014-06-18 & 72.3--133.8, 138.8--230.8 & 7h & 0.98\% & 0\% \\
 RFI test&2014-08-27& 131.2--161.9     & 2$\times$8 m& 1.85\% & --- \\
 \hline
-\multicolumn{3}{|r|}{\textbf{Total}} & \textbf{63h} & \textbf{0.97\%} & \textbf{1/6}\\
+\multicolumn{3}{|r|}{\textbf{Total}} & \textbf{63h} & \textbf{0.97\%} & \textbf{0.5\%}\\
 \hline
 \end{tabular}
 \end{table*}
@@ -142,6 +142,14 @@ The GLEAM survey covers 72.3--230.8 MHz split into 5 bands of 30.72 MHz. Because
 Both projects avoid the subbands that cover the frequency range 133.8--138.8~MHz, because the ORBCOMM low Earth orbitting (LEO) satellites transmit in these subbands. When these frequencies are observed, the subbands are often so strongly contaminated that it affects imaging sensitivity. For completeness, we include an 16-min observation that covers this frequency range.
 
 \section{Detection results}
+
+\noindent\begin{figure*}
+\begin{center}\hspace*{-0.2cm}\includegraphics[width=18cm]{img/plot-stddev-per-set}\vspace{-1cm}
+\caption{..}
+\label{fig:stddev-per-set}
+\end{center}
+\end{figure*}
+
 
 \noindent\begin{figure*}
 % obs data: 1061583576, 2013-08-26.
@@ -174,13 +182,6 @@ Both projects avoid the subbands that cover the frequency range 133.8--138.8~MHz
 \label{fig:dvb_example}
 \end{center}
 \end{figure}
-
-\noindent\begin{figure*}
-\begin{center}\hspace*{-0.2cm}\includegraphics[width=18cm]{img/plot-stddev-per-set}\vspace{-1cm}
-\caption{..}
-\label{fig:stddev-per-set}
-\end{center}
-\end{figure*}
 
 \noindent\begin{figure*}
 \begin{center}\hspace*{-0.2cm}\includegraphics[width=18cm]{img/plot-rfi-per-set}\vspace{-1cm}
