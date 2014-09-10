@@ -1,4 +1,4 @@
-ALL:	plot-rfi-per-set.pdf plot-stddev-per-set.pdf 2014-03-17-dvb-stddevs.pdf
+ALL:	plot-rfi-per-set.pdf plot-stddev-per-set.pdf 2014-03-17-dvb-stddevs.pdf lognlogs-residual.pdf lognlogs-rfi.pdf
 
 plot-rfi-per-set.pdf:	Plot-RFI-per-set/plot-rfi-per-set.ps
 	ps2pdf Plot-RFI-per-set/plot-rfi-per-set.ps plot-rfi-per-set.pdf
@@ -21,3 +21,15 @@ Plot-StdDev-per-set/plot-stddev-per-set.ps:	Plot-StdDev-per-set/plot-stddev-per-
 
 2014-03-17-dvb-stddevs.ps: dvb-2014-03-17.plt
 	gnuplot dvb-2014-03-17.plt
+
+lognlogs/lognlogs-residual.ps: lognlogs/lognlogs-residual.plt
+	cd lognlogs ;	gnuplot lognlogs-residual.plt ;	cd ..
+
+lognlogs-residual.pdf: lognlogs/lognlogs-residual.ps
+	ps2pdf lognlogs/lognlogs-residual.ps lognlogs-residual.pdf
+
+lognlogs/lognlogs-rfi.ps: lognlogs/lognlogs-rfi.plt
+	cd lognlogs ;	gnuplot lognlogs-rfi.plt ; cd ..
+
+lognlogs-rfi.pdf: lognlogs/lognlogs-rfi.ps
+	ps2pdf lognlogs/lognlogs-rfi.ps lognlogs-rfi.pdf
