@@ -111,7 +111,7 @@ One particular issue in implementing \textsc{cotter} is that both the raw correl
 \section{Data description}
 
 \begin{table*}
-\caption{List of observations used in the analyses. The RFI column contains the fraction of visibilities that the initial \textsc{aoflagger} run has detected (which includes false positives). The DVB column displays the fraction of visibilities that were unusable because of the presence of DVB signals. Because the DVB frequencies are only observed in GLEAM observations, this fraction is only given for those. }\label{tbl:obs-list}
+\caption{List of observations used in the analyses. The RFI column contains the fraction of visibilities that the initial \textsc{aoflagger} run has classified as RFI (which includes false positives). The DVB column displays the fraction of visibilities that were unusable because of the presence of DVB signals, and which the flagger does not flag. Because the DVB frequencies are only observed in GLEAM observations, this fraction is only given for those. }\label{tbl:obs-list}
 \begin{tabular}{|l|l|r|r|r|c|}
 \hline
 \textbf{Project} &\textbf{Date} & \textbf{Frequencies (MHz)} & \textbf{Duration} & RFI & DVB \\
@@ -137,7 +137,7 @@ We analyze the RFI in 10 nights of data from two different MWA projects: the MWA
 
 The MWA EoR project observes primarily in the 138.9--197.7~MHz range, covering the HI 21-cm line with redshift 6.1--9.2. Because the MWA has a 30.72~MHz instantaneous bandwidth, this range has been split up so that each night observes with a central frequency of either 154.2 or 182.4~MHz, with an overlap of 2.6 MHz. In these observations, the selected EoR field is tracked byt the primary beam, such that the sensitivity towards the field is maximal.
 
-The GLEAM survey covers 72.3--230.8 MHz split into 5 bands of 30.72 MHz. Because the GLEAM observations are made in drift-scan mode, 5 subsequent snapshots observe all 5 bands.
+The GLEAM survey covers 72.3--230.8 MHz split into 5 bands of 30.72 MHz. The GLEAM observations are made in drift-scan mode, and the 5 bands are observed one by one in 5 subsequent snapshots.
 
 Both projects avoid the subbands that cover the frequency range 133.8--138.8~MHz, because the ORBCOMM low Earth orbitting (LEO) satellites transmit in these subbands. When these frequencies are observed, the subbands are often so strongly contaminated that it affects imaging sensitivity. For completeness, we include an 16-min observation that covers this frequency range.
 
