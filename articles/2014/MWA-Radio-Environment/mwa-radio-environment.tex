@@ -9,7 +9,7 @@
 \usepackage{color}
 \usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
 \usepackage{xspace}
-%\usepackage{subcaption}
+\usepackage{subcaption}
 
 \usepackage{fixltx2e} % fixes placing of image positions
 
@@ -82,7 +82,7 @@ The interferometric arrays LOFAR, PAPER and the Long Wavelength Array (LWA) are 
 TODO paper structure.
 
 \section{Method}
-RFI detection, often referred to as ``data flagging'', is one of the first steps in the data processing. It is important to perform initial data flagging at high time and frequency resolution, because this increases detection accuracy and decreases the loss of data \citep{lofar-radio-environment}. Consequently, RFI detection has to work on large data volumes, and its computational cost is therefore a concern -- in particular for a many-element arrays. In some projects, simple thresholding is used to mitigate the worst interference, which is computationally cheap but not very accurate. For example, a $3\sigma$ threshold is used for reducing PAPER data in \citet{parsons-paper-eorlimit-2014}. Several observatories or projects have designed pipelines that include more advanced RFI mitigation. Examples of such pipelines include \textsc{aoflagger} \citep{post-correlation-rfi-classification,scale-invariant-rank-operator}, originally designed for LOFAR; \textsc{flagcal} for preprocessing data from the Giant Metrewave Radio Telescope (GMRT; \citealt{prasad-flagcal-2012}); and \textsc{serpent} for preprocessing data from the Multi-Element Radio Linked Interferometer Network (e-MERLIN; \citealt{serpent-peck-2013}). LOFAR's \textsc{aoflagger} has shown to have a good accuracy, is fast and has a library interface, which allows it to be integrated in a pipeline. It is therefore also used for MWA's RFI detection.
+RFI detection, often referred to as ``data flagging'', is one of the first steps in the data processing. It is important to perform initial data flagging at high time and frequency resolution, because this increases detection accuracy and decreases the loss of data \citep{lofar-radio-environment}. Consequently, RFI detection has to work on large data volumes, and its computational cost is therefore a concern -- in particular for a many-element arrays. In some projects, simple thresholding is used to mitigate the worst interference, which is computationally cheap but not very accurate. For example, a $3\sigma$ threshold is used for reducing PAPER data in \citet{parsons-paper-eorlimit-2014}. Several observatories or projects have designed pipelines that include more advanced RFI mitigation. Examples of such pipelines include \textsc{aoflagger} \citep{post-correlation-rfi-classification,scale-invariant-rank-operator}, originally designed for LOFAR; \textsc{flagcal} for preprocessing data from the Giant Metrewave Radio Telescope (GMRT; \citealt{prasad-flagcal-2012}); and \textsc{serpent} for preprocessing data from the Multi-Element Radio Linked Interferometer Network (e-MERLIN; \citealt{serpent-peck-2013}). LOFAR's \textsc{aoflagger} has shown to have a good accuracy, is fast and has a library interface, which allows it to be integrated in a pipeline. It is therefore used for MWA's RFI detection.
 
 \subsection{The AOFlagger}
 
@@ -121,7 +121,7 @@ When time or frequency averaging is requested, \textsc{cotter} averages samples 
 EoR   & 2013-08-23 & 138.8--197.7              & 3h & 0.53\% & ---\\
 GLEAM & 2013-08-25 & 72.3--133.8, 138.8--230.8 & 7h & 0.94\% & 0\% \\
 EoR   & 2013-08-26 & 138.8--197.7              & 6h & 0.81\% & ---\\
-GLEAM & 2013-11-05 & 72.3--133.8, 138.8--230.8 & 7h & 1.30\% & 0\% \\
+GLEAM & 2013-11-05 & 72.3--133.8, 138.8--230.8 & 7h & 1.27\% & 0\% \\
 GLEAM & 2013-11-25 & 72.3--133.8, 138.8--230.8 & 7h & 0.69\% & 0\% \\
 EoR   & 2014-02-05 & 138.8--197.7              & 6h & 0.54\% & -- \\
 GLEAM & 2014-03-16 & 72.3--133.8, 138.8--230.8 & 7h & 0.79\% & 0\% \\
@@ -130,7 +130,7 @@ EoR   & 2014-04-10 & 138.8--197.7              & 6h & 0.68\% & ---\\
 GLEAM & 2014-06-18 & 72.3--133.8, 138.8--230.8 & 7h & 0.98\% & 0\% \\
 RFI test&2014-08-27& 131.2--161.9     & 2$\times$8 m& 1.85\% & --- \\
 \hline
-\multicolumn{3}{|r|}{\textbf{Total}} & \textbf{63h} & \textbf{0.97\%} & \textbf{0.5\%}\\
+\multicolumn{3}{|r|}{\textbf{Total}} & \textbf{63h} & \textbf{...\%} & \textbf{0.5\%}\\
 \hline
 \end{tabular}
 \end{table*}
@@ -141,7 +141,7 @@ The MWA EoR project observes primarily in the 138.9--197.7~MHz range, covering t
 
 The GLEAM survey covers 72.3--230.8 MHz split into 5 bands of 30.72 MHz. The GLEAM observations are made in drift-scan mode, and the 5 bands are observed one by one in 5 subsequent snapshots.
 
-Both projects avoid the subbands that cover the frequency range 133.8--138.8~MHz, because the ORBCOMM low Earth orbitting (LEO) satellites transmit in these subbands. When these frequencies are observed, the subbands are often so strongly contaminated that it affects imaging sensitivity. For completeness, we include an 16-min observation that covers this frequency range.
+Both projects avoid the subbands that cover the frequency range 133.8--138.9~MHz, because the ORBCOMM low Earth orbitting (LEO) satellites transmit in these subbands. When these frequencies are observed, the subbands are often so strongly contaminated that it affects imaging sensitivity. For completeness, we include an 16-min observation that covers this frequency range.
 
 \section{Detection results}
 
@@ -154,27 +154,22 @@ Both projects avoid the subbands that cover the frequency range 133.8--138.8~MHz
 
 
 \noindent\begin{figure*}
+\subcaptionbox{RFI contamination found in the 2 m amateur band (146 MHz).}[\linewidth]{%
 % obs data: 1061583576, 2013-08-26.
-\begin{center}\hspace*{-0.2cm}\includegraphics[width=9.1cm]{img/amateur-2m-band-example}\includegraphics[width=9.1cm]{img/amateur-2m-band-flagged}
-\caption{Strong RFI contamination found in the 2 m amateur band (146 MHz), which falls in the lower band of the MWA EoR observations. These panels show the Stokes I amplitudes. In the right panel, the result of RFI detection is shown with purple. The thin horizontal lines are flagged because they are 1.28-MHz subband edge or centre channels, which are unusable because of aliasing of the poly-phase filter bank and DC offsets, respectively. Two more transmitters are detected in these data: at 150.17 and 156.7 Mhz, which are both one 40 kHz channel wide. These transmitters are not distinguishable in this plot, but are shown in the next figures.}
+\includegraphics[width=9.1cm]{img/amateur-2m-band-example}\includegraphics[width=9.1cm]{img/amateur-2m-band-flagged}
 \label{fig:amateur-2m}
-\end{center}
-\end{figure*}
-
-\noindent\begin{figure*}
+}\\\vspace{3mm}%
+\subcaptionbox{Short RFI burst of 2 s centred on 150.17 MHz. This shows that flagging at high time and frequency resolution is necessary to accurately detect RFI.}[\linewidth]{%
 % obs data: 1061583576, 2013-08-26.
-\begin{center}\hspace*{-0.2cm}\includegraphics[width=9.1cm]{img/150_2_mhz_example}\includegraphics[width=9.1cm]{img/150_2_mhz_flagged}
-\caption{Short RFI burst of 2 s centred on 150.17 MHz. This shows that flagging at high time and frequency resolution is necessary to accurately detect RFI.}
+\includegraphics[width=9.1cm]{img/150_2_mhz_example}\includegraphics[width=9.1cm]{img/150_2_mhz_flagged}
 \label{fig:150_2}
-\end{center}
-\end{figure*}
-
-\noindent\begin{figure*}
+}\\\vspace{3mm}%
+\subcaptionbox{A weakly-observed transmitter centred on 156.66 MHz. This same frequency is flagged in several correlations, and it can therefore be assumed this is real RFI. This is an example in which the AOFlagger detects an event that would not be detected by regular thresholding. }[\linewidth]{%
 % obs data: 1061583576, 2013-08-26.
-\begin{center}\hspace*{-0.2cm}\includegraphics[width=9.1cm]{img/156_7_mhz_example}\includegraphics[width=9.1cm]{img/156_7_mhz_flagged}
-\caption{A weakly-observed transmitter centred on 156.66 MHz. Although it is hard to identify in such a time-frequency plot, the same frequency is flagged in several correlations, and it can therefore be assumed this is real RFI. This is an example in which the AOFlagger detect an event that would not be detected by regular thresholding. }
+\includegraphics[width=9.1cm]{img/156_7_mhz_example}\includegraphics[width=9.1cm]{img/156_7_mhz_flagged}
 \label{fig:156_7}
-\end{center}
+}%
+\caption{Examples of RFI events found in the EoR low band (138.9--197.7 MHz) in a 2-min snapshot with relatively high RFI contamination. These panels show the Stokes I amplitudes. In the right figures, the result of RFI detection is shown with purple. The horizontally flagged lines are flagged because they are 1.28-MHz subband edge or centre channels, which are unusable because of aliasing of the poly-phase filter bank and DC offsets, respectively.}
 \end{figure*}
 
 \noindent\begin{figure}
@@ -203,6 +198,13 @@ Both projects avoid the subbands that cover the frequency range 133.8--138.8~MHz
 \begin{center}\hspace*{-0.2cm}\includegraphics[width=9.1cm]{img/2014-03-17-dvb-stddevs}
 \caption{..}
 \label{fig:dvb-stddevs}
+\end{center}
+\end{figure}
+
+\noindent\begin{figure}
+\begin{center}\hspace*{-0.2cm}\includegraphics[width=9.1cm]{img/rfi-per-band}
+\caption{RFI per subband}
+\label{fig:rfi-per-band}
 \end{center}
 \end{figure}
 
