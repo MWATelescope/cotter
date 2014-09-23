@@ -9,7 +9,7 @@
 \usepackage{color}
 \usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
 \usepackage{xspace}
-%\usepackage{subcaption}
+\usepackage{subcaption}
 
 \usepackage{fixltx2e} % fixes placing of image positions
 
@@ -82,7 +82,7 @@ The interferometric arrays LOFAR, PAPER and the Long Wavelength Array (LWA) are 
 TODO paper structure.
 
 \section{Method}
-RFI detection, often referred to as ``data flagging'', is one of the first steps in the data processing. It is important to perform initial data flagging at high time and frequency resolution, because this increases detection accuracy and decreases the loss of data \citep{lofar-radio-environment}. Consequently, RFI detection has to work on large data volumes, and its computational cost is therefore a concern -- in particular for a many-element arrays. In some projects, simple thresholding is used to mitigate the worst interference, which is computationally cheap but not very accurate. For example, a $3\sigma$ threshold is used for reducing PAPER data in \citet{parsons-paper-eorlimit-2014}. Several observatories or projects have designed pipelines that include more advanced RFI mitigation. Examples of such pipelines include \textsc{aoflagger} \citep{post-correlation-rfi-classification,scale-invariant-rank-operator}, originally designed for LOFAR; \textsc{flagcal} for preprocessing data from the Giant Metrewave Radio Telescope (GMRT; \citealt{prasad-flagcal-2012}); and \textsc{serpent} for preprocessing data from the Multi-Element Radio Linked Interferometer Network (e-MERLIN; \citealt{serpent-peck-2013}). LOFAR's \textsc{aoflagger} has shown to have a good accuracy, is fast and has a library interface, which allows it to be integrated in a pipeline. It is therefore also used for MWA's RFI detection.
+RFI detection, often referred to as ``data flagging'', is one of the first steps in the data processing. It is important to perform initial data flagging at high time and frequency resolution, because this increases detection accuracy and decreases the loss of data \citep{lofar-radio-environment}. Consequently, RFI detection has to work on large data volumes, and its computational cost is therefore a concern -- in particular for a many-element arrays. In some projects, simple thresholding is used to mitigate the worst interference, which is computationally cheap but not very accurate. For example, a $3\sigma$ threshold is used for reducing PAPER data in \citet{parsons-paper-eorlimit-2014}. Several observatories or projects have designed pipelines that include more advanced RFI mitigation. Examples of such pipelines include \textsc{aoflagger} \citep{post-correlation-rfi-classification,scale-invariant-rank-operator}, originally designed for LOFAR; \textsc{flagcal} for preprocessing data from the Giant Metrewave Radio Telescope (GMRT; \citealt{prasad-flagcal-2012}); and \textsc{serpent} for preprocessing data from the Multi-Element Radio Linked Interferometer Network (e-MERLIN; \citealt{serpent-peck-2013}). LOFAR's \textsc{aoflagger} has shown to have a good accuracy, is fast and has a library interface, which allows it to be integrated in a pipeline. It is therefore used for MWA's RFI detection.
 
 \subsection{The AOFlagger}
 
@@ -102,16 +102,18 @@ In this work, \textsc{aoflagger} version 2.6 released on 26 June 2014 is used.
 
 \subsection{\textsc{cotter}: the MWA preprocessing pipeline}
 
-The \textsc{aoflagger} software provides a C++ library\footnote{\url{http://aoflagger.sourceforge.net/doc/api/}} that can be integrated in a pipeline, thereby minimizing reading/writing of data. We have written an MWA-specific preprocessing pipeline named \textsc{cotter} that uses the \textsc{aoflagger} library for RFI detection. Additionally, \textsc{cotter} performs the following steps: it converts the raw correlator files into \textsc{casa} measurement sets or uvfits files; applies bandpass gain corrections; corrects the phases for varying cable lengths; calculates the $uvw$-coordinates; applies phase tracking to the desired sky coordinates; flags samples from the correlator that are missing or incorrect; and allows averaging the observation in frequency or time direction to reduce the data volume. It also collects some statistics and writes these into a measurement set with the same format as used by LOFAR\footnote{Described in ``MeasurementSet description for LOFAR version 2.08'' by Schoenmakers \& Renting.}. Various tools are available to analyse these statistics, e.g. the \textsc{aoqplot} tool that is part of the \textsc{aoflagger} software can plot these over various dimensions in an interactive manner.
+The \textsc{aoflagger} software provides a C++ library\footnote{\url{http://aoflagger.sourceforge.net/doc/api/}} that can be integrated in a pipeline, thereby minimizing reading/writing of data. We have written an MWA-specific preprocessing pipeline named \textsc{cotter} that uses the \textsc{aoflagger} library for RFI detection. Additionally, \textsc{cotter} performs the following steps: it converts the raw correlator files into \textsc{casa} measurement sets or uvfits files; applies bandpass gain corrections; corrects the phases for varying cable lengths; calculates the $uvw$-coordinates; applies phase tracking to the desired sky coordinates; flags samples from the correlator that are missing or incorrect; and allows averaging the observation in frequency or time direction to reduce the data volume. It also collects some statistics and writes these into a measurement set using the LOFAR quality statistics format\footnote{Described in ``MeasurementSet description for LOFAR version 2.08'' by Schoenmakers \& Renting.}. Various tools are available to analyse these statistics, e.g. the \textsc{aoqplot} tool that is part of the \textsc{aoflagger} software can plot the statistics over various dimensions in an interactive manner.
 
 MWA observations are split into snapshots of a few minutes by the correlator. The MWA archive stores the raw correlator outputs for every snapshot as an observation that can be referenced by its observation ID. For more details about the correlator, see TODO fix reference Ord et al. (2014). Currently, the \textsc{cotter} preprocessing pipeline is ran by the scientist that calibrates and images the data. Once the scientist has downloaded the raw files for a given observation ID, there are various ways of processing MWA data. For imaging MWA data with the Real-Time System (RTS; \citealt{rts-mwa-2008}), \textsc{cotter} is ran in a special mode such that it only flags the data, and does not convert the raw correlator files. After running \textsc{cotter}, the raw files and a flag mask are given as input to the RTS. For more traditional data processing with e.g. \textsc{casa} or \textsc{miriad}, the \textsc{cotter} output is set to either the \textsc{casa} or uvfits format. The output is then directly readable by the astronomical software.
 
 One particular issue in implementing \textsc{cotter} is that both the raw correlator files and the desired output files are ordered in time, but flagging is done baseline by baseline. The \textsc{sumthreshold} technique and the scale-invariant rank operator that are used by the flagging strategy, use statistics over large time and frequency ranges. Therefore, accuracy is improved when the time-frequency flagging intervals are as large as possible. However, a typical snapshot is about 50 GB in size, and without increasing reading and writing, it requires thus 50 GB of memory to perform flagging on the full data. When less memory is available, \textsc{cotter} will split the observation in different time chunks and flags those independently. The \textsc{ndppp} software used by LOFAR (TODO reference?) uses a similar partitioning of data to overcome the time-ordering problem. Partitioning the data has the undesirable behaviour that executing \textsc{cotter} on a low-memory machine decreases its flagging accuracy. Because not all astronomers might have easily access to high-memory machines, a platform with sufficient memory has been setup that pre-runs \textsc{cotter} on all observations.
 
+When time or frequency averaging is requested, \textsc{cotter} averages samples together that have not been flagged. When all input samples are flagged, the average of all input visibilities is stored into the the output sample, and the output sample is flagged. This method makes it possible to superficially analyse flagged samples in the output, even though information is lost in the averaging. \textsc{cotter} stores a weight for each visibility in the output file, which is scaled to the number of unflagged input samples that were used for the output sample. Because of this, when no averaging is requested, the output is 50\% larger than the input (one extra float per complex float visibility). In practice, most observations are recorded at a resolution of 0.5 s and 40 kHz, and averaged to a resolution of 2--4 s and 40--80 kHz to reduce the data volume. This does not significantly cause any time or bandwidth decorrelation up to the first beam nul. \textsc{cotter} performs the phase shifting and cable delay corrections before averaging, and recalculates the $uvw$ values for the central time and frequency of the output sample. This helps to prevent time/frequency decorrelation.
+
 \section{Data description}
 
 \begin{table*}
-\caption{List of observations used in the analyses. The RFI column contains the fraction of visibilities that the initial \textsc{aoflagger} run has detected (which includes false positives). The DVB column displays the fraction of visibilities that were unusable because of the presence of DVB signals. Because the DVB frequencies are only observed in GLEAM observations, this fraction is only given for those. }\label{tbl:obs-list}
+\caption{List of observations used in the analyses. The RFI column contains the fraction of visibilities that the initial \textsc{aoflagger} run has classified as RFI (which includes false positives). The DVB column displays the fraction of visibilities that were unusable because of the presence of DVB signals, and which the flagger does not flag. Because the DVB frequencies are only observed in GLEAM observations, this fraction is only given for those. }\label{tbl:obs-list}
 \begin{tabular}{|l|l|r|r|r|c|}
 \hline
 \textbf{Project} &\textbf{Date} & \textbf{Frequencies (MHz)} & \textbf{Duration} & RFI & DVB \\
@@ -119,7 +121,7 @@ One particular issue in implementing \textsc{cotter} is that both the raw correl
 EoR   & 2013-08-23 & 138.8--197.7              & 3h & 0.53\% & ---\\
 GLEAM & 2013-08-25 & 72.3--133.8, 138.8--230.8 & 7h & 0.94\% & 0\% \\
 EoR   & 2013-08-26 & 138.8--197.7              & 6h & 0.81\% & ---\\
-GLEAM & 2013-11-05 & 72.3--133.8, 138.8--230.8 & 7h & 1.30\% & 0\% \\
+GLEAM & 2013-11-05 & 72.3--133.8, 138.8--230.8 & 7h & 1.27\% & 0\% \\
 GLEAM & 2013-11-25 & 72.3--133.8, 138.8--230.8 & 7h & 0.69\% & 0\% \\
 EoR   & 2014-02-05 & 138.8--197.7              & 6h & 0.54\% & -- \\
 GLEAM & 2014-03-16 & 72.3--133.8, 138.8--230.8 & 7h & 0.79\% & 0\% \\
@@ -128,18 +130,18 @@ EoR   & 2014-04-10 & 138.8--197.7              & 6h & 0.68\% & ---\\
 GLEAM & 2014-06-18 & 72.3--133.8, 138.8--230.8 & 7h & 0.98\% & 0\% \\
 RFI test&2014-08-27& 131.2--161.9     & 2$\times$8 m& 1.85\% & --- \\
 \hline
-\multicolumn{3}{|r|}{\textbf{Total}} & \textbf{63h} & \textbf{0.97\%} & \textbf{0.5\%}\\
+\multicolumn{3}{|r|}{\textbf{Total}} & \textbf{63h} & \textbf{...\%} & \textbf{0.5\%}\\
 \hline
 \end{tabular}
 \end{table*}
 
 We analyze the RFI in 10 nights of data from two different MWA projects: the MWA EoR project \citep{bowman-science-with-the-mwa-2013} and the GaLactic and ExtrAgalactic MWA (GLEAM) survey (TODO cite Randall). The observations are listen in Table~\ref{tbl:obs-list}.
 
-The MWA EoR project observes primarily in the 138.9--197.7~MHz range, covering the HI 21-cm line with redshift 6.1--9.2. Because the MWA has a 30.72~MHz instantaneous bandwidth, this range has been split up so that each night observes with a central frequency of either 154.2 or 182.4~MHz, with an overlap of 2.6 MHz. In these observations, the selected EoR field is tracked byt the primary beam, such that the sensitivity towards the field is maximal.
+The MWA EoR project observes primarily in the 138.9--197.7~MHz range, covering the HI 21-cm line with redshift 6.1--9.2. Because the MWA has a 30.72~MHz instantaneous bandwidth, this range has been split up so that each night observes with a central frequency of either 154.2 or 182.4~MHz, with an overlap of 2.6 MHz. In these observations, the selected EoR field is tracked by the primary beam, such that the sensitivity towards the field is maximal.
 
-The GLEAM survey covers 72.3--230.8 MHz split into 5 bands of 30.72 MHz. Because the GLEAM observations are made in drift-scan mode, 5 subsequent snapshots observe all 5 bands.
+The GLEAM survey covers 72.3--230.8 MHz split into 5 bands of 30.72 MHz. The GLEAM observations are made in drift-scan mode, and the 5 bands are observed one by one in 5 subsequent snapshots.
 
-Both projects avoid the subbands that cover the frequency range 133.8--138.8~MHz, because the ORBCOMM low Earth orbitting (LEO) satellites transmit in these subbands. When these frequencies are observed, the subbands are often so strongly contaminated that it affects imaging sensitivity. For completeness, we include an 16-min observation that covers this frequency range.
+Both projects avoid the subbands that cover the frequency range 133.8--138.9~MHz, because the ORBCOMM low Earth orbitting (LEO) satellites transmit in these subbands. When these frequencies are observed, the subbands are often so strongly contaminated that it affects imaging sensitivity. For completeness, we include an 16-min observation that covers this frequency range.
 
 \section{Detection results}
 
@@ -152,27 +154,22 @@ Both projects avoid the subbands that cover the frequency range 133.8--138.8~MHz
 
 
 \noindent\begin{figure*}
+\subcaptionbox{RFI contamination found in the 2 m amateur band (146 MHz).}[\linewidth]{%
 % obs data: 1061583576, 2013-08-26.
-\begin{center}\hspace*{-0.2cm}\includegraphics[width=9.1cm]{img/amateur-2m-band-example}\includegraphics[width=9.1cm]{img/amateur-2m-band-flagged}
-\caption{Strong RFI contamination found in the 2 m amateur band (146 MHz), which falls in the lower band of the MWA EoR observations. These panels show the Stokes I amplitudes. In the right panel, the result of RFI detection is shown with purple. The thin horizontal lines are flagged because they are 1.28-MHz subband edge or centre channels, which are unusable because of aliasing of the poly-phase filter bank and DC offsets, respectively. Two more transmitters are detected in these data: at 150.17 and 156.7 Mhz, which are both one 40 kHz channel wide. These transmitters are not distinguishable in this plot, but are shown in the next figures.}
+\includegraphics[width=9.1cm]{img/amateur-2m-band-example}\includegraphics[width=9.1cm]{img/amateur-2m-band-flagged}
 \label{fig:amateur-2m}
-\end{center}
-\end{figure*}
-
-\noindent\begin{figure*}
+}\\\vspace{3mm}%
+\subcaptionbox{Short RFI burst of 2 s centred on 150.17 MHz. This shows that flagging at high time and frequency resolution is necessary to accurately detect RFI.}[\linewidth]{%
 % obs data: 1061583576, 2013-08-26.
-\begin{center}\hspace*{-0.2cm}\includegraphics[width=9.1cm]{img/150_2_mhz_example}\includegraphics[width=9.1cm]{img/150_2_mhz_flagged}
-\caption{Short RFI burst of 2 s centred on 150.17 MHz. This shows that flagging at high time and frequency resolution is necessary to accurately detect RFI.}
+\includegraphics[width=9.1cm]{img/150_2_mhz_example}\includegraphics[width=9.1cm]{img/150_2_mhz_flagged}
 \label{fig:150_2}
-\end{center}
-\end{figure*}
-
-\noindent\begin{figure*}
+}\\\vspace{3mm}%
+\subcaptionbox{A weakly-observed transmitter centred on 156.66 MHz. This same frequency is flagged in several correlations, and it can therefore be assumed this is real RFI. This is an example in which the AOFlagger detects an event that would not be detected by regular thresholding. }[\linewidth]{%
 % obs data: 1061583576, 2013-08-26.
-\begin{center}\hspace*{-0.2cm}\includegraphics[width=9.1cm]{img/156_7_mhz_example}\includegraphics[width=9.1cm]{img/156_7_mhz_flagged}
-\caption{A weakly-observed transmitter centred on 156.66 MHz. Although it is hard to identify in such a time-frequency plot, the same frequency is flagged in several correlations, and it can therefore be assumed this is real RFI. This is an example in which the AOFlagger detect an event that would not be detected by regular thresholding. }
+\includegraphics[width=9.1cm]{img/156_7_mhz_example}\includegraphics[width=9.1cm]{img/156_7_mhz_flagged}
 \label{fig:156_7}
-\end{center}
+}%
+\caption{Examples of RFI events found in the EoR low band (138.9--197.7 MHz) in a 2-min snapshot with relatively high RFI contamination. These panels show the Stokes I amplitudes. In the right figures, the result of RFI detection is shown with purple. The horizontally flagged lines are flagged because they are 1.28-MHz subband edge or centre channels, which are unusable because of aliasing of the poly-phase filter bank and DC offsets, respectively.}
 \end{figure*}
 
 \noindent\begin{figure}
@@ -184,18 +181,48 @@ Both projects avoid the subbands that cover the frequency range 133.8--138.8~MHz
 \end{figure}
 
 \noindent\begin{figure*}
-\begin{center}\hspace*{-0.2cm}\includegraphics[width=18cm]{img/plot-rfi-per-set}\vspace{-1cm}
+\begin{center}\hspace*{-0.2cm}\includegraphics[width=18cm]{img/plot-rfi-per-set-eor}\vspace{-1cm}
 \caption{..}
-\label{fig:rfi-per-set}
+\label{fig:rfi-per-set-eor}
 \end{center}
 \end{figure*}
 
 \noindent\begin{figure*}
-\begin{center}\hspace*{-0.2cm}\includegraphics[width=18cm]{img/2014-03-17-dvb-stddevs}\vspace{-1cm}
+\begin{center}\hspace*{-0.2cm}\includegraphics[width=18cm]{img/plot-rfi-per-set-gleam}\vspace{-1cm}
 \caption{..}
-\label{fig:rfi-per-set}
+\label{fig:rfi-per-set-gleam}
 \end{center}
 \end{figure*}
+
+\noindent\begin{figure}
+\begin{center}\hspace*{-0.2cm}\includegraphics[width=9.1cm]{img/2014-03-17-dvb-stddevs}
+\caption{..}
+\label{fig:dvb-stddevs}
+\end{center}
+\end{figure}
+
+\noindent\begin{figure}
+\begin{center}\hspace*{-0.2cm}\includegraphics[width=9.1cm]{img/rfi-per-band}
+\caption{RFI per subband}
+\label{fig:rfi-per-band}
+\end{center}
+\end{figure}
+
+\noindent\begin{figure}
+\begin{center}\hspace*{-0.2cm}\includegraphics[width=9.1cm]{img/lognlogs-residual}
+\caption{Log N log S for residuals}
+\label{fig:lognlogs-residuals}
+\end{center}
+\end{figure}
+
+
+\noindent\begin{figure}
+\begin{center}\hspace*{-0.2cm}\includegraphics[width=9.1cm]{img/lognlogs-rfi}
+\caption{Log N log S for RFI }
+\label{fig:lognlogs-rfi}
+\end{center}
+\end{figure}
+
 
 \begin{itemize}
  \item Total RFI statistics
