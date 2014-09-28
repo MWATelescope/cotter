@@ -7,5 +7,6 @@ set key top right vertical maxrows 7
 set xlabel "Frequency (MHz)"
 set ylabel "RFI ratio (%)"
 set style data boxes
+set style fill solid border lc rgb "#000000"
 plot \
-"rfi-per-band-data.txt" using 2:3 lc rgb "#000000" title ""
+"rfi-per-band-data.txt" using 2:3 lc rgb "#8080FF" title ""
