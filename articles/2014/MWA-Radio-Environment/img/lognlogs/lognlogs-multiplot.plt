@@ -1,0 +1,37 @@
+#set terminal postscript portrait enhanced color font 'Helvetica,16'
+set terminal postscript enhanced color font 'Helvetica,16'
+set xrange [0:]
+set yrange [-4:11]
+set output "lognlogs-multiplot.ps"
+set key out top center
+set ylabel "Count (log N)"
+
+set tmargin 5
+set bmargin 3
+set lmargin 0
+set rmargin 0
+unset xtics
+
+set multiplot layout 1,4 title "" offset 0.15,0
+
+set xtics nomirror (0,1,2,3,4,5)
+set title "GLEAM"
+plot \
+"GLEAM-nonrfi.txt" using 2:3 with points lw 0.5 ps 0.5 lt 1 lc rgb "#00A000" title "", \
+"GLEAM-rfi.txt" using 2:3 with points lw 0.5 ps 0.5 lt 1 lc rgb "#A00000" title ""
+set ylabel ""
+set lmargin 0
+set xlabel "Power (log S)"
+unset ytics
+set title "EoR high"
+plot \
+"EoR-high-nonrfi.txt" using 2:3 with points lw 0.5 ps 0.5 lt 1 lc rgb "#00A000" title "", \
+"EoR-high-rfi.txt" using 2:3 with points lw 0.5 ps 0.5 lt 1 lc rgb "#A00000" title ""
+set title "EoR low"
+unset xlabel
+plot \
+"EoR-low-nonrfi.txt" using 2:3 with points lw 0.5 ps 0.5 lt 1 lc rgb "#00A000" title "", \
+"EoR-low-rfi.txt" using 2:3 with points lw 0.5 ps 0.5 lt 1 lc rgb "#A00000" title "", \
+NaN with lines lw 2 lt 1 lc rgb "#A00000" title "Detected as RFI", \
+NaN with lines lw 2 lt 1 lc rgb "#00A000" title "Residual"
+
