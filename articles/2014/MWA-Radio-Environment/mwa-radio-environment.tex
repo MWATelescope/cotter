@@ -1,17 +1,16 @@
-\documentclass[useAMS,usenatbib]{mn2e}
-\usepackage[utf8]{inputenc}
+\documentclass{pasa}
+\bibliographystyle{apj}
+%\usepackage[utf8]{inputenc}
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{amssymb}
-%\usepackage[font={it},labelfont={bf}]{caption}
-%\usepackage{units}
 \usepackage{times}
 \usepackage{color}
 \usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
-\usepackage{xspace}
+%\usepackage{xspace}
 \usepackage{subcaption}
 
-\usepackage{fixltx2e} % fixes placing of image positions
+%\usepackage{fixltx2e} % fixes placing of image positions
 
 \definecolor{customhdrcolor}{rgb}{0.0,0.0,0.0}
 \definecolor{customcitecolor}{rgb}{0.0,0.5,0.75}
@@ -24,9 +23,7 @@
                /Keywords   (instrumentation: interferometers;methods: observational;techniques: interferometric;radio continuum: general)
         }
 \else\usepackage{graphics}\fi
-
-\setlength{\pdfpageheight}{\paperheight}
-\setlength{\pdfpagewidth}{\paperwidth}
+\usepackage{graphics}
 
 \newcommand{\editmark}[1]{#1}
 %\newcommand{\editmark}[1]{{\color{red}{\textbf{#1}}}}
@@ -47,7 +44,7 @@
 \author[A.~R.~Offringa et al.]{A.~R.~Offringa$^{1,2}$\thanks{\editmark{Corresponding author.} E-mail: \url{andre.offringa@anu.edu.au}},
 R.~B.~Wayth\Curtin$^,$\CAASTRO,
 N.~Hurley-Walker\Curtin,
-D.~Kaplan\Curtin,
+D.~Kaplan...,
 ... , %\newauthor
 builders list
 \\
@@ -55,15 +52,22 @@ builders list
 \CAASTRO{}ARC Centre of Excellence for All-sky Astrophysics (CAASTRO), Australian National University, Canberra, ACT 2611, Australia \\
 \Curtin{}International Centre for Radio Astronomy Research, Curtin University, Bentley, WA 6102, Australia\\
 }
+\jid{PASA}
+\doi{10.1017/pas.\the\year.xxx}
+\jyear{\the\year}
+%Citations may be made using the natbib commands \citet{},\citep{} etc.
+\usepackage[authoryear]{natbib}
+\bibpunct{(}{)}{;}{a}{}{,}
+\setlength{\bibsep}{0.3mm}
 
 \begin{document}
+\maketitle
 
-\date{Accepted TODO. Received TODO; in original form TODO}
-\pagerange{\pageref{firstpage}--\pageref{lastpage}}
-\pubyear{2014}
+%\date{Accepted TODO. Received TODO; in original form TODO}
+%\pagerange{\pageref{firstpage}--\pageref{lastpage}}
+%\pubyear{2014}
 
 \label{firstpage}
-\maketitle
 
 \begin{abstract}
 ...
@@ -105,7 +109,8 @@ In this work, \textsc{aoflagger} version 2.6 released on 26 June 2014 is used.
 
 \subsection{\textsc{cotter}: the MWA preprocessing pipeline}
 
-The \textsc{aoflagger} software provides a C++ library\footnote{\url{http://aoflagger.sourceforge.net/doc/api/}} that can be integrated in a pipeline, thereby minimizing reading/writing of data. We have written an MWA-specific preprocessing pipeline named \textsc{cotter} that uses the \textsc{aoflagger} library for RFI detection. Additionally, \textsc{cotter} performs the following steps: it converts the raw correlator files into \textsc{casa} measurement sets or uvfits files; applies bandpass gain corrections; corrects the phases for varying cable lengths; calculates the $uvw$-coordinates; applies phase tracking to the desired sky coordinates; flags samples from the correlator that are missing or incorrect; and allows averaging the observation in frequency or time direction to reduce the data volume. It also collects various statistics and writes these into a measurement set using the LOFAR quality statistics format\footnote{Described in ``MeasurementSet description for LOFAR version 2.08'' by Schoenmakers \& Renting.}. Various tools are available to analyse these statistics, e.g. the \textsc{aoqplot} tool that is part of the \textsc{aoflagger} software can plot the statistics over various dimensions in an interactive manner.
+The \textsc{aoflagger} software provides a C++ library%TODO \footnote{\url{http://aoflagger.sourceforge.net/doc/api/}}
+that can be integrated in a pipeline, thereby minimizing reading/writing of data. We have written an MWA-specific preprocessing pipeline named \textsc{cotter} that uses the \textsc{aoflagger} library for RFI detection. Additionally, \textsc{cotter} performs the following steps: it converts the raw correlator files into \textsc{casa} measurement sets or uvfits files; applies bandpass gain corrections; corrects the phases for varying cable lengths; calculates the $uvw$-coordinates; applies phase tracking to the desired sky coordinates; flags samples from the correlator that are missing or incorrect; and allows averaging the observation in frequency or time direction to reduce the data volume. It also collects various statistics and writes these into a measurement set using the LOFAR quality statistics format\footnote{Described in ``MeasurementSet description for LOFAR version 2.08'' by Schoenmakers \& Renting.}. Various tools are available to analyse these statistics, e.g. the \textsc{aoqplot} tool that is part of the \textsc{aoflagger} software can plot the statistics over various dimensions in an interactive manner.
 
 MWA observations are split into snapshots of a few minutes by the correlator. The MWA archive stores the raw correlator outputs for every snapshot as an observation that can be referenced by its observation ID. For more details about the correlator, see TODO fix reference Ord et al. (2014). Currently, the \textsc{cotter} preprocessing pipeline is ran by the scientist that calibrates and images the data. Once the scientist has downloaded the raw files for a given observation ID, there are various ways of processing MWA data. For imaging MWA data with the Real-Time System (RTS; \citealt{rts-mwa-2008}), \textsc{cotter} is ran in a special mode such that it only flags the data, and does not convert the raw correlator files. After running \textsc{cotter}, the raw files and a flag mask are given as input to the RTS. For more traditional data processing with e.g. \textsc{casa} or \textsc{miriad}, the \textsc{cotter} output is set to either the \textsc{casa} or uvfits format. The output is then directly readable by the astronomical software.
 
@@ -133,20 +138,21 @@ EoR high& 2014-04-10 & 167.0--197.7              & 6h & 0.68\% & ---\\
 GLEAM & 2014-06-18 & 72.3--133.8, 138.9--230.8 & 7h & 0.98\% & 0\% \\
 RFI test&2014-08-27& 131.2--161.9     & 2$\times$8 m& 1.85\% & --- \\
 \hline
-\multicolumn{3}{|r|}{\textbf{Total}} & \textbf{63h} & \textbf{...\%} & \textbf{0.5\%}\\
+\multicolumn{3}{|r|}{\textbf{Total}} & \textbf{63h} & \textbf{0.96\%} & \textbf{0.5\%}\\
 \hline
 \end{tabular}
 \end{table*}
 
 We analyze the RFI in 10 nights of data from two different MWA projects: the MWA EoR project \citep{bowman-science-with-the-mwa-2013} and the GaLactic and ExtrAgalactic MWA (GLEAM) survey (TODO cite Randall). The observations are listen in Table~\ref{tbl:obs-list}.
 
-The MWA EoR project observes primarily in the 138.9--197.7~MHz range, covering the HI 21-cm line with redshift 6.1--9.2. Because the MWA has a 30.72~MHz instantaneous bandwidth, this range has been split up so that each night observes with a central frequency of either 154.2 or 182.4~MHz, with an overlap of 2.6 MHz. In these observations, the selected EoR field is tracked by the primary beam, such that the sensitivity towards the field is maximal.
-
-The GLEAM survey covers 72.3--230.8 MHz split into 5 bands of 30.72 MHz. The GLEAM observations are made in drift-scan mode, and the 5 bands are observed one by one in 5 subsequent snapshots.
+The MWA EoR project observes primarily in the 138.9--197.7~MHz range, covering the HI 21-cm line with redshift 6.1--9.2. Because the MWA has a 30.72~MHz instantaneous bandwidth, this range has been split up so that each night observes with a central frequency of either 154.2 or 182.4~MHz, with an overlap of 2.6 MHz. In these observations, the selected EoR field is tracked by the primary beam, such that the sensitivity towards the field is maximal. The GLEAM survey covers 72.3--230.8 MHz split into 5 bands of 30.72 MHz. The GLEAM observations are made in drift-scan mode, and the 5 bands are observed one by one in 5 subsequent snapshots.
 
 Both projects avoid the subbands that cover the frequency range 133.8--138.9~MHz, because the ORBCOMM low Earth orbitting (LEO) satellites transmit in these subbands. When these frequencies are observed, the subbands are often so strongly contaminated that it affects imaging sensitivity. For completeness, we include a 16-min observation that covers this frequency range.
 
+The poly-phase filter bank that performs the first separation into subbands, introduces a 1.28~MHz periodic spectral signature. This shape is e.g. visible in Fig.~\ref{fig:bandpass}. The poly-phase filter band-pass shape is hard to take out completely, because the filters are imperfect and each sub-band is effected by leakage from signals in its adjacent sub-bands. This causes a direction-dependent band-pass. To solve this, the bordering 80~kHz on both sides of a 1.28~Mhz subband are normally flagged by \textsc{cotter}. This implies that in normal observations, 13\% of the data is lost due to the poly-phase filter. However, while 80~kHz is sufficient to prevent imaging artefacts, we noticed that the RFI statistics were still slightly biased by the edge channels. Therefore, for the analyses in this paper we increase the number of removed edge channels to 200~kHz on either side of each 1.28~MHz sub-band, or 32\% in total.
+
 \section{Detection results}
+The second last column of Table~\ref{tbl:obs-list} list for each of the observation nights the ratio of samples that were classified as RFI by the \textsc{aoflagger}. 
 
 \noindent\begin{figure*}
 \begin{center}\hspace*{-0.2cm}\includegraphics[width=18cm]{img/plot-stddev-per-set}\vspace{-1cm}
@@ -245,7 +251,6 @@ This scientific work makes use of the Murchison Radio-astronomy Observatory, ope
 % In bibliography, it should be written with lowercase, as in ``de Bruyn''
 \DeclareRobustCommand{\TUSSEN}[3]{#3}
 
-\bibliographystyle{mn2e}
 \bibliography{references}
 
 \label{lastpage}
