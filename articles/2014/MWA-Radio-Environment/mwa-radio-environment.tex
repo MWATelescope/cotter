@@ -91,11 +91,11 @@ TODO paper structure.
 \section{Method}
 RFI detection, often referred to as ``data flagging'', is one of the first steps in the data processing. It is important to perform initial data flagging at high time and frequency resolution, because this increases detection accuracy and decreases the loss of data \citep{lofar-radio-environment}. Consequently, RFI detection has to work on large data volumes, and its computational cost is therefore a concern -- in particular for many-element arrays. In some projects, simple thresholding is used to mitigate the worst interference, which is computationally cheap but not very accurate. For example, a $3\sigma$ threshold is used for reducing PAPER data in \citet{parsons-paper-eorlimit-2014}. Several observatories or projects have designed pipelines that include more advanced RFI mitigation. Examples of such pipelines include \textsc{aoflagger} \citep{post-correlation-rfi-classification,scale-invariant-rank-operator}, originally designed for LOFAR; \textsc{flagcal} for preprocessing data from the Giant Metrewave Radio Telescope (GMRT; \citealt{prasad-flagcal-2012}); and \textsc{serpent} for preprocessing data from the Multi-Element Radio Linked Interferometer Network (e-MERLIN; \citealt{serpent-peck-2013}). For RFI detection in MWA observations, LOFAR's \textsc{aoflagger} is used. This flagger has shown to have a good accuracy, is fast and has a library interface, which allows it to be integrated in a pipeline.
 
-\subsection{The AOFlagger}
+\subsection{The \textsc{aoflagger} RFI detector}
 
 \begin{figure}
 \begin{center}\hspace*{-0.8cm}\includegraphics[width=10.5cm]{img/bandpass}
-\caption{Correlator output RMS over frequency in an MWA high-frequency observation, calculated over all cross-correlated baselines and 112 seconds of data. In this band, the band-pass shows two large discontinuities over frequency, because the MWA receivers apply different digital gains at different frequencies to minimize quantization noise. TODO explain subband bandpass somewhere %TODO
+\caption{Correlator output RMS over frequency in an MWA high-frequency observation, calculated over all cross-correlated baselines and 112 seconds of data. In this band, the band-pass shows two large discontinuities over frequency, because the MWA receivers apply different digital gains at different frequencies to minimize quantization noise. The 1.28~MHz pattern is due to the imperfect poly-phase filter.
 }
 \label{fig:bandpass}
 \end{center}
@@ -121,26 +121,28 @@ When time or frequency averaging is requested, \textsc{cotter} averages samples 
 \section{Data description}
 
 \begin{table*}
-\caption{List of observations used in the analyses. The RFI column contains the fraction of visibilities that the initial \textsc{aoflagger} run has classified as RFI (which includes false positives). The DVB column displays the fraction of visibilities that were unusable because of the presence of DVB signals, and which the flagger does not flag. Because the DVB frequencies are only observed in GLEAM observations, this fraction is only given for those. }\label{tbl:obs-list}
+\caption{List of observations used in the analyses. The RFI column contains the fraction of visibilities that the initial \textsc{aoflagger} run has classified as RFI (which includes false positives). The DVB column displays the fraction of visibilities that were unusable because of the presence of DVB signals, and which the flagger does not flag. Not all observations cover the DVB frequencies. }\label{tbl:obs-list}
+\begin{center}%
 \begin{tabular}{|l|l|r|r|r|c|}
 \hline
 \textbf{Project} &\textbf{Date} & \textbf{Frequencies (MHz)} & \textbf{Duration} & RFI & DVB \\
 \hline
-EoR high& 2013-08-23 & 167.0--197.7              & 3h & 0.53\% & ---\\
+EoR high& 2013-08-23 & 167.0--197.7              & 3h & 0.53\% & 0\% \\
 GLEAM & 2013-08-25 & 72.3--133.8, 138.9--230.8 & 7h & 0.94\% & 0\% \\
 EoR low& 2013-08-26 & 138.9--169.6              & 6h & 0.81\% & ---\\
 GLEAM & 2013-11-05 & 72.3--133.8, 138.9--230.8 & 7h & 1.27\% & 0\% \\
 GLEAM & 2013-11-25 & 72.3--133.8, 138.9--230.8 & 7h & 0.69\% & 0\% \\
-EoR high& 2014-02-05 & 167.0--197.7              & 6h & 0.54\% & -- \\
+EoR high& 2014-02-05 & 167.0--197.7              & 6h & 0.54\% & 0\%\\
 GLEAM & 2014-03-16 & 72.3--133.8, 138.9--230.8 & 7h & 0.79\% & 0\% \\
 GLEAM & 2014-03-17 & 72.3--133.8, 138.9--230.8 & 7h & 1.64\% & 3\% \\
-EoR high& 2014-04-10 & 167.0--197.7              & 6h & 0.68\% & ---\\
+EoR high& 2014-04-10 & 167.0--197.7              & 6h & 0.68\% & 0\%\\
 GLEAM & 2014-06-18 & 72.3--133.8, 138.9--230.8 & 7h & 0.98\% & 0\% \\
-RFI test&2014-08-27& 131.2--161.9     & 2$\times$8 m& 1.85\% & --- \\
+Orbcomm RFI test&2014-08-27& 131.2--161.9     & 2$\times$8 m& 1.85\% & --- \\
 \hline
-\multicolumn{3}{|r|}{\textbf{Total}} & \textbf{63h} & \textbf{0.96\%} & \textbf{0.5\%}\\
+\multicolumn{3}{|r|}{\textbf{Total}} & \textbf{63h} & \textbf{0.96\%} & \textbf{0.33\%}\\
 \hline
 \end{tabular}
+\end{center}
 \end{table*}
 
 We analyze the RFI in 10 nights of data from two different MWA projects: the MWA EoR project \citep{bowman-science-with-the-mwa-2013} and the GaLactic and ExtrAgalactic MWA (GLEAM) survey (TODO cite Randall). The observations are listen in Table~\ref{tbl:obs-list}.
@@ -152,7 +154,17 @@ Both projects avoid the subbands that cover the frequency range 133.8--138.9~MHz
 The poly-phase filter bank that performs the first separation into subbands, introduces a 1.28~MHz periodic spectral signature. This shape is e.g. visible in Fig.~\ref{fig:bandpass}. The poly-phase filter band-pass shape is hard to take out completely, because the filters are imperfect and each sub-band is effected by leakage from signals in its adjacent sub-bands. This causes a direction-dependent band-pass. To solve this, the bordering 80~kHz on both sides of a 1.28~Mhz subband are normally flagged by \textsc{cotter}. This implies that in normal observations, 13\% of the data is lost due to the poly-phase filter. However, while 80~kHz is sufficient to prevent imaging artefacts, we noticed that the RFI statistics were still slightly biased by the edge channels. Therefore, for the analyses in this paper we increase the number of removed edge channels to 200~kHz on either side of each 1.28~MHz sub-band, or 32\% in total.
 
 \section{Detection results}
-The second last column of Table~\ref{tbl:obs-list} list for each of the observation nights the ratio of samples that were classified as RFI by the \textsc{aoflagger}. 
+\noindent\begin{figure*}
+\begin{center}\hspace*{-0.2cm}\includegraphics[width=18cm]{img/rfi-per-band}
+\caption{RFI per subband}
+\label{fig:rfi-per-band}
+\end{center}
+\end{figure*}
+
+The fifth column of Table~\ref{tbl:obs-list} lists for each of the observation nights the ratio of samples that were classified as RFI by the \textsc{aoflagger}. This includes false detections, which are estimated in \citet{lofar-radio-environment} to account for approximately 0.4\% detections. Compared to the EoR observations, the GLEAM observations have a higher average of 1.05\% of RFI. This is mostly caused by the FM bands, which are only observed in GLEAM observations. The EoR low-band observation shows 0.81\% RFI, while the EoR high-band observations have an average of 0.58\%.
+
+Fig.~\ref{fig:rfi-per-band} shows the overal detected RFI ratio per sub-band. The FM bands around 100~MHz and the Orbcomm bands around 138~MHz are clearly present in the data. 
+
 
 \noindent\begin{figure*}
 \begin{center}\hspace*{-0.2cm}\includegraphics[width=18cm]{img/plot-stddev-per-set}\vspace{-1cm}
@@ -173,7 +185,7 @@ The second last column of Table~\ref{tbl:obs-list} list for each of the observat
 \includegraphics[width=9.1cm]{img/150_2_mhz_example}\includegraphics[width=9.1cm]{img/150_2_mhz_flagged}
 \label{fig:150_2}
 }\\\vspace{3mm}%
-\subcaptionbox{A weakly-observed transmitter centred on 156.66 MHz. This same frequency is flagged in several correlations, and it can therefore be assumed this is real RFI. This is an example in which the AOFlagger detects an event that would not be detected by regular thresholding. }[\linewidth]{%
+\subcaptionbox{A weakly-observed transmitter centred on 156.66 MHz. This same frequency is flagged in several correlations, and it can therefore be assumed this is real RFI. This is an example in which the \textsc{aoflagger} detects an event that would not be detected by regular thresholding. }[\linewidth]{%
 % obs data: 1061583576, 2013-08-26.
 \includegraphics[width=9.1cm]{img/156_7_mhz_example}\includegraphics[width=9.1cm]{img/156_7_mhz_flagged}
 \label{fig:156_7}
@@ -184,7 +196,7 @@ The second last column of Table~\ref{tbl:obs-list} list for each of the observat
 \noindent\begin{figure}
 % obs data: 1061583576, 2013-08-26.
 \begin{center}\hspace*{-0.2cm}\includegraphics[width=9.1cm]{img/dvb_example}
-\caption{RFI from Digital Video Broadcasting (DVB). Because of its broadband nature, this kind of RFI is not well flagged in the initial AOFlagger step, but is detectable in the global statistics. This type of RFI makes most of the 30.72~MHz bandwidth unusable. It is visible for about 2 h in 1 out of the 6 nights that observed this band. }
+\caption{RFI from Digital Video Broadcasting (DVB). Because of its broadband nature, this kind of RFI is not well flagged in the initial \textsc{aoflagger} step, but is detectable in the global statistics. This type of RFI makes most of the 30.72~MHz bandwidth unusable. It is visible for about 2 h in 1 out of the 6 nights that observed this band. }
 \label{fig:dvb_example}
 \end{center}
 \end{figure}
@@ -209,13 +221,6 @@ The second last column of Table~\ref{tbl:obs-list} list for each of the observat
 \label{fig:dvb-stddevs}
 \end{center}
 \end{figure}
-
-\noindent\begin{figure*}
-\begin{center}\hspace*{-0.2cm}\includegraphics[width=18cm]{img/rfi-per-band}
-\caption{RFI per subband}
-\label{fig:rfi-per-band}
-\end{center}
-\end{figure*}
 
 \noindent\begin{figure*}
 \begin{center}\hspace*{-0.2cm}\includegraphics[width=18cm]{img/lognlogs-multiplot}
