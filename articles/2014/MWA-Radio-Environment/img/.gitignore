@@ -4,4 +4,5 @@ plot-stddev-per-set.pdf
 2014-03-17-dvb-stddevs.pdf
 lognlogs-residual.pdf
 lognlogs-rfi.pdf
+lognlogs-multiplot.pdf
 rfi-per-band.pdf

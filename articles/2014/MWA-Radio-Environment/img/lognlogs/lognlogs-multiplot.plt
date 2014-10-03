@@ -14,7 +14,9 @@ unset xtics
 
 set multiplot layout 1,4 title "" offset 0.15,0
 
-set xtics nomirror (0,1,2,3,4,5)
+set xtics (0,1,2,3,4,5)
+set ytics (-4 0,-3 1,-2 0,-1 1,0 0,1 1,2 0,3 1,4 0,5 1,6 0,7 1,8 0,9 1,10 0)
+
 set title "GLEAM"
 plot \
 "GLEAM-nonrfi.txt" using 2:3 with points lw 0.5 ps 0.5 lt 1 lc rgb "#00A000" title "", \
@@ -22,11 +24,12 @@ plot \
 set ylabel ""
 set lmargin 0
 set xlabel "Power (log S)"
-unset ytics
+set ytics ("" -4,-3 1,"" -2,-1 1,"" 0,1 1,"" 2,3 1,"" 4,5 1,"" 6,7 1,"" 8,9 1,"" 10)
 set title "EoR high"
 plot \
 "EoR-high-nonrfi.txt" using 2:3 with points lw 0.5 ps 0.5 lt 1 lc rgb "#00A000" title "", \
 "EoR-high-rfi.txt" using 2:3 with points lw 0.5 ps 0.5 lt 1 lc rgb "#A00000" title ""
+set ytics ("" -4,-3 1,"" -2,-1 1,"" 0,1 1,"" 2,3 1,"" 4,5 1,"" 6,7 1,"" 8,9 1,"" 10)
 set title "EoR low"
 unset xlabel
 plot \
