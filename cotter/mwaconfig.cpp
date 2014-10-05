@@ -57,7 +57,7 @@ MWAHeaderExt::MWAHeaderExt() :
 	gridName("Unknown"), mode("Unknown"), filename("Unknown"),
 	hasCalibrator(false), hasGlobalSubbandGains(false),
 	centreSBNumber(0),
-	fiberFactor(VEL_FACTOR),
+	//fiberFactor(VEL_FACTOR),
 	tilePointingRARad(0.0), tilePointingDecRad(0.0),
 	dateRequestedMJD(0.0)
 {

@@ -80,7 +80,7 @@ class MWAMS
 		
 		void WriteMWASubbandInfo(int number, double gain, bool isFlagged);
 		
-		void WriteMWAKeywords(double fibreVelFactor, const std::string& metaDataVersion, const std::string& mwaPyVersion, const std::string& cotterVersion, const std::string& cotterVersionDate);
+		void WriteMWAKeywords(const std::string& metaDataVersion, const std::string& mwaPyVersion, const std::string& cotterVersion, const std::string& cotterVersionDate);
 		
 	private:
 		void addMWAAntennaFields();

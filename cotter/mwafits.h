@@ -11,7 +11,8 @@ struct MWAFitsEnums
 {
 	enum MWAKeywords
 	{
-		MWA_FIBER_VEL_FACTOR, MWA_METADATA_VERSION,
+		//MWA_FIBER_VEL_FACTOR,
+		MWA_METADATA_VERSION,
 		MWA_MWAPY_VERSION,
 		MWA_COTTER_VERSION, MWA_COTTER_VERSION_DATE
 	};
@@ -24,7 +25,7 @@ class MWAFits
 		
 		~MWAFits();
 		
-		void WriteMWAKeywords(double fibreVelFactor, const std::string& metaDataVersion, const std::string& mwaPyVersion, const std::string& cotterVersion, const std::string& cotterVersionDate);
+		void WriteMWAKeywords(const std::string& metaDataVersion, const std::string& mwaPyVersion, const std::string& cotterVersion, const std::string& cotterVersionDate);
 		
 	private:
 		static const char* keywordName(enum MWAFitsEnums::MWAKeywords keyword)

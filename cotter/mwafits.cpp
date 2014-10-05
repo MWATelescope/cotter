@@ -72,9 +72,9 @@ void MWAFits::writeKey(MWAFitsEnums::MWAKeywords keyword, const T& value)
 	_data->writeKey(keywordName(keyword), value, keywordComment(keyword));
 }
 
-void MWAFits::WriteMWAKeywords(double fibreVelFactor, const std::string& metaDataVersion, const std::string& mwaPyVersion, const std::string& cotterVersion, const std::string& cotterVersionDate)
+void MWAFits::WriteMWAKeywords(const std::string& metaDataVersion, const std::string& mwaPyVersion, const std::string& cotterVersion, const std::string& cotterVersionDate)
 {
-	writeKey(MWAFitsEnums::MWA_FIBER_VEL_FACTOR, fibreVelFactor);
+	//writeKey(MWAFitsEnums::MWA_FIBER_VEL_FACTOR, fibreVelFactor);
 	writeKey(MWAFitsEnums::MWA_METADATA_VERSION, metaDataVersion);
 	writeKey(MWAFitsEnums::MWA_MWAPY_VERSION, mwaPyVersion);
 	writeKey(MWAFitsEnums::MWA_COTTER_VERSION, cotterVersion);

@@ -241,8 +241,8 @@ void MetaFitsFile::parseKeyword(MWAHeader &header, MWAHeaderExt &headerExt, cons
 		parseIntArray(keyValue.c_str(), headerExt.subbandGains, 24);
 		headerExt.hasGlobalSubbandGains = true;
 	}
-	else if(keyName == "FIBRFACT")
-		headerExt.fiberFactor = atof(keyValue.c_str());
+	//else if(keyName == "FIBRFACT")
+	//	headerExt.fiberFactor = atof(keyValue.c_str());
 	else if(keyName == "INTTIME")
 		header.integrationTime = atof(keyValue.c_str());
 	else if(keyName == "NSCANS")

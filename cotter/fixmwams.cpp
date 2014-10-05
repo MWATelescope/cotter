@@ -62,5 +62,5 @@ int main(int argc, char* argv[])
 	for(int i=0; i!=24; ++i)
 		mwaMs.WriteMWASubbandInfo(i, mwaConfig.HeaderExt().subbandGains[i], false);
 	
-	mwaMs.WriteMWAKeywords(mwaConfig.HeaderExt().fiberFactor, mwaConfig.HeaderExt().metaDataVersion, mwaConfig.HeaderExt().mwaPyVersion, COTTER_VERSION_STR, COTTER_VERSION_DATE);
+	mwaMs.WriteMWAKeywords(mwaConfig.HeaderExt().metaDataVersion, mwaConfig.HeaderExt().mwaPyVersion, COTTER_VERSION_STR, COTTER_VERSION_DATE);
 }

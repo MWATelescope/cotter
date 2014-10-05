@@ -56,7 +56,7 @@ struct MWAHeaderExt
 	int delays[16], subbandGains[24], subbandNumbers[24];
 	bool hasCalibrator, hasGlobalSubbandGains;
 	int centreSBNumber;
-	double fiberFactor;
+	//double fiberFactor;
 	double tilePointingRARad, tilePointingDecRad;
 	double dateRequestedMJD;
 private:

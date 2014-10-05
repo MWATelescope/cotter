@@ -1463,13 +1463,13 @@ void Cotter::writeMWAFieldsToMS(const std::string& outputFilename, size_t flagWi
 	for(int i=0; i!=24; ++i)
 		mwaMs.WriteMWASubbandInfo(i, _mwaConfig.HeaderExt().subbandGains[i], false);
 	
-	mwaMs.WriteMWAKeywords(_mwaConfig.HeaderExt().fiberFactor, _mwaConfig.HeaderExt().metaDataVersion, _mwaConfig.HeaderExt().mwaPyVersion, COTTER_VERSION_STR, COTTER_VERSION_DATE);
+	mwaMs.WriteMWAKeywords(_mwaConfig.HeaderExt().metaDataVersion, _mwaConfig.HeaderExt().mwaPyVersion, COTTER_VERSION_STR, COTTER_VERSION_DATE);
 }
 
 void Cotter::writeMWAFieldsToUVFits(const std::string& outputFilename)
 {
 	MWAFits mwaFits(outputFilename);
-	mwaFits.WriteMWAKeywords(_mwaConfig.HeaderExt().fiberFactor, _mwaConfig.HeaderExt().metaDataVersion, _mwaConfig.HeaderExt().mwaPyVersion, COTTER_VERSION_STR, COTTER_VERSION_DATE);
+	mwaFits.WriteMWAKeywords(_mwaConfig.HeaderExt().metaDataVersion, _mwaConfig.HeaderExt().mwaPyVersion, COTTER_VERSION_STR, COTTER_VERSION_DATE);
 }
 
 void Cotter::onHDUOffsetsChange(const std::vector<int>& newHDUOffsets)
