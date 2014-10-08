@@ -134,12 +134,12 @@ GLEAM & 2013-11-05 & 72.3--133.8, 138.9--230.8 & 7h & 1.27\% & 0\% \\
 GLEAM & 2013-11-25 & 72.3--133.8, 138.9--230.8 & 7h & 0.69\% & 0\% \\
 EoR high& 2014-02-05 & 167.0--197.7              & 6h & 0.54\% & 0\%\\
 GLEAM & 2014-03-16 & 72.3--133.8, 138.9--230.8 & 7h & 0.79\% & 0\% \\
-GLEAM & 2014-03-17 & 72.3--133.8, 138.9--230.8 & 7h & 1.64\% & 3\% \\
+GLEAM & 2014-03-17 & 72.3--133.8, 138.9--230.8 & 7h & 1.64\% & 30\% \\
 EoR high& 2014-04-10 & 167.0--197.7              & 6h & 0.68\% & 0\%\\
 GLEAM & 2014-06-18 & 72.3--133.8, 138.9--230.8 & 7h & 0.98\% & 0\% \\
 Orbcomm RFI test&2014-08-27& 131.2--161.9     & 2$\times$8 m& 1.85\% & --- \\
 \hline
-\multicolumn{3}{|r|}{\textbf{Total}} & \textbf{63h} & \textbf{0.96\%} & \textbf{0.33\%}\\
+\multicolumn{3}{|r|}{\textbf{Total}} & \textbf{63h} & \textbf{0.96\%} & \textbf{3\%}\\
 \hline
 \end{tabular}
 \end{center}
@@ -151,28 +151,40 @@ The MWA EoR project observes primarily in the 138.9--197.7~MHz range, covering t
 
 Both projects avoid the subbands that cover the frequency range 133.8--138.9~MHz, because the ORBCOMM low Earth orbitting (LEO) satellites transmit in these subbands. When these frequencies are observed, the subbands are often so strongly contaminated that it affects imaging sensitivity. For completeness, we include a 16-min observation that covers this frequency range.
 
-The poly-phase filter bank that performs the first separation into subbands, introduces a 1.28~MHz periodic spectral signature. This shape is e.g. visible in Fig.~\ref{fig:bandpass}. The poly-phase filter band-pass shape is hard to take out completely, because the filters are imperfect and each sub-band is effected by leakage from signals in its adjacent sub-bands. This causes a direction-dependent band-pass. To solve this, the bordering 80~kHz on both sides of a 1.28~Mhz subband are normally flagged by \textsc{cotter}. This implies that in normal observations, 13\% of the data is lost due to the poly-phase filter. However, while 80~kHz is sufficient to prevent imaging artefacts, we noticed that the RFI statistics were still slightly biased by the edge channels. Therefore, for the analyses in this paper we increase the number of removed edge channels to 200~kHz on either side of each 1.28~MHz sub-band, or 32\% in total.
+The poly-phase filter bank that performs the first separation into subbands, introduces a 1.28~MHz periodic spectral signature. This shape is e.g. visible in Fig.~\ref{fig:bandpass}. The poly-phase filter band-pass shape is hard to take out completely, because the filters are imperfect and each sub-band is effected by leakage from signals in its adjacent sub-bands. The leakage from adjacent sub-bands manifests itself as if the sub-band band-pass is direction dependent. To solve this, the bordering 80~kHz on both sides of a 1.28~Mhz subband are normally flagged by \textsc{cotter}. This implies that in normal observations, 13\% of the data is lost due to the poly-phase filter. However, while 80~kHz is sufficient to prevent imaging artefacts, we noticed that the RFI statistics were still slightly biased by the edge channels. Therefore, for the analyses in this paper we increase the number of removed edge channels to 200~kHz on either side of each 1.28~MHz sub-band, or 32\% in total.
 
 \section{Detection results}
 \noindent\begin{figure*}
 \begin{center}\hspace*{-0.2cm}\includegraphics[width=18cm]{img/rfi-per-band}
-\caption{RFI per subband}
+\caption{RFI occupancy per subband, calculated over all observations except GLEAM 2014-03-17. The latter has been left out because it is affected by DVB.}
 \label{fig:rfi-per-band}
 \end{center}
 \end{figure*}
 
 The fifth column of Table~\ref{tbl:obs-list} lists for each of the observation nights the ratio of samples that were classified as RFI by the \textsc{aoflagger}. This includes false detections, which are estimated in \citet{lofar-radio-environment} to account for approximately 0.4\% detections. Compared to the EoR observations, the GLEAM observations have a higher average of 1.05\% of RFI. This is mostly caused by the FM bands, which are only observed in GLEAM observations. The EoR low-band observation shows 0.81\% RFI, while the EoR high-band observations have an average of 0.58\%.
 
-Fig.~\ref{fig:rfi-per-band} shows the overal detected RFI ratio per sub-band. The FM bands around 100~MHz and the Orbcomm bands around 138~MHz are clearly present in the data. 
-
+Fig.~\ref{fig:rfi-per-band} shows the overal detected RFI occupancy per sub-band, as calculated over all observations except GLEAM 2014-03-17. The latter is the only observation affected by interference from digital video broadcasting (DVB), and we will analyse that observation later. The FM bands around 100~MHz and the ORBCOMM bands around 138~MHz are clearly present in the data. Excluding the RFI from DVB, the EoR high band is again slightly cleaner than the EoR low band, as its worst subband at 188.2 MHz has 1.03\% occupancy. The sub-bands at 145.9 and 149.8~MHz in the EoR low band have both 2.1\% occupancy. TODO what are these transmitters?
 
 \noindent\begin{figure*}
 \begin{center}\hspace*{-0.2cm}\includegraphics[width=18cm]{img/plot-stddev-per-set}\vspace{-1cm}
-\caption{..}
+\caption{Observed noise in the high-resolution channels for each observation. This is the residual noise in the visibilities after RFI detection. Observation `GLEAM 2014-03-17' shows DVB contamination around 180~MHz and higher, and a few channels in the FM and 2-m amateur bands show a deviating standard deviation.}
 \label{fig:stddev-per-set}
 \end{center}
 \end{figure*}
 
+The residual noise levels after flagging can be used to validate whether the flagged data is free of RFI. In Fig.~\ref{fig:stddev-per-set}, the residual noise levels are plotted per high-resolution channel for each of the observations. Observation `GLEAM 2014-03-17' shows residual DVB interference, and it is clear that this RFI has not been adequately flagged. Therefore, observations have to be cleaned of DVB with another method. Some channels in the FM and 2-m amateur bands show standard deviations that deviate slightly as a result from the smaller amount of available data after flagging and RFI leakage. The subband at 137~MHz that is occupied by ORBCOMM is hard to calibrate because of the large loss of data and residual RFI. Other than that, the RFI leakage is minimal and the RFI mitigation employed in \textsc{cotter} is sufficient to allow calibration and imaging without further effort. This includes the FM bands. This is verified by early imaging results from the GLEAM survey and the MWA commissioning survey \citep{mwacs-2014}.
+
+\noindent\begin{figure*}%
+% obs data: 1061583576, 2013-08-26.
+\begin{center}\hspace*{-0.2cm}\includegraphics[width=8cm]{img/dvb_example}\includegraphics[width=8cm]{img/2014-03-17-dvb-stddevs}
+\end{center}
+\caption{RFI from Digital Video Broadcasting (DVB), which is detected in 1 of the 9 observations (GLEAM~2014-03-17) that cover the DVB frequencies. Left plot: dynamic spectrum for the worst affected snapshot; right plot: visibility RMS within each of the DVB bands for the affected night after flagging. Because of its broadband nature, this kind of RFI is not well flagged in the initial \textsc{aoflagger} step, but it is detectable in the global statistics. When observing at 182~MHz, this type of RFI makes most of the 30.72~MHz bandwidth unusable when it is visible. }
+\label{fig:dvb}
+\end{figure*}
+
+Because significant DVB interference is left in `GLEAM 2014-03-17' after flagging, we have analysed this night more extensively. The DVB transmitters are terrestrial, and the fact that only this night observes the DVB, implies the RFI must originate from an over-the-horizon transmitter that is reflected by unusually strong ionospheric activity. As can be seen in the left plot of Fig.~\ref{fig:dvb}, this kind of RFI can contaminate frequencies 174--195~MHz, thus over half of the instantaneous bandwidth. Because the \textsc{aoflagger} determines its thresholding levels from the data, and because it needs to be insensitive for steep RMS jumps over frequency due to the varying coarse channel gains (see Fig.~\ref{fig:bandpass}), it is insensitive for RFI that is this broad.
+
+Despite not being detecting by the flagger, the right plot of Fig.~\ref{fig:dvb} shows that it is easy to recognize DVB interference from the data statistics, for example by testing whether the RMS in any of the occupied DVB bands exceeds the RMS in DVB band 4, which is not used for broadcasting. When DVB is detected in a snapshot, in most cases the best action will be to remove the entire snapshot, as it is not worth having special mechanisms in place to salvage the small amount of residual good data within an affected snapshot. With 2 out of 7 hours affected in 1 out of 9 observed nights, a rough probability of 3\% can be given for observing DVB, as is detailed in the last column of Table~\ref{tbl:obs-list}. 
 
 \noindent\begin{figure*}
 \subcaptionbox{RFI contamination found in the 2 m amateur band (146 MHz).}[\linewidth]{%
@@ -193,14 +205,6 @@ Fig.~\ref{fig:rfi-per-band} shows the overal detected RFI ratio per sub-band. Th
 \caption{Examples of RFI events found in the EoR low band (138.9--197.7 MHz) in a 2-min snapshot with relatively high RFI contamination. These panels show the Stokes I amplitudes. In the right figures, the result of RFI detection is shown with purple. The horizontally flagged lines are flagged because they are 1.28-MHz subband edge or centre channels, which are unusable because of aliasing of the poly-phase filter bank and DC offsets, respectively.}
 \end{figure*}
 
-\noindent\begin{figure}
-% obs data: 1061583576, 2013-08-26.
-\begin{center}\hspace*{-0.2cm}\includegraphics[width=9.1cm]{img/dvb_example}
-\caption{RFI from Digital Video Broadcasting (DVB). Because of its broadband nature, this kind of RFI is not well flagged in the initial \textsc{aoflagger} step, but is detectable in the global statistics. This type of RFI makes most of the 30.72~MHz bandwidth unusable. It is visible for about 2 h in 1 out of the 6 nights that observed this band. }
-\label{fig:dvb_example}
-\end{center}
-\end{figure}
-
 %\noindent\begin{figure*}
 %\begin{center}\hspace*{-0.2cm}\includegraphics[width=18cm]{img/plot-rfi-per-set-eor}\vspace{-1cm}
 %\caption{..}
@@ -215,13 +219,6 @@ Fig.~\ref{fig:rfi-per-band} shows the overal detected RFI ratio per sub-band. Th
 %\end{center}
 %\end{figure*}
 
-\noindent\begin{figure}
-\begin{center}\hspace*{-0.2cm}\includegraphics[width=9.1cm]{img/2014-03-17-dvb-stddevs}
-\caption{..}
-\label{fig:dvb-stddevs}
-\end{center}
-\end{figure}
-
 \noindent\begin{figure*}
 \begin{center}\hspace*{-0.2cm}\includegraphics[width=18cm]{img/lognlogs-multiplot}
 \caption{Log N log S}
@@ -230,8 +227,6 @@ Fig.~\ref{fig:rfi-per-band} shows the overal detected RFI ratio per sub-band. Th
 \end{figure*}
 
 \begin{itemize}
- \item Total RFI statistics
- \item Percentages + stddev per frequency + discuss
  \item An example of RFI found (e.g., the EoR DVB, ..)
  \item Performance
  \item Log N log S Histograms
