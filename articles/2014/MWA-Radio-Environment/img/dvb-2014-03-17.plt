@@ -1,4 +1,4 @@
-set terminal postscript enhanced color font 'Helvetica,20'
+set terminal postscript enhanced color portrait font 'Helvetica,20'
 #set title "Visibility RMS in DVB bands in GLEAM 2014-03-17"
 set xrange [0:590/60]
 set key top left reverse Left
