@@ -80,13 +80,17 @@ public:
 		for(size_t subband=_sbStart; subband!=_sbEnd; ++subband)
 		{
 			size_t fileIndex = subband - _sbStart;
-			size_t row = (timestep + _hduOffsets[_subbandToGPUBoxFileIndex[subband]]) * _baselineCount + baseline + 1;
-			fits_read_col(_files[fileIndex], TBIT, /*colnum*/ _colNums[fileIndex], /*firstrow*/ row, /*firstelem*/ 1,
-       /*nelements*/ _channelsPerGPUBox, /*(*)nulval*/ 0, &_buffer[0], 0 /*(*)anynul*/, &status);
-			for(size_t ch=0; ch!=_channelsPerGPUBox; ++ch)
+			int offset = _hduOffsets[_subbandToGPUBoxFileIndex[subband]];
+			if(int(timestep) >= offset)
 			{
-				size_t channelIndex = ch + fileIndex*_channelsPerGPUBox;
-				bufferStartPos[channelIndex*bufferStride] = bool(_buffer[ch]);
+				size_t row = (timestep - offset) * _baselineCount + baseline + 1;
+				fits_read_col(_files[fileIndex], TBIT, /*colnum*/ _colNums[fileIndex], /*firstrow*/ row, /*firstelem*/ 1,
+				/*nelements*/ _channelsPerGPUBox, /*(*)nulval*/ 0, &_buffer[0], 0 /*(*)anynul*/, &status);
+				for(size_t ch=0; ch!=_channelsPerGPUBox; ++ch)
+				{
+					size_t channelIndex = ch + fileIndex*_channelsPerGPUBox;
+					bufferStartPos[channelIndex*bufferStride] = bool(_buffer[ch]);
+				}
 			}
 		}
 	}
