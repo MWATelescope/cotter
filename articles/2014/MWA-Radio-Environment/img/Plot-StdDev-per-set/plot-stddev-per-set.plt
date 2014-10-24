@@ -9,7 +9,7 @@ set ylabel "Standard deviation (Jy, uncalibrated)"
 plot \
 "2013-08-23-eor-II.txt" using 2:3 with points lw 0.5 ps 0.5 lt 1 lc 1 title "", \
 "2013-08-25-gleam-II.txt" using 2:3 with points lw 0.5 ps 0.5 lt 1 lc rgb "#00E0E0" title "", \
-"2013-08-26-eor-II.txt" using 2:3 with points lw 0.5 ps 0.5 lt 1 lc 3 title "", \
+"2013-08-26-eor-III.txt" using 2:3 with points lw 0.5 ps 0.5 lt 1 lc 3 title "", \
 "2013-11-05-gleam-II.txt" using 2:3 with points lw 0.5 ps 0.5 lt 1 lc 4 title "", \
 "2013-11-25-gleam-II.txt" using 2:3 with points lw 0.5 ps 0.5 lt 1 lc 7 title "", \
 "2014-02-05-eor-II.txt" using 2:3 with points lw 0.5 ps 0.5 lt 1 lc 8 title "", \
