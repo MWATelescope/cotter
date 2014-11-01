@@ -29,5 +29,21 @@ set label "FM" at 90.5,6 rotate by -90 textcolor rgb "#A00000"
 # ORBCOMM
 set label "ORBCOMM" at 132,6.25 rotate by -90
 set arrow from 134.5,5.5 to 137,5.5
+# DVB
+set arrow from 174,0 to 174,5.5 nohead lt 2 lc rgb '#008080'
+set arrow from 181,0 to 181,5.0 nohead lt 2 lc rgb '#008080'
+set label "RF6" at 177.5,5 rotate by -90 textcolor rgb '#008080'
+
+set arrow from 188,0 to 188,5.0 nohead lt 2 lc rgb '#008080'
+set label "RF7" at 184.5,5 rotate by -90 textcolor rgb '#008080'
+
+set arrow from 195,0 to 195,5.5 nohead lt 2 lc rgb '#008080'
+set label "RF8" at 191.5,5 rotate by -90 textcolor rgb '#008080'
+
+set arrow from 174,5.2 to 175.5,5.2 nohead lt 2 lc rgb '#008080'
+set arrow from 193.5,5.2 to 195,5.2 nohead lt 2 lc rgb '#008080'
+set label "Digital TV" at 176,5.2 textcolor rgb '#008080'
+
+# Plot
 plot \
 "rfi-per-band-nodvb-data.txt" using 2:3 lc rgb "#8080FF" title ""
