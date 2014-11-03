@@ -37,12 +37,18 @@ set label "RF6" at 177.5,5 rotate by -90 textcolor rgb '#008080'
 set arrow from 188,0 to 188,5.0 nohead lt 2 lc rgb '#008080'
 set label "RF7" at 184.5,5 rotate by -90 textcolor rgb '#008080'
 
-set arrow from 195,0 to 195,5.5 nohead lt 2 lc rgb '#008080'
+set arrow from 195,0 to 195,5.0 nohead lt 2 lc rgb '#008080'
 set label "RF8" at 191.5,5 rotate by -90 textcolor rgb '#008080'
 
 set arrow from 174,5.2 to 175.5,5.2 nohead lt 2 lc rgb '#008080'
-set arrow from 193.5,5.2 to 195,5.2 nohead lt 2 lc rgb '#008080'
+set arrow from 193.5,5.2 to 230,5.2 nohead lt 2 lc rgb '#008080'
 set label "Digital TV" at 176,5.2 textcolor rgb '#008080'
+
+set arrow from 216,0 to 216,5.0 nohead lt 2 lc rgb '#008080'
+set arrow from 223,0 to 223,5.0 nohead lt 2 lc rgb '#008080'
+set arrow from 230,0 to 230,5.5 nohead lt 2 lc rgb '#008080'
+set label "RF11" at 219.5,5 rotate by -90 textcolor rgb '#008080'
+set label "RF12" at 226.5,5 rotate by -90 textcolor rgb '#008080'
 
 # Plot
 plot \
