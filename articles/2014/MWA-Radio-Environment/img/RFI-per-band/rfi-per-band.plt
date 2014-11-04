@@ -25,7 +25,10 @@ set label "EoR high" at 174,6.5 textcolor rgb '#E06000'
 # FM
 set arrow from 88,0 to 88,8 nohead lt 2 lc rgb '#A00000'
 set arrow from 108,0 to 108,8 nohead lt 2 lc rgb '#A00000'
-set label "FM" at 90.5,6 rotate by -90 textcolor rgb "#A00000"
+set label "FM" at 95,6 textcolor rgb "#A00000"
+set arrow from 88,6 to 94,6 nohead lc rgb '#A00000'
+set arrow from 102,6 to 108,6 nohead lc rgb '#A00000'
+
 # ORBCOMM
 set label "ORBCOMM" at 132,6.25 rotate by -90
 set arrow from 134.5,5.5 to 137,5.5
@@ -50,6 +53,11 @@ set arrow from 230,0 to 230,5.5 nohead lt 2 lc rgb '#008080'
 set label "RF11" at 219.5,5 rotate by -90 textcolor rgb '#008080'
 set label "RF12" at 226.5,5 rotate by -90 textcolor rgb '#008080'
 
+# False positives
+set arrow from 70.5,0.4 to 231.035,0.4 nohead front lt 1 lw 2 lc rgb '#606060'
+set label "false\n  pos" at 61,0.6 textcolor rgb "#606060"
+
 # Plot
 plot \
 "rfi-per-band-nodvb-data.txt" using 2:3 lc rgb "#8080FF" title ""
+
