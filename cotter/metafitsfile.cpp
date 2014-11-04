@@ -184,7 +184,7 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput>& inputs, std::vector<MWAAnten
 		if(input >= nrow)
 		{
 			std::ostringstream errstr;
-			errstr << "Antenna " << antennae[antenna].name << " has an input with index " << input << ", which is beyond the maximum index of " << (nrow-1);
+			errstr << "Tile " << tile << " has an input with index " << input << ", which is beyond the maximum index of " << (nrow-1);
 			throw std::runtime_error(errstr.str());
 		}
 		inputs[input].inputIndex = input;
