@@ -5,7 +5,7 @@ set yrange [40:1500]
 set output "plot-stddev-per-set.ps"
 set key above vertical maxrows 4
 set xlabel "Frequency (MHz)"
-set ylabel "Standard deviation (Jy, uncalibrated)"
+set ylabel "Standard deviation (uncalibrated)"
 plot \
 "2013-08-23-eor-II.txt" using 2:3 with points lw 0.5 ps 0.5 lt 1 lc 1 title "", \
 "2013-08-25-gleam-II.txt" using 2:3 with points lw 0.5 ps 0.5 lt 1 lc rgb "#00E0E0" title "", \
