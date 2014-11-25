@@ -38,7 +38,7 @@ plot \
 NaN with lines lw 2 lt 1 lc rgb "#A00000" title "Detected as RFI", \
 NaN with lines lw 2 lt 1 lc rgb "#00A000" title "Residual", \
 19.4437619438+-4.46983*x lw 2 lt 2 lc rgb "#808080" title "Power-law fit to tail", \
-NaN with filledcu fillstyle fc rgb "#0C0CFF" fs solid 0.15 noborder title  "Selected fitting area"
+NaN with filledcu fillstyle fc rgb "#0C0CFF" fs solid 0.15 noborder title  "Selected fitting range"
 unset obj
 
 set ytics ("" -4,-3 1,"" -2,-1 1,"" 0,1 1,"" 2,3 1,"" 4,5 1,"" 6,7 1,"" 8,9 1,"" 10)
