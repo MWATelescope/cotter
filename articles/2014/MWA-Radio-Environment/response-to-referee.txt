@@ -1,26 +1,46 @@
-In the sentece: "alpha is typically -1.5 to -1.6"
+Dear referee and editor,
+
+We would like to thank the referee for his comments on our article. We agree with most suggestions by the referee. For a few comments by the referee, we think no changes were required or we have made a change slightly different as suggested. These cases are detailed below and we think are minor differences. Other than those, all suggestions were implemented, and we think the paper is ready for publication. All changes have been marked in the article with a red/bold font.
+
+
+Page 7
+"Because the AOFLAGGER determines its thresholding levels from the data, and because it needs to be insensitive to steep RMS jumps over frequency due to the varying coarse channel gains (see Fig. 1), it is insensitive to RFI covering such a broad spectrum."
+
+Referee: "Because of the increase in spread-spectrum transmissions, this is a quite serious weakness in AOFLAGGER. The process described in the next paragraph might be included into the pipeline in a generic way to detect any spread-spectrum RFI."
+
+and from the decision letter:
+"AOFLAGGER fails to detect what is becoming an increasingly troublesome source of RFI: persistent spread-spectrum signals. A methodology for supplementing AOFLAGGER using COTTER statistics is suggested, but some discussion of how AOFLAGGER may be modified to handle this class of RFI would be useful. "
+
+Answer: The extra flagging step runs fast compared to AOFlagger (which is described in the paper). It is therefore not necessary to include this step inside Cotter or AOFlagger -- a reason for inclusion in the initial pre-processing pipeline is when it needs the data at high resolution, but that's not the case. While this RFI is serious, it's not a serious weakness in the flagger that such RFI is not immediately flagged; the initial flagger is aimed at flagging out 'high-resolution' RFI that occupies a few channels or timesteps, and a second flagging step can recognize broadband RFI at a lower data resolution. We think this is described well enough in the paper and no further changes are required.
+
+
+Page 8
+Sentence: "[..] and the exponent alpha is typically -1.5 to -1.6"
 
 Referee: "Presumably these nominal values of alpha are determined empirically?  This should be stated explicitly."
 
-Answer: This is both empirically found as well as mathematically derived for uniform distributions of sources with a given average transmitter height. We think explaining this is a bit too much for this paper, so we have changed this sentence to "the exponent alpha is found by Offringa et al (2013b) to be typically -1.5 to -1.6."
+Answer: In Offringa et al (2013b), this is both empirically found as well as mathematically derived to be true for uniform distributions of sources with a given average transmitter height. We think explaining this completely is not necessary, so instead we now refer to the paper: "the exponent alpha is found by Offringa et al (2013b) to be typically -1.5 to -1.6."
+and explain the uniformness property: "Using LOFAR, Offringa et al. (2013b) show that when a uniform spatial distribution with sufficient interfering transmitters is observed, the distribution of the visibility brightness will have a power-law tail [..]"
 
 
-"This excess is caused by the multi-variate nature of the data, for example because the noise level increases when the Galaxy goes..."
-
-Referee: "Not sure "multi-variate" is the correct term here.  Perhaps non-stationarity and non-gaussanity of RFI is also a factor."
- 
-Answer:
-
+Page 9
+"[..] a few weak broad-band pulses are observed in almost every 2-min snapshot. These weak pulses are not visible nor detected in a single baseline correlation, but can be seen in a dynamic spectrum when the power on all baselines is added together. We currently do not know what their origin is"
 
 Referee: "Such seemingly random impulsive RFI is ubiquitous - probably caused by ESD "sparking" and relay contacts."
 
-Answer: 
+Answer: We agree with the referee, but rather don't speculate to what is the cause.
 
-Figure 6.
 
-"Are the centre channels of the PFB bands also flagged?  Otherwise, what are narrow horizontal lines?"
+Page 10, Figure 6.
+Referee: "Are the centre channels of the PFB bands also flagged?  Otherwise, what are narrow horizontal lines?"
 
-Answer: This is explained below the image: "[..] The horizontal flagged lines are flagged because they are 1.28-MHz subband edge or centre channels, which are unusable because of aliasing of the poly-phase filter bank and DC offsets, respectively."
-These images are not correctly placed in the PASA-generated PDF, so this is a bit confusing.
+Answer: This is explained in the caption below the image (which is placed at a somewhat incorrect position by the PASA-generated PDF, so that might have been a bit confusing) : "[..] The horizontal flagged lines are flagged because they are 1.28-MHz subband edge or centre channels, which are unusable because of aliasing of the poly-phase filter bank and DC offsets, respectively."
 
+
+Page 12
+"In the MWA data, no false detections have been seen that are caused by ionospheric scintillation, likely because of the absence of the strongest sources; Cassiopeia A and Cygnus A are only visible at low elevations."
+
+Referee: "The southern hemisphere has its own strong discrete sources - are these not evident?"
+
+Answer: At these frequencies, Cyg A and Cas A are almost an order of magnitude larger (~5-10 KJy) than the strongest Southern sources such as M1 (~1 KJy).
 
