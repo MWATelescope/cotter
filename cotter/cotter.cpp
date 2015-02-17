@@ -380,7 +380,7 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 			
 			bool moreAvailableInCurrentFile = _reader->Read(bufferPos, _curChunkEnd-_curChunkStart);
 			
-			if(firstRead)
+			if(firstRead && _reader->HasStartTime())
 			{
 				std::time_t startTime = _reader->StartTime();
 				std::tm startTimeTm;

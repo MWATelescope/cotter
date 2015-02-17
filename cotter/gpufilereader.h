@@ -46,6 +46,8 @@ class GPUFileReader : private FitsUser
 			_bufferSize(0),
 			_currentHDU(0),
 			_stopHDU(0),
+			_startTime(0),
+			_hasStartTime(false),
 			_threadCount(threadCount),
 			_integrationTime(0.0),
 			_doAlign(true)
@@ -90,6 +92,7 @@ class GPUFileReader : private FitsUser
 			return _isConjugated[(ant1 * 2 + pol1) * _nAntenna * 2 + (ant2 * 2 + pol2)];
 		}
 		std::time_t StartTime() const { return _startTime; }
+		bool HasStartTime() const { return _hasStartTime; }
 		
 		void SetHDUOffsetsChangeCallback(boost::function<void(const std::vector<int>&)> onHDUOffsetsChange)
 		{
@@ -136,6 +139,7 @@ class GPUFileReader : private FitsUser
 		std::vector<size_t> _corrInputToOutput;
 		std::vector<bool> _isConjugated;
 		std::time_t _startTime;
+		bool _hasStartTime;
 		size_t _threadCount;
 		std::vector<int> _hduOffsetsPerFile;
 		double _integrationTime;

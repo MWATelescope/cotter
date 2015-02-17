@@ -11,7 +11,8 @@
 void GPUFileReader::openFiles()
 {
 	int status = 0;
-	bool hasStartTime = false, hasWarnedAboutDifferentTimes = false;
+	bool hasWarnedAboutDifferentTimes = false;
+	_hasStartTime = false;
 	std::vector<long> startTimePerFile(_filenames.size());
 	for(size_t i=0; i!=_filenames.size(); ++i)
 	{
@@ -38,10 +39,10 @@ void GPUFileReader::openFiles()
 			fits_read_key(fptr, TLONG, "TIME", &thisFileTime, 0, &status);
 			checkStatus(status);
 			
-			if(!hasStartTime) 
+			if(!_hasStartTime) 
 			{
 				_startTime = thisFileTime;
-				hasStartTime = true;
+				_hasStartTime = true;
 			}
 			startTimePerFile[i] = thisFileTime;
 			if(_startTime != thisFileTime)
