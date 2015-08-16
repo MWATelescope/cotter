@@ -37,7 +37,7 @@
 class GPUFileReader : private FitsUser
 {
 	public:
-		GPUFileReader(size_t nAntenna, size_t nChannelsInTotal, size_t threadCount) :
+		GPUFileReader(size_t nAntenna, size_t nChannelsInTotal, size_t threadCount, bool offlineFormat) :
 			_shuffleTasks(threadCount),
 			_availableGPUMatrixBuffers(threadCount),
 			_isOpen(false),
@@ -50,7 +50,8 @@ class GPUFileReader : private FitsUser
 			_hasStartTime(false),
 			_threadCount(threadCount),
 			_integrationTime(0.0),
-			_doAlign(true)
+			_doAlign(true),
+			_offlineFormat(offlineFormat)
 		{ }
 		~GPUFileReader() { closeFiles(); }
 		
@@ -143,6 +144,6 @@ class GPUFileReader : private FitsUser
 		size_t _threadCount;
 		std::vector<int> _hduOffsetsPerFile;
 		double _integrationTime;
-		bool _doAlign;
+		bool _doAlign, _offlineFormat;
 		boost::function<void(const std::vector<int>&)> _onHDUOffsetsChange;
 };

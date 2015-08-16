@@ -104,6 +104,8 @@ void usage()
 	"  -saveqs <file.qs>  Save the quality statistics to the specified file. Use extension of '.qs'.\n"
 	"  -histograms        Also collect 'log N log S' histograms of the visibilities (slower).\n"
 	"                     These will be stored in the quality statistics tables viewable with aoqplot.\n"
+	"  -offline-gpubox-format Assume the GPU Box do not have an initial HDU for metadata. This is\n"
+	"                     used for offline correlation of VCS observations.\n"
 	"  -skipwrite         Skip the writing step completely: only collect statistics.\n"
 	"  -version           Output version and exit.\n"
 	"\n"
@@ -355,6 +357,10 @@ int cotterMain(int argc, const char* const* argv)
 			else if(param == "skipwrite")
 			{
 				cotter.SetSkipWriting(true);
+			}
+			else if(param == "offline-gpubox-format")
+			{
+				cotter.SetOfflineGPUBoxFormat(true);
 			}
 			else
 			{

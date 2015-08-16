@@ -68,6 +68,7 @@ Cotter::Cotter() :
 	_applySBGains(true),
 	_flagDCChannels(true),
 	_skipWriting(false),
+	_offlineGPUBoxFormat(false),
 	_customRARad(0.0),
 	_customDecRad(0.0),
 	_initDurationToFlag(4.0),
@@ -609,7 +610,7 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 void Cotter::createReader(const std::vector<std::string>& curFileset)
 {
 	delete _reader; // might be 0, but that's ok.
-	_reader = new GPUFileReader(_mwaConfig.NAntennae(), nChannelsInCurSBRange(), _threadCount);
+	_reader = new GPUFileReader(_mwaConfig.NAntennae(), nChannelsInCurSBRange(), _threadCount, _offlineGPUBoxFormat);
 	_reader->SetHDUOffsetsChangeCallback(boost::bind(&Cotter::onHDUOffsetsChange, this, _1));
 
 	// Add the gpubox files in the right order

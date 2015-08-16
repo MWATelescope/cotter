@@ -33,7 +33,10 @@ void GPUFileReader::openFiles()
 			checkStatus(status);
 			
 			_fitsHDUCounts.push_back(hduCount);
-			std::cout << "There are " << hduCount << " HDUs in file " << _filenames[i] << '\n';
+			std::cout << "There are " << hduCount << " HDUs in file " << _filenames[i];
+			if(_offlineFormat)
+				std::cout << " (offline format: all are used!)";
+			std::cout << '\n';
 			
 			long thisFileTime;
 			fits_read_key(fptr, TLONG, "TIME", &thisFileTime, 0, &status);
@@ -130,7 +133,7 @@ bool GPUFileReader::Read(size_t &bufferPos, size_t bufferLength) {
 	{
 		openFiles();
 		
-		_currentHDU = 2; // header to start reading
+		_currentHDU = _offlineFormat ? 1 : 2; // header to start reading
 		findStopHDU();
 	}
 	
@@ -308,7 +311,7 @@ void GPUFileReader::findStopHDU()
 			}
 		}
 		if(haveUnequalHDUCount)
-			std::cout << "WARNING: Files had not the same amount of HDUs.\n";
+			std::cout << "WARNING: Files had not the same number of HDUs.\n";
 		if(_stopHDU == std::numeric_limits<size_t>::max() || _stopHDU == 0)
 		{
 			std::cout << "ERROR: Stopping HDU equals zero, something is wrong with the input data.\n";

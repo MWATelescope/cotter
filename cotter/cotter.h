@@ -79,6 +79,7 @@ class Cotter : private UVWCalculater
 		void FlagAntenna(size_t antIndex) { _userFlaggedAntennae.push_back(antIndex); }
 		void FlagSubband(size_t sbIndex) { _flaggedSubbands.insert(sbIndex); }
 		void SetSubbandEdgeFlagWidth(double edgeFlagWidth) { _subbandEdgeFlagWidthKHz = edgeFlagWidth; }
+		void SetOfflineGPUBoxFormat(bool offlineFormat) { _offlineGPUBoxFormat = offlineFormat; }
 		
 		size_t SubbandCount() const { return _subbandCount; }
 	private:
@@ -131,6 +132,7 @@ class Cotter : private UVWCalculater
 		float *_outputWeights;
 		bool _disableGeometricCorrections, _removeFlaggedAntennae, _removeAutoCorrelations, _flagAutos;
 		bool _overridePhaseCentre, _doAlign, _doFlagMissingSubbands, _applySBGains, _flagDCChannels, _skipWriting;
+		bool _offlineGPUBoxFormat;
 		long double _customRARad, _customDecRad;
 		double _initDurationToFlag, _endDurationToFlag;
 		
