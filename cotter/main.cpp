@@ -91,6 +91,7 @@ void usage()
 	"  -centre <ra> <dec> Set alternative phase centre, e.g. -centre 00h00m00.0s 00d00m00.0s.\n"
 	"  -usepcentre        Centre on pointing centre.\n"
 	"  -sbcount <count>   Read/processes the first given number of sub-bands.\n"
+	"  -sbstart <number>  Number of first GPU box. Default: 1.\n"
 	"  -sbpassband <file> Read the sub-band passband from given file instead of using default passband.\n"
 	"                     (default passband does a reasonably good job)\n"
 	"  -flagantenna <lst> Mark the comma-separated list of zero-indexed antennae as flagged antennae.\n"
@@ -139,7 +140,7 @@ int cotterMain(int argc, const char* const* argv)
 	const char *outputFilename = 0;
 	bool saveQualityStatistics = false;
 	bool allowMissingFiles = false;
-	size_t nCPUs = 0;
+	size_t nCPUs = 0, sbStart = 1;
 	while(argi!=argc)
 	{
 		if(argv[argi][0] == '-')
@@ -285,6 +286,11 @@ int cotterMain(int argc, const char* const* argv)
 				++argi;
 				cotter.SetSubbandCount(atoi(argv[argi]));
 			}
+			else if(param == "sbstart")
+			{
+				++argi;
+				sbStart = atoi(argv[argi]);
+			}
 			else if(param == "sbpassband")
 			{
 				++argi;
@@ -374,7 +380,14 @@ int cotterMain(int argc, const char* const* argv)
 	for(std::vector<std::string>::const_iterator i=unsortedFiles.begin(); i!=unsortedFiles.end(); ++i)
 	{
 		checkInputFilename(*i);
-		size_t gpuNum = gpuBoxNumberFromFilename(*i);
+		size_t gpuFilenameNumber = gpuBoxNumberFromFilename(*i);
+		if(gpuFilenameNumber < sbStart-1)
+		{
+			std::ostringstream errmsg;
+			errmsg << "A GPU box file was specified with number " << (gpuFilenameNumber+1) << ", which is lower than the expected start number of " << sbStart << ".";
+			throw std::runtime_error(errmsg.str());
+		}
+		size_t gpuNum = gpuFilenameNumber - sbStart + 1;
 		size_t timeNum = timeStepNumberFromFilename(*i);
 		if(fileSets.size() <= timeNum)
 			fileSets.resize(timeNum+1);
@@ -384,7 +397,7 @@ int cotterMain(int argc, const char* const* argv)
 		if(!timestepSets[gpuNum].empty())
 		{
 			std::ostringstream errmsg;
-			errmsg << "Two files in the list describe the same raw gpu box file: did you specify the same file more than once?\nGPU box number: " << (gpuNum+1)
+			errmsg << "Two files in the list describe the same raw gpu box file: did you specify the same file more than once?\nGPU box number: " << (gpuNum+sbStart)
 				<< " time range index: " << timeNum;
 			throw std::runtime_error(errmsg.str());
 		}
@@ -399,7 +412,7 @@ int cotterMain(int argc, const char* const* argv)
 		{
 			if(i >= fileSets[j].size() || fileSets[j][i].empty()) {
 				std::ostringstream errstr;
-				std::cout << "Missing information from GPU box " << (i+1) << ", timerange " << j << ". Maybe you are missing an input file?\n";
+				std::cout << "Missing information from GPU box " << (i+sbStart) << ", timerange " << j << ". Maybe you are missing an input file?\n";
 				aFileIsMissing = true;
 			}
 		}
@@ -407,6 +420,12 @@ int cotterMain(int argc, const char* const* argv)
 	if(aFileIsMissing && !allowMissingFiles)
 	{
 		throw std::runtime_error("Because at least one input file is missing, I will refuse to continue. This is to prevent download errors cause incomplete observations. If you are missing input files because some of the files are not available (e.g. because of a correlator GPU box failure), specify '-allowmissing' to continue with missing files.");
+	}
+	if(gpuBoxCount > cotter.SubbandCount())
+	{
+		std::ostringstream errstr;
+		errstr << "The highest GPU box number (" << gpuBoxCount << ") is higher than the number of subbands (" << cotter.SubbandCount() << "). Either a wrong -sbcount was specified, or files are not correctly named.";
+		throw std::runtime_error(errstr.str());
 	}
 	std::cout << "Input filenames succesfully parsed: using " << unsortedFiles.size() << " files covering " << fileSets.size() << " timeranges from " << gpuBoxCount << " GPU boxes.\n";
 	
