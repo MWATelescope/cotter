@@ -395,7 +395,7 @@ int cotterMain(int argc, const char* const* argv)
 	bool aFileIsMissing = false;
 	for(size_t j=0; j!=fileSets.size(); ++j)
 	{
-		for(size_t i=0; i!=gpuBoxCount; ++i)
+		for(size_t i=0; i!=cotter.SubbandCount(); ++i)
 		{
 			if(i >= fileSets[j].size() || fileSets[j][i].empty()) {
 				std::ostringstream errstr;

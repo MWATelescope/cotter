@@ -79,6 +79,8 @@ class Cotter : private UVWCalculater
 		void FlagAntenna(size_t antIndex) { _userFlaggedAntennae.push_back(antIndex); }
 		void FlagSubband(size_t sbIndex) { _flaggedSubbands.insert(sbIndex); }
 		void SetSubbandEdgeFlagWidth(double edgeFlagWidth) { _subbandEdgeFlagWidthKHz = edgeFlagWidth; }
+		
+		size_t SubbandCount() const { return _subbandCount; }
 	private:
 		MWAConfig _mwaConfig;
 		Writer *_writer;

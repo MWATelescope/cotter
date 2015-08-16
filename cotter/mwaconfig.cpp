@@ -153,6 +153,9 @@ void MWAConfig::ReadHeader(const std::string& filename, bool lockPointing)
 					_header.refMinute = atoi(valueStr.c_str()+2); valueStr[2]='\0';
 					_header.refHour = atoi(valueStr.c_str());
 			}
+			else {
+				std::cout << "Warning: ignoring key " << keyStr << " in header file.\n";
+			}
 		}
 	}
 	
