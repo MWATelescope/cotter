@@ -531,8 +531,10 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 		else {
 			_progressBar.reset(new ProgressBar("Writing"));
 			_outputFlags = new bool[nChannels*4];
-			posix_memalign((void**) &_outputData, 16, nChannels*4*sizeof(std::complex<float>));
-			posix_memalign((void**) &_outputWeights, 16, nChannels*4*sizeof(float));
+			if(0 != posix_memalign((void**) &_outputData, 16, nChannels*4*sizeof(std::complex<float>)))
+				throw std::runtime_error("Failed to allocate aligned memory");
+			if(0 != posix_memalign((void**) &_outputWeights, 16, nChannels*4*sizeof(float)))
+				throw std::runtime_error("Failed to allocate aligned memory");
 			for(size_t t=_curChunkStart; t!=_curChunkEnd; ++t)
 			{
 				_progressBar->SetProgress(t-_curChunkStart, _curChunkEnd-_curChunkStart);
@@ -1387,8 +1389,10 @@ void Cotter::writeAlignmentScans()
 		size_t timeIndex = _mwaConfig.Header().nScans;
 		
 		_outputFlags = new bool[nChannels*4];
-		posix_memalign((void**) &_outputData, 16, nChannels*4*sizeof(std::complex<float>));
-		posix_memalign((void**) &_outputWeights, 16, nChannels*4*sizeof(float));
+		if(0 != posix_memalign((void**) &_outputData, 16, nChannels*4*sizeof(std::complex<float>)))
+			throw std::runtime_error("Failed to allocate aligned memory");
+		if(0 != posix_memalign((void**) &_outputWeights, 16, nChannels*4*sizeof(float)))
+			throw std::runtime_error("Failed to allocate aligned memory");
 		for(size_t ch=0; ch!=nChannels*4; ++ch)
 		{
 			_outputData[ch] = std::complex<float>(0.0, 0.0);
