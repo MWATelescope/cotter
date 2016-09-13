@@ -94,6 +94,7 @@ void MetaFitsFile::ReadHeader(MWAHeader& header, MWAHeaderExt &headerExt)
 void MetaFitsFile::ReadTiles(std::vector<MWAInput>& inputs, std::vector<MWAAntenna>& antennae)
 {
 	int status = 0;
+	int gotTileName = 1;    // Non-zero if the 'TileName' column exists
 	
 	int hduType;
 	fits_movabs_hdu(_fptr, 2, &hduType, &status);
@@ -103,6 +104,7 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput>& inputs, std::vector<MWAAnten
 		inputColName[] = "Input",
 		antennaColName[] = "Antenna",
 		tileColName[] = "Tile",
+		tilenameColName[] = "TileName",
 		polColName[] = "Pol",
 		rxColName[] = "Rx",
 		slotColName[] = "Slot",
@@ -112,11 +114,21 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput>& inputs, std::vector<MWAAnten
 		northColName[] = "North",
 		heightColName[] = "Height",
 		gainsColName[] = "Gains";
-	int inputCol, antennaCol, tileCol, polCol, rxCol, slotCol, flagCol, lengthCol, northCol, eastCol, heightCol, gainsCol;
+	int inputCol, antennaCol, tileCol, tilenameCol, polCol, rxCol, slotCol, flagCol, lengthCol, northCol, eastCol, heightCol, gainsCol;
 		
 	fits_get_colnum(_fptr, CASESEN, inputColName, &inputCol, &status);
 	fits_get_colnum(_fptr, CASESEN, antennaColName, &antennaCol, &status);
 	fits_get_colnum(_fptr, CASESEN, tileColName, &tileCol, &status);
+	checkStatus(status);
+
+  // The tile name column doesn't exist in older metafits files
+	fits_get_colnum(_fptr, CASESEN, tilenameColName, &tilenameCol, &status);
+	if (status != 0)
+	{
+	  gotTileName = 0;
+	  status = 0;
+	}
+
 	fits_get_colnum(_fptr, CASESEN, polColName, &polCol, &status);
 	fits_get_colnum(_fptr, CASESEN, rxColName, &rxCol, &status);
 	fits_get_colnum(_fptr, CASESEN, slotColName, &slotCol, &status);
@@ -147,9 +159,14 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput>& inputs, std::vector<MWAAnten
 		char pol;
 		char length[81] = "";
 		char *lengthPtr[1] = { length };
+		char tilename[81] = "";
+		char *tilenamePtr[1] = { tilename };
 		fits_read_col(_fptr, TINT, inputCol, i+1, 1, 1, 0, &input, 0, &status);
 		fits_read_col(_fptr, TINT, antennaCol, i+1, 1, 1, 0, &antenna, 0, &status);
 		fits_read_col(_fptr, TINT, tileCol, i+1, 1, 1, 0, &tile, 0, &status);
+    if (gotTileName == 1)
+      fits_read_col(_fptr, TSTRING, tilenameCol, i+1, 1, 1, 0, tilenamePtr, 0, &status);
+
 		fits_read_col(_fptr, TBYTE, polCol, i+1, 1, 1, 0, &pol, 0, &status);
 		fits_read_col(_fptr, TINT, rxCol, i+1, 1, 1, 0, &rx, 0, &status);
 		fits_read_col(_fptr, TINT, slotCol, i+1, 1, 1, 0, &slot, 0, &status);
@@ -164,14 +181,23 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput>& inputs, std::vector<MWAAnten
 		
 		if(pol == 'X')
 		{
-			std::stringstream nameStr;
-			nameStr << "Tile";
-			if(tile<100) nameStr << '0';
-			if(tile<10) nameStr << '0';
-			nameStr << tile;
-			
 			MWAAntenna &ant = antennae[antenna];
-			ant.name = nameStr.str();
+      if (gotTileName == 1)
+      {
+  		  tilename[80] = 0;
+	  	  std::string tilenameStr = tilename;
+		    ant.name = tilenameStr;
+      }
+      else
+      {
+  			std::stringstream nameStr;
+	  		nameStr << "Tile";
+		  	if(tile<100) nameStr << '0';
+			  if(tile<10) nameStr << '0';
+			  nameStr << tile;
+  			ant.name = nameStr.str();
+  		}
+
 			ant.tileNumber = tile;
 			Geometry::ENH2XYZ_local(east, north, height, MWAConfig::ArrayLattitudeRad(), ant.position[0], ant.position[1], ant.position[2]);
 			ant.stationIndex = antenna;
