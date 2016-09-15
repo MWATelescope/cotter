@@ -94,7 +94,7 @@ void MetaFitsFile::ReadHeader(MWAHeader& header, MWAHeaderExt &headerExt)
 void MetaFitsFile::ReadTiles(std::vector<MWAInput>& inputs, std::vector<MWAAntenna>& antennae)
 {
 	int status = 0;
-	int gotTileName = 1;    // Non-zero if the 'TileName' column exists
+	bool gotTileName = true;    // True if the 'TileName' column exists
 	
 	int hduType;
 	fits_movabs_hdu(_fptr, 2, &hduType, &status);
@@ -125,7 +125,7 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput>& inputs, std::vector<MWAAnten
 	fits_get_colnum(_fptr, CASESEN, tilenameColName, &tilenameCol, &status);
 	if (status != 0)
 	{
-	  gotTileName = 0;
+	  gotTileName = false;
 	  status = 0;
 	}
 
@@ -164,7 +164,7 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput>& inputs, std::vector<MWAAnten
 		fits_read_col(_fptr, TINT, inputCol, i+1, 1, 1, 0, &input, 0, &status);
 		fits_read_col(_fptr, TINT, antennaCol, i+1, 1, 1, 0, &antenna, 0, &status);
 		fits_read_col(_fptr, TINT, tileCol, i+1, 1, 1, 0, &tile, 0, &status);
-    if (gotTileName == 1)
+    if (gotTileName)
       fits_read_col(_fptr, TSTRING, tilenameCol, i+1, 1, 1, 0, tilenamePtr, 0, &status);
 
 		fits_read_col(_fptr, TBYTE, polCol, i+1, 1, 1, 0, &pol, 0, &status);
@@ -182,11 +182,10 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput>& inputs, std::vector<MWAAnten
 		if(pol == 'X')
 		{
 			MWAAntenna &ant = antennae[antenna];
-      if (gotTileName == 1)
+      if (gotTileName)
       {
   		  tilename[80] = 0;
-	  	  std::string tilenameStr = tilename;
-		    ant.name = tilenameStr;
+		    ant.name = tilename;
       }
       else
       {
