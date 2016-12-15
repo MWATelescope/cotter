@@ -371,7 +371,8 @@ int cotterMain(int argc, const char* const* argv)
 			}
 			else if(param == "dysco-config")
 			{
-				cotter.SetAdvancedDyscoOptions(atoi(argv[argi]), atoi(argv[argi+1]), argv[argi+2], atof(argv[argi+3]), argv[argi+4]);
+				cotter.SetAdvancedDyscoOptions(atoi(argv[argi+1]), atoi(argv[argi+2]), argv[argi+3], atof(argv[argi+4]), argv[argi+5]);
+				argi += 5;
 			}
 			else
 			{
