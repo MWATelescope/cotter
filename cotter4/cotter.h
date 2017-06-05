@@ -64,7 +64,7 @@ class Cotter : private UVWCalculater
 		void SetSubbandCount(size_t subbandCount) { _subbandCount = subbandCount; }
 		void SetRemoveFlaggedAntennae(bool removeFlaggedAntennae) { _removeFlaggedAntennae = removeFlaggedAntennae; }
 		void SetRemoveAutoCorrelations(bool removeAutoCorrelations) { _removeAutoCorrelations = removeAutoCorrelations; }
-		void SetReadSubbandPassbandFile(const std::string subbandPassbandFilename)
+		void SetReadSubbandPassbandFile(const std::string& subbandPassbandFilename)
 		{
 			_subbandPassbandFilename = subbandPassbandFilename;
 		}
