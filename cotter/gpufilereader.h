@@ -105,8 +105,8 @@ class GPUFileReader : private FitsUser
 			size_t iFile, channelsInFile, fileBufferPos;
 			std::complex<float> *gpuMatrix;
 		};
-		lane<ShuffleTask> _shuffleTasks;
-		lane<std::complex<float> *> _availableGPUMatrixBuffers;
+		ao::lane<ShuffleTask> _shuffleTasks;
+		ao::lane<std::complex<float> *> _availableGPUMatrixBuffers;
 		
 		const static int single_pfb_output_to_input[64];
 		std::vector<int> pfb_output_to_input;

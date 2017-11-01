@@ -64,7 +64,7 @@ class Cotter : private UVWCalculater
 		void SetSubbandCount(size_t subbandCount) { _subbandCount = subbandCount; }
 		void SetRemoveFlaggedAntennae(bool removeFlaggedAntennae) { _removeFlaggedAntennae = removeFlaggedAntennae; }
 		void SetRemoveAutoCorrelations(bool removeAutoCorrelations) { _removeAutoCorrelations = removeAutoCorrelations; }
-		void SetReadSubbandPassbandFile(const std::string subbandPassbandFilename)
+		void SetReadSubbandPassbandFile(const std::string& subbandPassbandFilename)
 		{
 			_subbandPassbandFilename = subbandPassbandFilename;
 		}
@@ -80,7 +80,15 @@ class Cotter : private UVWCalculater
 		void FlagSubband(size_t sbIndex) { _flaggedSubbands.insert(sbIndex); }
 		void SetSubbandEdgeFlagWidth(double edgeFlagWidth) { _subbandEdgeFlagWidthKHz = edgeFlagWidth; }
 		void SetOfflineGPUBoxFormat(bool offlineFormat) { _offlineGPUBoxFormat = offlineFormat; }
-		
+		void SetUseDysco(bool useDysco) { _useDysco = useDysco; }
+		void SetAdvancedDyscoOptions(size_t dataBitRate, size_t weightBitRate, const std::string& distribution, double distTruncation, const std::string& normalization)
+		{
+			_dyscoDataBitRate = dataBitRate;
+			_dyscoWeightBitRate = weightBitRate;
+			_dyscoDistribution = distribution;
+			_dyscoDistTruncation = distTruncation;
+			_dyscoNormalization = normalization;
+		}
 		size_t SubbandCount() const { return _subbandCount; }
 	private:
 		MWAConfig _mwaConfig;
@@ -117,11 +125,11 @@ class Cotter : private UVWCalculater
 		std::vector<double> _channelFrequenciesHz;
 		std::vector<double> _scanTimes;
 		std::queue<std::pair<size_t,size_t> > _baselinesToProcess;
-		std::auto_ptr<ProgressBar> _progressBar;
+		std::unique_ptr<ProgressBar> _progressBar;
 		size_t _baselinesToProcessCount;
 		std::vector<size_t> _subbandOrder;
 		std::vector<int> _hduOffsetsPerGPUBox;
-		std::auto_ptr<class FlagReader> _flagReader;
+		std::unique_ptr<class FlagReader> _flagReader;
 		
 		boost::mutex _mutex;
 		aoflagger::QualityStatistics *_statistics;
@@ -135,6 +143,13 @@ class Cotter : private UVWCalculater
 		bool _offlineGPUBoxFormat;
 		long double _customRARad, _customDecRad;
 		double _initDurationToFlag, _endDurationToFlag;
+		
+		bool _useDysco;
+		size_t _dyscoDataBitRate;
+		size_t _dyscoWeightBitRate;
+		std::string _dyscoDistribution;
+		std::string _dyscoNormalization;
+		double _dyscoDistTruncation;
 		
 		void processAllContiguousBands(size_t timeAvgFactor, size_t freqAvgFactor);
 		void processOneContiguousBand(const std::string& outputFilename, size_t timeAvgFactor, size_t freqAvgFactor);
@@ -206,8 +221,8 @@ class Cotter : private UVWCalculater
 		// Implementing UVWCalculater
 		virtual void CalculateUVW(double date, size_t antenna1, size_t antenna2, double &u, double &v, double &w);
 
-		Cotter(const Cotter&) { }
-		void operator=(const Cotter&) { }
+		Cotter(const Cotter&) = delete;
+		void operator=(const Cotter&) = delete;
 };
 
 #endif

@@ -175,10 +175,10 @@ void FitsWriter::WriteSource(const SourceInfo &source)
 	_sourceName = source.name;
 }
 
-void FitsWriter::WriteObservation(const std::string& telescopeName, double startTime, double endTime, const std::string& observer, const std::string& scheduleType, const std::string& project, double releaseDate, bool flagRow)
+void FitsWriter::WriteObservation(const ObservationInfo& observation)
 {
-	_telescopeName = telescopeName;
-	_startTime = startTime;
+	_telescopeName = observation.telescopeName;
+	_startTime = observation.startTime;
 }
 
 void FitsWriter::WriteHistoryItem(const std::string &commandLine, const std::string &application, const std::vector<std::string> &)

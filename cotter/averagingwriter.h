@@ -20,14 +20,14 @@ class AveragingWriter : public Writer
 		{
 		}
 		
-		virtual ~AveragingWriter()
+		virtual ~AveragingWriter() final override
 		{
 			destroyBuffers();
 			
 			delete _writer;
 		}
 		
-		virtual void WriteBandInfo(const std::string &name, const std::vector<Writer::ChannelInfo> &channels, double refFreq, double totalBandwidth, bool flagRow)
+		virtual void WriteBandInfo(const std::string &name, const std::vector<Writer::ChannelInfo> &channels, double refFreq, double totalBandwidth, bool flagRow) final override
 		{
 			if(channels.size()%_freqAvgFactor != 0)
 			{
@@ -65,7 +65,7 @@ class AveragingWriter : public Writer
 				initBuffers();
 		}
 		
-		virtual void WriteAntennae(const std::vector<Writer::AntennaInfo> &antennae, double time)
+		virtual void WriteAntennae(const std::vector<Writer::AntennaInfo> &antennae, double time) final override
 		{
 			_writer->WriteAntennae(antennae, time);
 			
@@ -74,32 +74,32 @@ class AveragingWriter : public Writer
 				initBuffers();
 		}
 		
-		virtual void WritePolarizationForLinearPols(bool flagRow)
+		virtual void WritePolarizationForLinearPols(bool flagRow) final override
 		{
 			_writer->WritePolarizationForLinearPols(flagRow);
 		}
 		
-		virtual void WriteSource(const Writer::SourceInfo &source)
+		virtual void WriteSource(const Writer::SourceInfo &source) final override
 		{
 			_writer->WriteSource(source);
 		}
 		
-		virtual void WriteField(const Writer::FieldInfo& field)
+		virtual void WriteField(const Writer::FieldInfo& field) final override
 		{
 			_writer->WriteField(field);
 		}
 		
-		virtual void WriteObservation(const std::string& telescopeName, double startTime, double endTime, const std::string& observer, const std::string& scheduleType, const std::string& project, double releaseDate, bool flagRow)
+		virtual void WriteObservation(const ObservationInfo& observation) final override
 		{
-			_writer->WriteObservation(telescopeName, startTime, endTime, observer, scheduleType, project, releaseDate, flagRow);
+			_writer->WriteObservation(observation);
 		}
 		
-		virtual void SetArrayLocation(double x, double y, double z)
+		virtual void SetArrayLocation(double x, double y, double z) final override
 		{
 			_writer->SetArrayLocation(x, y, z);
 		}
 		
-		virtual void AddRows(size_t rowCount)
+		virtual void AddRows(size_t rowCount) final override
 		{
 			if(_rowsAdded == 0)
 				_writer->AddRows(rowCount);
@@ -108,23 +108,23 @@ class AveragingWriter : public Writer
 				_rowsAdded=0;
 		}
 		
-		virtual void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights);
+		virtual void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights) final override;
 		
-		virtual void WriteHistoryItem(const std::string &commandLine, const std::string &application, const std::vector<std::string> &params)
+		virtual void WriteHistoryItem(const std::string &commandLine, const std::string &application, const std::vector<std::string> &params) final override
 		{
 			_writer->WriteHistoryItem(commandLine, application, params);
 		}
 		
-		virtual bool IsTimeAligned(size_t antenna1, size_t antenna2) {
+		virtual bool IsTimeAligned(size_t antenna1, size_t antenna2) final override {
 			const Buffer &buffer = getBuffer(antenna1, antenna2);
 			return buffer._rowTimestepCount==0;
 		}
 		
-		virtual bool AreAntennaPositionsLocal() const
+		virtual bool AreAntennaPositionsLocal() const final override
 		{
 			return _writer->AreAntennaPositionsLocal();
 		}
-		virtual bool CanWriteStatistics() const
+		virtual bool CanWriteStatistics() const final override
 		{
 			return _writer->CanWriteStatistics();
 		}

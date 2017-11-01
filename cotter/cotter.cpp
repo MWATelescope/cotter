@@ -72,7 +72,13 @@ Cotter::Cotter() :
 	_customRARad(0.0),
 	_customDecRad(0.0),
 	_initDurationToFlag(4.0),
-	_endDurationToFlag(0.0)
+	_endDurationToFlag(0.0),
+	_useDysco(false),
+	_dyscoDataBitRate(8),
+	_dyscoWeightBitRate(12),
+	_dyscoDistribution("TruncatedGaussian"),
+	_dyscoNormalization("AF"),
+	_dyscoDistTruncation(2.5)
 {
 }
 
@@ -266,9 +272,12 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 		case FitsOutputFormat:
 			_writer = new ThreadedWriter(new FitsWriter(outputFilename));
 			break;
-		case MSOutputFormat:
-			_writer = new ThreadedWriter(new MSWriter(outputFilename));
-			break;
+		case MSOutputFormat: {
+			MSWriter* msWriter = new MSWriter(outputFilename);
+			if(_useDysco)
+				msWriter->EnableCompression(_dyscoDataBitRate, _dyscoWeightBitRate, _dyscoDistribution, _dyscoDistTruncation, _dyscoNormalization);
+			_writer = new ThreadedWriter(msWriter);
+		} break;
 	}
 	
 	if(freqAvgFactor != 1 || timeAvgFactor != 1)
@@ -1132,14 +1141,21 @@ void Cotter::writeField()
 
 void Cotter::writeObservation()
 {
-	std::string
-		observer = _mwaConfig.HeaderExt().observerName,
-		project = _mwaConfig.HeaderExt().projectName;
-	if(observer.empty())
-		observer = "Unknown";
-	if(project.empty())
-		project = "Unknown";
-	_writer->WriteObservation("MWA", _mwaConfig.Header().dateFirstScanMJD*86400.0, _mwaConfig.Header().GetDateLastScanMJD()*86400.0, observer, "MWA", project, 0, false);
+	Writer::ObservationInfo observation;
+	observation.telescopeName = "MWA";
+	observation.startTime = _mwaConfig.Header().dateFirstScanMJD*86400.0;
+	observation.endTime = _mwaConfig.Header().GetDateLastScanMJD()*86400.0;
+	observation.observer = _mwaConfig.HeaderExt().observerName;
+	if(observation.observer.empty())
+		observation.observer = "Unknown";
+	observation.scheduleType = "MWA";
+	observation.project = _mwaConfig.HeaderExt().projectName;
+	if(observation.project.empty())
+		observation.project = "Unknown";
+	observation.releaseDate = 0;
+	observation.flagRow = false;
+	
+	_writer->WriteObservation(observation);
 }
 
 void Cotter::readSubbandPassbandFile()
