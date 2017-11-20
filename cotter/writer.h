@@ -10,10 +10,6 @@ class Writer
 	public:
 		struct AntennaInfo
 		{
-			AntennaInfo() { }
-			AntennaInfo(const AntennaInfo& source);
-			AntennaInfo &operator=(const AntennaInfo& source);
-			
 			std::string name, station;
 			std::string type, mount;
 			double x, y, z;
@@ -28,7 +24,6 @@ class Writer
 		
 		struct SourceInfo
 		{
-			SourceInfo() { }
 			int sourceId;
 			double time, interval;
 			int spectralWindowId, numLines;
@@ -37,14 +32,10 @@ class Writer
 			std::string code;
 			double directionRA, directionDec;
 			double properMotion[2];
-		private:
-			SourceInfo(const SourceInfo&) { }
-			void operator=(const SourceInfo&) { }
 		};
 		
 		struct FieldInfo
 		{
-			FieldInfo() { }
 			std::string name, code;
 			double time;
 			int numPoly;
@@ -53,21 +44,31 @@ class Writer
 			double referenceDirRA, referenceDirDec;
 			int sourceId;
 			bool flagRow;
-		private:
-			FieldInfo(const FieldInfo&) { }
-			void operator=(const FieldInfo&) { }
+		};
+		
+		struct ObservationInfo
+		{
+			std::string telescopeName;
+			double startTime;
+			double endTime;
+			std::string observer;
+			std::string scheduleType;
+			std::string project;
+			double releaseDate;
+			bool flagRow;
 		};
 		
 		virtual ~Writer() { }
+		
 		virtual void SetArrayLocation(double x, double y, double z) { }
 		virtual void SetOffsetsPerGPUBox(const std::vector<int>& offsets) { }
 		
 		virtual void WriteBandInfo(const std::string &name, const std::vector<ChannelInfo> &channels, double refFreq, double totalBandwidth, bool flagRow) = 0;
 		virtual void WriteAntennae(const std::vector<AntennaInfo> &antennae, double time) = 0;
 		virtual void WritePolarizationForLinearPols(bool flagRow) = 0;
-		virtual void WriteSource(const SourceInfo &source) = 0;
+		virtual void WriteSource(const SourceInfo& source) = 0;
 		virtual void WriteField(const FieldInfo& field) = 0;
-		virtual void WriteObservation(const std::string& telescopeName, double startTime, double endTime, const std::string& observer, const std::string& scheduleType, const std::string& project, double releaseDate, bool flagRow) = 0;
+		virtual void WriteObservation(const ObservationInfo& observation) = 0;
 		virtual void WriteHistoryItem(const std::string &commandLine, const std::string &application, const std::vector<std::string> &params) = 0;
 		
 		virtual void AddRows(size_t count) = 0;

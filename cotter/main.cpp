@@ -107,6 +107,9 @@ void usage()
 	"  -offline-gpubox-format Assume the GPU Box do not have an initial HDU for metadata. This is\n"
 	"                     used for offline correlation of VCS observations.\n"
 	"  -skipwrite         Skip the writing step completely: only collect statistics.\n"
+	"  -use-dysco         Compress the Measurement Set using Dysco.\n"
+	"  -dysco-config <data bits> <weight bits> <distribution> <truncation> <normalization>\n"
+	"                     Set advanced Dysco options.\n"
 	"  -version           Output version and exit.\n"
 	"\n"
 	"The filenames of the input gpu files should end in '...nn_mm.fits', where nn >= 1 is the\n"
@@ -361,6 +364,15 @@ int cotterMain(int argc, const char* const* argv)
 			else if(param == "offline-gpubox-format")
 			{
 				cotter.SetOfflineGPUBoxFormat(true);
+			}
+			else if(param == "use-dysco")
+			{
+				cotter.SetUseDysco(true);
+			}
+			else if(param == "dysco-config")
+			{
+				cotter.SetAdvancedDyscoOptions(atoi(argv[argi+1]), atoi(argv[argi+2]), argv[argi+3], atof(argv[argi+4]), argv[argi+5]);
+				argi += 5;
 			}
 			else
 			{

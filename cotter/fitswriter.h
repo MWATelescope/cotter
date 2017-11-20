@@ -14,25 +14,25 @@ class FitsWriter : public Writer, private FitsUser
 {
 	public:
 		FitsWriter(const std::string& filename);
-		virtual ~FitsWriter();
+		virtual ~FitsWriter() final override;
 		
-		virtual void WriteBandInfo(const std::string& name, const std::vector<ChannelInfo>& channels, double refFreq, double totalBandwidth, bool flagRow);
-		virtual void WriteAntennae(const std::vector<AntennaInfo>& antennae, double time);
-		virtual void WritePolarizationForLinearPols(bool flagRow);
-		virtual void WriteField(const FieldInfo& field);
-		virtual void WriteSource(const SourceInfo &source);
-		virtual void WriteObservation(const std::string& telescopeName, double startTime, double endTime, const std::string& observer, const std::string& scheduleType, const std::string& project, double releaseDate, bool flagRow);
-		virtual void WriteHistoryItem(const std::string &commandLine, const std::string &application, const std::vector<std::string> &params);
-		virtual void SetArrayLocation(double x, double y, double z)
+		virtual void WriteBandInfo(const std::string& name, const std::vector<ChannelInfo>& channels, double refFreq, double totalBandwidth, bool flagRow) final override;
+		virtual void WriteAntennae(const std::vector<AntennaInfo>& antennae, double time) final override;
+		virtual void WritePolarizationForLinearPols(bool flagRow) final override;
+		virtual void WriteField(const FieldInfo& field) final override;
+		virtual void WriteSource(const SourceInfo &source) final override;
+		virtual void WriteObservation(const ObservationInfo& observation) final override;
+		virtual void WriteHistoryItem(const std::string &commandLine, const std::string &application, const std::vector<std::string> &params) final override;
+		virtual void SetArrayLocation(double x, double y, double z) final override
 		{
 			_arrayX = x;
 			_arrayY = y;
 			_arrayZ = z;
 		}
 		
-		virtual void AddRows(size_t count);
-		virtual void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights);
-		virtual bool AreAntennaPositionsLocal() const { return true; }
+		virtual void AddRows(size_t count) final override;
+		virtual void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights) final override;
+		virtual bool AreAntennaPositionsLocal() const final override { return true; }
 		
 	private:
 		void initGroupHeader();

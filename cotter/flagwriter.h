@@ -16,33 +16,33 @@ class FlagWriter : public Writer, private FitsUser
 		
 		~FlagWriter();
 		
-		void WriteBandInfo(const std::string &name, const std::vector<Writer::ChannelInfo> &channels, double refFreq, double totalBandwidth, bool flagRow)
+		void WriteBandInfo(const std::string &name, const std::vector<Writer::ChannelInfo> &channels, double refFreq, double totalBandwidth, bool flagRow) override final
 		{
 			_channelCount = channels.size();
 			setStride();
 		}
 		
-		void WriteAntennae(const std::vector<Writer::AntennaInfo> &antennae, double time)
+		void WriteAntennae(const std::vector<Writer::AntennaInfo> &antennae, double time) override final
 		{
 			_antennaCount = antennae.size();
 			setStride();
 		}
 		
-		void WritePolarizationForLinearPols(bool flagRow)
+		void WritePolarizationForLinearPols(bool flagRow) override final
 		{
 			_polarizationCount = 4;
 			setStride();
 		}
 		
-		void WriteSource(const Writer::SourceInfo &source)
+		void WriteSource(const Writer::SourceInfo &source) override final
 		{
 		}
 		
-		void WriteField(const Writer::FieldInfo& field)
+		void WriteField(const Writer::FieldInfo& field) override final
 		{
 		}
 		
-		void WriteObservation(const std::string& telescopeName, double startTime, double endTime, const std::string& observer, const std::string& scheduleType, const std::string& project, double releaseDate, bool flagRow)
+		void WriteObservation(const ObservationInfo& observation) override final
 		{
 		}
 		

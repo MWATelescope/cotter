@@ -1,21 +1,21 @@
 #include "mwams.h"
 
-#include <ms/MeasurementSets/MeasurementSet.h>
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
-#include <tables/Tables/ArrayColumn.h>
-#include <tables/Tables/ArrColDesc.h>
-#include <tables/Tables/ScalarColumn.h>
-#include <tables/Tables/ScaColDesc.h>
-#include <tables/Tables/SetupNewTab.h>
+#include <casacore/tables/Tables/ArrayColumn.h>
+#include <casacore/tables/Tables/ArrColDesc.h>
+#include <casacore/tables/Tables/ScalarColumn.h>
+#include <casacore/tables/Tables/ScaColDesc.h>
+#include <casacore/tables/Tables/SetupNewTab.h>
 
-#include <measures/TableMeasures/TableMeasDesc.h>
+#include <casacore/measures/TableMeasures/TableMeasDesc.h>
 
-#include <measures/Measures/MEpoch.h>
+#include <casacore/measures/Measures/MEpoch.h>
 
 #include <stdexcept>
 #include <sstream>
 
-using namespace casa;
+using namespace casacore;
 
 struct MWAMSData
 {
@@ -109,10 +109,10 @@ void MWAMS::addMWAObservationFields()
 		
 		ScalarColumnDesc<double> gpsTimeCD =
 			ScalarColumnDesc<double>(columnName(MWAMSEnums::MWA_GPS_TIME));
-		ScalarColumnDesc<casa::String> filenameCD =
-			ScalarColumnDesc<casa::String>(columnName(MWAMSEnums::MWA_FILENAME));
-		ScalarColumnDesc<casa::String> obsModeCD =
-			ScalarColumnDesc<casa::String>(columnName(MWAMSEnums::MWA_OBSERVATION_MODE));
+		ScalarColumnDesc<casacore::String> filenameCD =
+			ScalarColumnDesc<casacore::String>(columnName(MWAMSEnums::MWA_FILENAME));
+		ScalarColumnDesc<casacore::String> obsModeCD =
+			ScalarColumnDesc<casacore::String>(columnName(MWAMSEnums::MWA_OBSERVATION_MODE));
 		ScalarColumnDesc<int> flagWindowSizeCD =
 			ScalarColumnDesc<int>(columnName(MWAMSEnums::MWA_FLAG_WINDOW_SIZE));
 			
@@ -125,7 +125,7 @@ void MWAMS::addMWAObservationFields()
 		obsTable.addColumn(flagWindowSizeCD);
 		obsTable.addColumn(dateRequestedCD);
 		
-		casa::Vector<Unit> unitVec(1);
+		casacore::Vector<Unit> unitVec(1);
 		unitVec[0] = Unit("s");
 		TableMeasRefDesc measRef(MEpoch::DEFAULT);
 		TableMeasValueDesc measVal(columnName(MWAMSEnums::MWA_DATE_REQUESTED));
@@ -162,7 +162,7 @@ void MWAMS::addMWATilePointingFields()
 		tilePointingTableDesc.addColumn(delaysCD);
 		tilePointingTableDesc.addColumn(directionCD);
 		
-		casa::Vector<Unit> unitVec(1);
+		casacore::Vector<Unit> unitVec(1);
 		unitVec[0] = Unit("s");
 		TableMeasRefDesc measRef(MEpoch::DEFAULT);
 		TableMeasValueDesc measVal(tilePointingTableDesc, columnName(MWAMSEnums::INTERVAL));
@@ -212,7 +212,7 @@ void MWAMS::UpdateMWAAntennaInfo(size_t antennaIndex, const MWAMS::MWAAntennaInf
 	ArrayColumn<double> cableLengthCol =
 		ArrayColumn<double>(antTable, columnName(MWAMSEnums::MWA_CABLE_LENGTH));
 	
-	casa::Vector<int> inputVec(2);
+	casacore::Vector<int> inputVec(2);
 	inputVec[0] = info.inputX;
 	inputVec[1] = info.inputY;
 	inputCol.put(antennaIndex, inputVec);
@@ -220,12 +220,12 @@ void MWAMS::UpdateMWAAntennaInfo(size_t antennaIndex, const MWAMS::MWAAntennaInf
 	tileNrCol.put(antennaIndex, info.tileNr);
 	receiverCol.put(antennaIndex, info.receiver);
 	
-	casa::Vector<int> slotVec(2);
+	casacore::Vector<int> slotVec(2);
 	slotVec[0] = info.slotX;
 	slotVec[1] = info.slotY;
 	slotCol.put(antennaIndex, slotVec);
 	
-	casa::Vector<double> cableLengthVec(2);
+	casacore::Vector<double> cableLengthVec(2);
 	cableLengthVec[0] = info.cableLengthX;
 	cableLengthVec[1] = info.cableLengthY;
 	cableLengthCol.put(antennaIndex, cableLengthVec);
@@ -258,10 +258,10 @@ void MWAMS::UpdateMWAObservationInfo(const MWAMS::MWAObservationInfo& info)
 	
 	ScalarColumn<double> gpsTimeCol =
 		ScalarColumn<double>(obsTable, columnName(MWAMSEnums::MWA_GPS_TIME));
-	ScalarColumn<casa::String> filenameCol =
-		ScalarColumn<casa::String>(obsTable, columnName(MWAMSEnums::MWA_FILENAME));
-	ScalarColumn<casa::String> obsModeCol =
-		ScalarColumn<casa::String>(obsTable, columnName(MWAMSEnums::MWA_OBSERVATION_MODE));
+	ScalarColumn<casacore::String> filenameCol =
+		ScalarColumn<casacore::String>(obsTable, columnName(MWAMSEnums::MWA_FILENAME));
+	ScalarColumn<casacore::String> obsModeCol =
+		ScalarColumn<casacore::String>(obsTable, columnName(MWAMSEnums::MWA_OBSERVATION_MODE));
 	ScalarColumn<int> flagWindowSizeCol =
 		ScalarColumn<int>(obsTable, columnName(MWAMSEnums::MWA_FLAG_WINDOW_SIZE));
 	ScalarColumn<double> dateRequestedCol =
@@ -304,16 +304,16 @@ void MWAMS::WriteMWATilePointingInfo(double start, double end, const int* delays
 	size_t index = tilePntTable.nrow();
 	tilePntTable.addRow();
 		
-	casa::Vector<double> intervalVec(2);
+	casacore::Vector<double> intervalVec(2);
 	intervalVec[0] = start;
 	intervalVec[1] = end;
 	intervalCol.put(index, intervalVec);
 	
-	casa::Vector<int> delaysVec(16);
+	casacore::Vector<int> delaysVec(16);
 	for(size_t i=0; i!=16; ++i) delaysVec[i] = delays[i];
 	delaysCol.put(index, delaysVec);
 	
-	casa::Vector<double> dirVec(2);
+	casacore::Vector<double> dirVec(2);
 	dirVec[0] = directionRA; dirVec[1] = directionDec;
 	directionCol.put(index, dirVec);
 }

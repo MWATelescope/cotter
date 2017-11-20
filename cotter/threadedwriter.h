@@ -14,13 +14,13 @@ class ThreadedWriter : public ForwardingWriter
 	public:
 		ThreadedWriter(Writer *parentWriter);
 		
-		virtual ~ThreadedWriter();
+		virtual ~ThreadedWriter() final override;
 		
-		virtual void WriteBandInfo(const std::string &name, const std::vector<Writer::ChannelInfo> &channels, double refFreq, double totalBandwidth, bool flagRow);
+		virtual void WriteBandInfo(const std::string &name, const std::vector<Writer::ChannelInfo> &channels, double refFreq, double totalBandwidth, bool flagRow) final override;
 		
-		virtual void AddRows(size_t rowCount);
+		virtual void AddRows(size_t rowCount) final override;
 		
-		virtual void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights);
+		virtual void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights) final override;
 		
 	private:
 		boost::condition _bufferChangeCondition;

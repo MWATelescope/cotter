@@ -118,8 +118,8 @@ bool GPUFileReader::Read(size_t &bufferPos, size_t bufferLength) {
 	const size_t nBaselines = (_nAntenna + 1) * _nAntenna / 2;
 	const size_t gpuMatrixSizePerFile = _nChannelsInTotal * nBaselines * nPol / _filenames.size(); // cuda matrix length per file
 
-	_shuffleTasks.reset();
-	_availableGPUMatrixBuffers.reset();
+	_shuffleTasks.clear();
+	_availableGPUMatrixBuffers.clear();
 	std::vector<std::vector<std::complex<float> > > gpuMatrixBuffers(_threadCount);
 	boost::thread_group threadGroup;
 	for(size_t i=0; i!=_threadCount; ++i)
@@ -202,7 +202,7 @@ bool GPUFileReader::Read(size_t &bufferPos, size_t bufferLength) {
 						throw std::runtime_error(s.str());
 					}
 
-					std::complex<float> *matrixPtr;
+					std::complex<float> *matrixPtr = 0;
 					_availableGPUMatrixBuffers.read(matrixPtr);
 					fits_read_img(fptr, TFLOAT, fpixel, channelsInFile * baselTimesPolInFile, &nullval, (float *) matrixPtr, &anynull, &status);
 					checkStatus(status);

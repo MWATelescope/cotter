@@ -6,9 +6,6 @@ find_library(AOFLAGGER_LIB aoflagger)
 find_path(AOFLAGGER_INCLUDE_DIR NAMES aoflagger.h)
 find_library(CFITSIO_LIB cfitsio)
 find_path(FITSIO_INCLUDE_DIR NAMES fitsio.h)
-find_package(PkgConfig)
-pkg_check_modules(GTKMM gtkmm-2.4>=2.18)
-pkg_check_modules(SIGCXX sigc++-2.0)
 
 find_library(CASA_MS_LIB casa_ms REQUIRED)
 find_library(CASA_TABLES_LIB casa_tables REQUIRED)
@@ -24,7 +21,7 @@ find_package(LibXml2 REQUIRED)
 find_library(LIBSLA_LIB sla REQUIRED)
 find_library(PNG_LIB png REQUIRED)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -DNDEBUG -msse2 -O3 -ggdb -march=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -DNDEBUG -O3 -march=native -std=c++11")
 
 include_directories(${AOFLAGGER_INCLUDE_DIR})
 include_directories(${CASA_INCLUDE_DIR})
