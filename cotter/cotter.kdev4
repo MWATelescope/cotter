@@ -1,4 +1,5 @@
 [Project]
+CreatedFrom=cotter
 Manager=KDevCMakeManager
 Name=cotter
 VersionControl=
