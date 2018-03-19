@@ -465,7 +465,7 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 				// We will put a place holder in the flagbuffer map, so we don't have to write (and lock)
 				// during multi threaded processing.
 				_flagBuffers.insert(std::pair<std::pair<size_t, size_t>, FlagMask*>(
-				std::pair<size_t,size_t>(antenna1, antenna2), 0));
+				std::pair<size_t,size_t>(antenna1, antenna2), nullptr));
 			}
 		}
 		_baselinesToProcessCount = _baselinesToProcess.size();
