@@ -15,11 +15,12 @@ set(CASA_LIBS ${CASA_MS_LIB} ${CASA_TABLES_LIB} ${CASA_CASA_LIB} ${CASA_MEASURES
 find_path(CASA_INCLUDE_DIR NAMES ms/MeasurementSets/MeasurementSet.h PATHS /usr/local/include/casacore PATH_SUFFIXES casacore)
 enable_language(Fortran OPTIONAL)
 find_package(LAPACK REQUIRED)
-find_package(Boost REQUIRED COMPONENTS date_time thread filesystem system)
+find_package(Boost REQUIRED COMPONENTS date_time system)
 find_library(FFTW3_LIB fftw3 REQUIRED)
 find_package(LibXml2 REQUIRED)
 find_library(LIBSLA_LIB sla REQUIRED)
 find_library(PNG_LIB png REQUIRED)
+find_library(PTHREAD_LIB pthread REQUIRED)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -DNDEBUG -O3 -march=native -std=c++11")
 
@@ -50,7 +51,7 @@ add_executable(cotter main.cpp cotter.cpp averagingwriter.cpp flagwriter.cpp fit
 
 add_executable(fixmwams fixmwams.cpp fitsuser.cpp metafitsfile.cpp mwaconfig.cpp mwams.cpp)
 
-target_link_libraries(cotter ${CFITSIO_LIB} ${AOFLAGGER_LIB} ${CASA_LIBS} ${LAPACK_lapack_LIBRARY} ${Boost_THREAD_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${LIBXML2_LIBRARIES} ${FFTW3_LIB} ${LIBSLA_LIB} ${PNG_LIB} ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
+target_link_libraries(cotter ${CFITSIO_LIB} ${AOFLAGGER_LIB} ${CASA_LIBS} ${LAPACK_lapack_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${LIBXML2_LIBRARIES} ${FFTW3_LIB} ${LIBSLA_LIB} ${PNG_LIB} ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES} ${PTHREAD_LIB})
 
 target_link_libraries(fixmwams ${CFITSIO_LIB} ${CASA_LIBS} ${LIBSLA_LIB})
 

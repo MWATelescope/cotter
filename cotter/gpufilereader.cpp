@@ -1,12 +1,11 @@
 #include "gpufilereader.h"
 #include "progressbar.h"
 
-#include <boost/thread/thread.hpp>
-
 #include <complex>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include <thread>
 
 void GPUFileReader::openFiles()
 {
@@ -121,12 +120,12 @@ bool GPUFileReader::Read(size_t &bufferPos, size_t bufferLength) {
 	_shuffleTasks.clear();
 	_availableGPUMatrixBuffers.clear();
 	std::vector<std::vector<std::complex<float> > > gpuMatrixBuffers(_threadCount);
-	boost::thread_group threadGroup;
+	std::vector<std::thread> threadGroup;
 	for(size_t i=0; i!=_threadCount; ++i)
 	{
 		gpuMatrixBuffers[i].resize(gpuMatrixSizePerFile);
 		_availableGPUMatrixBuffers.write(&gpuMatrixBuffers[i][0]);
-		threadGroup.create_thread(boost::bind(&GPUFileReader::shuffleThreadFunc, this));
+		threadGroup.emplace_back(&GPUFileReader::shuffleThreadFunc, this);
 	}
 
 	if(!_isOpen)
@@ -223,7 +222,8 @@ bool GPUFileReader::Read(size_t &bufferPos, size_t bufferLength) {
 	}
 	
 	_shuffleTasks.write_end();
-	threadGroup.join_all();
+	for(std::thread& t : threadGroup)
+		t.join();
 	
 	_currentHDU += endingBufferPos - bufferPos;
 	bufferPos = endingBufferPos;

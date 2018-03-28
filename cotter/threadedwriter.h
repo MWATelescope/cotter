@@ -5,9 +5,8 @@
 
 #include <string.h>
 
-#include <boost/thread/condition.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
+#include <condition_variable>
+#include <thread>
 
 class ThreadedWriter : public ForwardingWriter
 {
@@ -23,8 +22,8 @@ class ThreadedWriter : public ForwardingWriter
 		virtual void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights) final override;
 		
 	private:
-		boost::condition _bufferChangeCondition;
-		boost::mutex _mutex;
+		std::condition_variable _bufferChangeCondition;
+		std::mutex _mutex;
 		bool _isWriterReady, _isBufferReady, _isFinishing;
 		
 		size_t _arraySize;
@@ -37,7 +36,7 @@ class ThreadedWriter : public ForwardingWriter
 		float *_bufferedWeights;
 		
 		// Last property, because it needs to be constructed after fields have been initialized
-		boost::thread _thread;
+		std::thread _thread;
 		
 		void writerThreadFunc();
 };

@@ -1,7 +1,5 @@
 #include "threadedwriter.h"
 
-#include <boost/mem_fn.hpp>
-
 ThreadedWriter::ThreadedWriter(Writer *parentWriter) : ForwardingWriter(parentWriter),
 	_isWriterReady(false),
 	_isBufferReady(false),
@@ -15,7 +13,7 @@ ThreadedWriter::ThreadedWriter(Writer *parentWriter) : ForwardingWriter(parentWr
 
 ThreadedWriter::~ThreadedWriter()
 {
-	boost::mutex::scoped_lock lock(_mutex);
+	std::unique_lock<std::mutex> lock(_mutex);
 	_isFinishing = true;
 	lock.unlock();
 	
@@ -39,7 +37,7 @@ void ThreadedWriter::WriteBandInfo(const std::string &name, const std::vector<Wr
 
 void ThreadedWriter::AddRows(size_t rowCount)
 {
-	boost::mutex::scoped_lock lock(_mutex);
+	std::unique_lock<std::mutex> lock(_mutex);
 	
 	// Wait until the writer is ready AND the buffer is empty
 	while(!_isWriterReady || _isBufferReady)
@@ -51,7 +49,7 @@ void ThreadedWriter::AddRows(size_t rowCount)
 
 void ThreadedWriter::WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights)
 {
-	boost::mutex::scoped_lock lock(_mutex);
+	std::unique_lock<std::mutex> lock(_mutex);
 	
 	// Wait until the writer is ready AND the buffer is empty (=not ready)
 	while(!_isWriterReady || _isBufferReady)
@@ -75,7 +73,7 @@ void ThreadedWriter::WriteRow(double time, double timeCentroid, size_t antenna1,
 
 void ThreadedWriter::writerThreadFunc()
 {
-	boost::mutex::scoped_lock lock(_mutex);
+	std::unique_lock<std::mutex> lock(_mutex);
 	
 	while(!_isFinishing)
 	{

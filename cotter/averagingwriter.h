@@ -4,6 +4,7 @@
 #include "writer.h"
 
 #include <iostream>
+#include <memory>
 
 class UVWCalculater
 {
@@ -14,8 +15,8 @@ class UVWCalculater
 class AveragingWriter : public Writer
 {
 	public:
-		AveragingWriter(Writer *writer, size_t timeCount, size_t freqAvgFactor, UVWCalculater &uvwCalculater)
-		: _writer(writer), _timeAvgFactor(timeCount), _freqAvgFactor(freqAvgFactor), _rowsAdded(0),
+		AveragingWriter(std::unique_ptr<Writer>&& writer, size_t timeCount, size_t freqAvgFactor, UVWCalculater& uvwCalculater)
+		: _writer(std::move(writer)), _timeAvgFactor(timeCount), _freqAvgFactor(freqAvgFactor), _rowsAdded(0),
 		_originalChannelCount(0), _avgChannelCount(0), _antennaCount(0), _uvwCalculater(uvwCalculater)
 		{
 		}
@@ -23,8 +24,6 @@ class AveragingWriter : public Writer
 		virtual ~AveragingWriter() final override
 		{
 			destroyBuffers();
-			
-			delete _writer;
 		}
 		
 		virtual void WriteBandInfo(const std::string &name, const std::vector<Writer::ChannelInfo> &channels, double refFreq, double totalBandwidth, bool flagRow) final override
@@ -242,10 +241,10 @@ class AveragingWriter : public Writer
 			_buffers.clear();
 		}
 		
-		Writer *_writer;
+		std::unique_ptr<Writer> _writer;
 		size_t _timeAvgFactor, _freqAvgFactor, _rowsAdded;
 		size_t _originalChannelCount, _avgChannelCount, _antennaCount;
-		UVWCalculater &_uvwCalculater;
+		UVWCalculater& _uvwCalculater;
 		std::vector<Buffer*> _buffers;
 };
 

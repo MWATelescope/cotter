@@ -16,9 +16,8 @@
 
 #include <aoflagger.h>
 
-#include <boost/thread/thread.hpp>
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <thread>
+#include <functional>
 
 #include <fstream>
 #include <iostream>
@@ -33,7 +32,7 @@
 using namespace aoflagger;
 
 Cotter::Cotter() :
-	_writer(0),
+	_writer(),
 	_reader(0),
 	_flagger(0),
 	_strategy(0),
@@ -86,7 +85,7 @@ Cotter::~Cotter()
 {
 	delete _correlatorMask;
 	delete _fullysetMask;
-	delete _writer;
+	_writer.reset();
 	delete _reader;
 	delete _flagger;
 	delete _strategy;
@@ -267,22 +266,22 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 				throw std::runtime_error("You have specified time or frequency averaging and outputting only flags: this is incompatible");
 			if(_removeFlaggedAntennae || _removeAutoCorrelations)
 				throw std::runtime_error("Can't prune flagged/auto-correlated antennas when writing flag file");
-			_writer = new FlagWriter(outputFilename, _mwaConfig.HeaderExt().gpsTime, _mwaConfig.Header().nScans, _curSbStart, _curSbEnd, _subbandOrder);
+			_writer.reset(new FlagWriter(outputFilename, _mwaConfig.HeaderExt().gpsTime, _mwaConfig.Header().nScans, _curSbStart, _curSbEnd, _subbandOrder));
 			break;
 		case FitsOutputFormat:
-			_writer = new ThreadedWriter(new FitsWriter(outputFilename));
+			_writer.reset(new ThreadedWriter(new FitsWriter(outputFilename)));
 			break;
 		case MSOutputFormat: {
 			MSWriter* msWriter = new MSWriter(outputFilename);
 			if(_useDysco)
 				msWriter->EnableCompression(_dyscoDataBitRate, _dyscoWeightBitRate, _dyscoDistribution, _dyscoDistTruncation, _dyscoNormalization);
-			_writer = new ThreadedWriter(msWriter);
+			_writer.reset(new ThreadedWriter(msWriter));
 		} break;
 	}
 	
 	if(freqAvgFactor != 1 || timeAvgFactor != 1)
 	{
-		_writer = new ThreadedWriter(new AveragingWriter(_writer, timeAvgFactor, freqAvgFactor, *this));
+		_writer.reset(new ThreadedWriter(new AveragingWriter(std::move(_writer), timeAvgFactor, freqAvgFactor, *this)));
 	}
 	writeAntennae();
 	writeSPW();
@@ -293,7 +292,7 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 
 	if(!_qualityStatisticsFilename.empty())
 	{
-		Writer* qsWriter = new MSWriter(_qualityStatisticsFilename);
+		std::unique_ptr<Writer> qsWriter(new MSWriter(_qualityStatisticsFilename));
 		std::swap(qsWriter, _writer);
 		writeAntennae();
 		writeSPW();
@@ -302,7 +301,6 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 		_writer->WritePolarizationForLinearPols(false);
 		writeObservation();
 		std::swap(qsWriter, _writer);
-		delete qsWriter;
 	}
 	
 	_hduOffsetsPerGPUBox.assign(_subbandCount, 9999);
@@ -524,10 +522,11 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 		}
 		_progressBar.reset(new ProgressBar(taskDescription));
 		
-		boost::thread_group threadGroup;
+		std::vector<std::thread> threadGroup;
 		for(size_t i=0; i!=_threadCount; ++i)
-			threadGroup.create_thread(boost::bind(&Cotter::baselineProcessThreadFunc, this));
-		threadGroup.join_all();
+			threadGroup.emplace_back(std::bind(&Cotter::baselineProcessThreadFunc, this));
+		for(std::thread& t : threadGroup)
+			t.join();
 		
 		_progressBar.reset();
 		_processWatch.Pause();
@@ -586,10 +585,9 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	
 	const bool writerSupportsStatistics = _writer->CanWriteStatistics();
 	
-	delete _writer;
-	_writer = 0;
+	_writer.reset();
 	delete _reader;
-	_reader = 0;
+	_reader = nullptr;
 	
 	// Necessary to make sure it is reinitialized in the following cont band:
 	_flagReader.reset();
@@ -622,7 +620,7 @@ void Cotter::createReader(const std::vector<std::string>& curFileset)
 {
 	delete _reader; // might be 0, but that's ok.
 	_reader = new GPUFileReader(_mwaConfig.NAntennae(), nChannelsInCurSBRange(), _threadCount, _offlineGPUBoxFormat);
-	_reader->SetHDUOffsetsChangeCallback(boost::bind(&Cotter::onHDUOffsetsChange, this, _1));
+	_reader->SetHDUOffsetsChangeCallback(std::bind(&Cotter::onHDUOffsetsChange, this, std::placeholders::_1));
 
 	// Add the gpubox files in the right order
 	for(size_t sb=_curSbStart; sb!=_curSbEnd; ++sb)
@@ -862,7 +860,7 @@ void Cotter::baselineProcessThreadFunc()
 	QualityStatistics threadStatistics =
 		_flagger->MakeQualityStatistics(&_scanTimes[_curChunkStart], _curChunkEnd-_curChunkStart, &_channelFrequenciesHz[0], _channelFrequenciesHz.size(), 4, _collectHistograms);
 	
-	boost::mutex::scoped_lock lock(_mutex);
+	std::unique_lock<std::mutex> lock(_mutex);
 	while(!_baselinesToProcess.empty())
 	{
 		std::pair<size_t, size_t> baseline = _baselinesToProcess.front();
@@ -876,7 +874,7 @@ void Cotter::baselineProcessThreadFunc()
 	}
 	
 	// Mutex still needs to be locked
-	if(_statistics == 0)
+	if(_statistics == nullptr)
 		_statistics = new QualityStatistics(threadStatistics);
 	else
 		(*_statistics) += threadStatistics;

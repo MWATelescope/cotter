@@ -7,8 +7,7 @@
 #include "stopwatch.h"
 #include "progressbar.h"
 
-#include <boost/thread/mutex.hpp>
-
+#include <memory>
 #include <vector>
 #include <queue>
 #include <set>
@@ -92,7 +91,7 @@ class Cotter : private UVWCalculater
 		size_t SubbandCount() const { return _subbandCount; }
 	private:
 		MWAConfig _mwaConfig;
-		Writer *_writer;
+		std::unique_ptr<Writer> _writer;
 		GPUFileReader *_reader;
 		aoflagger::AOFlagger *_flagger;
 		aoflagger::Strategy *_strategy;
@@ -131,7 +130,7 @@ class Cotter : private UVWCalculater
 		std::vector<int> _hduOffsetsPerGPUBox;
 		std::unique_ptr<class FlagReader> _flagReader;
 		
-		boost::mutex _mutex;
+		std::mutex _mutex;
 		aoflagger::QualityStatistics *_statistics;
 		aoflagger::FlagMask *_correlatorMask, *_fullysetMask;
 		
