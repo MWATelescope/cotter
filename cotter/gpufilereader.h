@@ -2,6 +2,7 @@
 #include "fitsuser.h"
 #include "lane.h"
 
+#include <functional>
 #include <string>
 #include <vector>
 #include <ctime>
@@ -9,8 +10,6 @@
 #include <stdexcept>
 
 #include <fitsio.h>
-
-#include <boost/function.hpp>
 
 /**
  * The GPU file reader, that can read the files produced by the MWA correlator.
@@ -95,7 +94,7 @@ class GPUFileReader : private FitsUser
 		std::time_t StartTime() const { return _startTime; }
 		bool HasStartTime() const { return _hasStartTime; }
 		
-		void SetHDUOffsetsChangeCallback(boost::function<void(const std::vector<int>&)> onHDUOffsetsChange)
+		void SetHDUOffsetsChangeCallback(std::function<void(const std::vector<int>&)> onHDUOffsetsChange)
 		{
 			_onHDUOffsetsChange = onHDUOffsetsChange;
 		}
@@ -145,5 +144,5 @@ class GPUFileReader : private FitsUser
 		std::vector<int> _hduOffsetsPerFile;
 		double _integrationTime;
 		bool _doAlign, _offlineFormat;
-		boost::function<void(const std::vector<int>&)> _onHDUOffsetsChange;
+		std::function<void(const std::vector<int>&)> _onHDUOffsetsChange;
 };
