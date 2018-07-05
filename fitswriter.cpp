@@ -2,7 +2,7 @@
 
 #include <cstdio>
 
-#include "slalib.h"
+#include <pal.h>
 
 #define VLIGHT 299792458.0  // speed of light in m/s
 
@@ -283,8 +283,8 @@ void FitsWriter::writeAntennaTable()
   // GSTIAO is the GST at zero hours in the time system of TIMSYS (i.e. UTC)
   double mjd = trunc(_antennaDate / (60.0*60.0*24.0));
 	
-	// technically, slaGmst takes UT1, but it won't matter here.
-  setKeywordToDouble("GSTIA0", slaGmst(mjd)*180.0/M_PI);
+	// technically, palGmst takes UT1, but it won't matter here.
+  setKeywordToDouble("GSTIA0", palGmst(mjd)*180.0/M_PI);
   setKeywordToDouble("DEGPDY", 3.60985e2); // Earth's rotation rate
 
 	int year, mon, day;

@@ -3,7 +3,7 @@
 
 #include <cmath>
 
-#include "slalib.h"
+#include <pal.h>
 
 #define SPEED_OF_LIGHT 299792458.0        // speed of light in m/s
 
@@ -85,7 +85,7 @@ public:
 	{
 		int res;
 		double jdBase;
-		slaCaldj(year, month, day, &jdBase, &res); // get MJD for calendar day of obs
+		palCaldj(year, month, day, &jdBase, &res); // get MJD for calendar day of obs
 		return jdBase +
 			//2400000.5 +  // convert MJD to JD
 			refHour/24.0 + refMinute/1440.0 + refSecond/86400.0; // add intra-day offset
@@ -94,22 +94,22 @@ public:
 	static void PrepareTimestepUVW(UVWTimestepInfo &uvwInfo, double mjd, double arrayLongitudeRad, double arrayLattitudeRad, double raHrs, double decDeg)
 	{
 		
-		double lmst = slaRanorm(slaGmst(mjd) + arrayLongitudeRad);  // local mean sidereal time, given
+		double lmst = palDranrm(palGmst(mjd) + arrayLongitudeRad);  // local mean sidereal time, given
 		
 		/* convert mean RA/DEC of phase center to apparent for current observing time. This applies precession, nutation, annual abberation. */
 		double ra_app, dec_app;
-    slaMap(raHrs*(M_PI/12.0), decDeg*(M_PI/180.0), 0.0, 0.0, 0.0, 0.0, 2000.0,
+    palMap(raHrs*(M_PI/12.0), decDeg*(M_PI/180.0), 0.0, 0.0, 0.0, 0.0, 2000.0,
        mjd, &ra_app, &dec_app);
 		
     /* calc apparent HA of phase center, normalise to be between 0 and 2*pi */
-    // double ha = slaRanorm(lmst - ra_app);
+    // double ha = palDranrm(lmst - ra_app);
 		
 		/* Compute the apparent direction of the phase center in the J2000 coordinate system */
 		double ra_aber, dec_aber;
 		aber_radec_rad(2000.0, mjd, raHrs*(M_PI/12.0), decDeg*(M_PI/180.0), &ra_aber,&dec_aber);
 								 
 		double rmattr[3][3];
-		slaPrenut(2000.0, mjd, rmattr);
+		palPrenut(2000.0, mjd, rmattr);
 		
 		mat_transpose(rmattr, uvwInfo.rmatpr);
 	
@@ -153,10 +153,10 @@ public:
 	{
 		double v1[3], v2[3];
 
-		slaDcs2c(ra1, dec1, v1);
+		palDcs2c(ra1, dec1, v1);
 		stelaber(eq, mjd, v1, v2);
-		slaDcc2s(v2, ra2, dec2);
-		*ra2 = slaDranrm(*ra2);
+		palDcc2s(v2, ra2, dec2);
+		*ra2 = palDranrm(*ra2);
 	}
 
 	static void stelaber(double eq, double mjd, double v1[3], double v2[3])
@@ -164,7 +164,7 @@ public:
 		double amprms[21], v1n[3], v2un[3], w, ab1, abv[3], p1dv;
 		int i;
 
-		slaMappa(eq,mjd,amprms);
+		palMappa(eq,mjd,amprms);
 
 		/* code from mapqk.c (w/ a few names changed): */
 
@@ -175,16 +175,16 @@ public:
 				abv[i] = amprms[i+8];
 		}
 
-		slaDvn ( v1, v1n, &w );
+		palDvn ( v1, v1n, &w );
 
 		/* Aberration (normalization omitted) */
-		p1dv = slaDvdv ( v1n, abv );
+		p1dv = palDvdv ( v1n, abv );
 		w = 1.0 + p1dv / ( ab1 + 1.0 );
 		for ( i = 0; i < 3; i++ ) {
 				v2un[i] = ab1 * v1n[i] + w * abv[i];
 		}
 		/* normalize  (not in mapqk.c */
-		slaDvn ( v2un, v2, &w );
+		palDvn ( v2un, v2, &w );
 	}
 
 	static void mat_transpose(double rmat1[3][3], double rmat2[3][3])
@@ -205,7 +205,7 @@ public:
 
 		rotate_radec(rmat,lmst,lat_rad,&nwlmst,&nwlat);
 		*newlmst = nwlmst;
-		*newha = slaDranrm(nwlmst - ra2000);
+		*newha = palDranrm(nwlmst - ra2000);
 		*newlat = nwlat;
 	}
 	
@@ -217,10 +217,10 @@ public:
 	{
 		double v1[3], v2[3];
 
-		slaDcs2c(ra1,dec1,v1);
-		slaDmxv(rmat,v1,v2);
-		slaDcc2s(v2,ra2,dec2);
-		*ra2 = slaDranrm(*ra2);
+		palDcs2c(ra1,dec1,v1);
+		palDmxv(rmat,v1,v2);
+		palDcc2s(v2,ra2,dec2);
+		*ra2 = palDranrm(*ra2);
 	}
 
 	/* constants for WGS84 Geoid model for the Earth */
