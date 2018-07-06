@@ -2,7 +2,6 @@
 #define APPLYCAL_WRITER_H
 
 #include "forwardingwriter.h"
-#include "solutionfile.h"
 #include "matrix2x2.h"
 
 #include <memory>
@@ -21,8 +20,7 @@ class ApplySolutionsWriter : public ForwardingWriter
 		virtual void WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float>* data, const bool* flags, const float *weights) final override;
 		
 	private:
-		SolutionFile _solutionFile;
-		size_t _nChannels, _nAntennas;
+		size_t _nChannels, _nSolutionAntennas, _nSolutionChannels;
 		std::vector<std::complex<float>> _correctedData;
 		std::vector<MC2x2> _solutions;
 };
