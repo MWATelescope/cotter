@@ -371,11 +371,13 @@ int cotterMain(int argc, const char* const* argv)
 			}
 			else if(param == "apply")
 			{
+				++argi;
 				cotter.SetSolutionFile(argv[argi]);
 				cotter.SetApplyBeforeAveraging(false);
 			}
 			else if(param == "full-apply")
 			{
+				++argi;
 				cotter.SetSolutionFile(argv[argi]);
 				cotter.SetApplyBeforeAveraging(true);
 			}
