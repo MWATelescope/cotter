@@ -1,6 +1,9 @@
 #include "threadedwriter.h"
 
-ThreadedWriter::ThreadedWriter(Writer *parentWriter) : ForwardingWriter(parentWriter),
+#include <boost/mem_fn.hpp>
+
+ThreadedWriter::ThreadedWriter(std::unique_ptr<Writer>&& parentWriter) :
+	ForwardingWriter(std::move(parentWriter)),
 	_isWriterReady(false),
 	_isBufferReady(false),
 	_isFinishing(false),
@@ -13,9 +16,10 @@ ThreadedWriter::ThreadedWriter(Writer *parentWriter) : ForwardingWriter(parentWr
 
 ThreadedWriter::~ThreadedWriter()
 {
-	std::unique_lock<std::mutex> lock(_mutex);
-	_isFinishing = true;
-	lock.unlock();
+	{
+		std::lock_guard<std::mutex> lock(_mutex);
+		_isFinishing = true;
+	}
 	
 	_bufferChangeCondition.notify_all();
 	_thread.join();

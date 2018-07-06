@@ -245,19 +245,19 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 			_writer.reset(new FlagWriter(outputFilename, _mwaConfig.HeaderExt().gpsTime, _mwaConfig.Header().nScans, _curSbStart, _curSbEnd, _subbandOrder));
 			break;
 		case FitsOutputFormat:
-			_writer.reset(new ThreadedWriter(new FitsWriter(outputFilename)));
+			_writer.reset(new ThreadedWriter(std::unique_ptr<FitsWriter>(new FitsWriter(outputFilename))));
 			break;
 		case MSOutputFormat: {
-			MSWriter* msWriter = new MSWriter(outputFilename);
+			std::unique_ptr<MSWriter> msWriter(new MSWriter(outputFilename));
 			if(_useDysco)
 				msWriter->EnableCompression(_dyscoDataBitRate, _dyscoWeightBitRate, _dyscoDistribution, _dyscoDistTruncation, _dyscoNormalization);
-			_writer.reset(new ThreadedWriter(msWriter));
+			_writer.reset(new ThreadedWriter(std::move(msWriter)));
 		} break;
 	}
 	
 	if(freqAvgFactor != 1 || timeAvgFactor != 1)
 	{
-		_writer.reset(new ThreadedWriter(new AveragingWriter(std::move(_writer), timeAvgFactor, freqAvgFactor, *this)));
+		_writer.reset(new ThreadedWriter(std::unique_ptr<AveragingWriter>(new AveragingWriter(std::move(_writer), timeAvgFactor, freqAvgFactor, *this))));
 	}
 	writeAntennae();
 	writeSPW();

@@ -6,12 +6,14 @@
 #include <string.h>
 
 #include <condition_variable>
+#include <memory>
+#include <mutex>
 #include <thread>
 
 class ThreadedWriter : public ForwardingWriter
 {
 	public:
-		ThreadedWriter(Writer *parentWriter);
+		ThreadedWriter(std::unique_ptr<Writer>&& parentWriter);
 		
 		virtual ~ThreadedWriter() final override;
 		

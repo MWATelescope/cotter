@@ -3,18 +3,18 @@
 
 #include "writer.h"
 
+#include <memory>
+
 class ForwardingWriter : public Writer
 {
 	public:
-		ForwardingWriter(Writer *parentWriter)
-		: _writer(parentWriter)
+		ForwardingWriter(std::unique_ptr<Writer>&& parentWriter)
+		: _writer(std::move(parentWriter))
 		{
 		}
 		
 		virtual ~ForwardingWriter() override
-		{
-			delete _writer;
-		}
+		{ }
 		
 		virtual void WriteAntennae(const std::vector<Writer::AntennaInfo> &antennae, double time) override
 		{
@@ -88,7 +88,7 @@ class ForwardingWriter : public Writer
 		Writer &ParentWriter() { return *_writer; }
 		
 	private:
-		Writer *_writer;
+		std::unique_ptr<Writer> _writer;
 };
 
 #endif
