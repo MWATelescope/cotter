@@ -22,7 +22,7 @@ find_library(LIBPAL_LIB pal REQUIRED)
 find_library(PNG_LIB png REQUIRED)
 find_library(PTHREAD_LIB pthread REQUIRED)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -DNDEBUG -O3 -march=native -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-noexcept-type -DNDEBUG -O3 -march=native -std=c++11")
 
 include_directories(${AOFLAGGER_INCLUDE_DIR})
 include_directories(${CASA_INCLUDE_DIR})

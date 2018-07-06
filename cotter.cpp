@@ -14,8 +14,6 @@
 #include "radeccoord.h"
 #include "version.h"
 
-#include <aoflagger.h>
-
 #include <thread>
 #include <functional>
 
@@ -32,11 +30,6 @@
 using namespace aoflagger;
 
 Cotter::Cotter() :
-	_writer(),
-	_reader(0),
-	_flagger(0),
-	_strategy(0),
-	_isAntennaFlaggedMap(0),
 	_unflaggedAntennaCount(0),
 	_threadCount(1),
 	_maxBufferSize(0),
@@ -50,13 +43,6 @@ Cotter::Cotter() :
 	_collectHistograms(false),
 	_usePointingCentre(false),
 	_outputFormat(MSOutputFormat),
-	_metaFilename(),
-	_subbandPassbandFilename(),
-	_flagFileTemplate(),
-	_qualityStatisticsFilename(),
-	_statistics(0),
-	_correlatorMask(0),
-	_fullysetMask(0),
 	_disableGeometricCorrections(false),
 	_removeFlaggedAntennae(true),
 	_removeAutoCorrelations(false),
@@ -77,21 +63,13 @@ Cotter::Cotter() :
 	_dyscoWeightBitRate(12),
 	_dyscoDistribution("TruncatedGaussian"),
 	_dyscoNormalization("AF"),
-	_dyscoDistTruncation(2.5)
+	_dyscoDistTruncation(2.5),
+	_outputData(empty_aligned<std::complex<float>>()),
+	_outputWeights(empty_aligned<float>())
 {
 }
 
-Cotter::~Cotter()
-{
-	delete _correlatorMask;
-	delete _fullysetMask;
-	_writer.reset();
-	delete _reader;
-	delete _flagger;
-	delete _strategy;
-	delete _statistics;
-	delete[] _isAntennaFlaggedMap;
-}
+Cotter::~Cotter() { }
 
 void Cotter::Run(double timeRes_s, double freqRes_kHz)
 {
@@ -159,8 +137,6 @@ void Cotter::Run(double timeRes_s, double freqRes_kHz)
 	initializeSbOrder();
 	if(_subbandEdgeFlagCount > _mwaConfig.Header().nChannels / (_subbandCount*2))
 		throw std::runtime_error("Tried to flag more edge channels than available");
-	
-	_flagger = new AOFlagger();
 	
 	processAllContiguousBands(timeAvgFactor, freqAvgFactor);
 	
@@ -336,7 +312,7 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	params.push_back(paramStr.str());
 	_writer->WriteHistoryItem(_commandLine, "Cotter MWA preprocessor", params);
 	
-	_strategy = new Strategy(_flagger->MakeStrategy(MWA_TELESCOPE));
+	_strategy.reset(new Strategy(_flagger.MakeStrategy(MWA_TELESCOPE)));
 	
 	std::vector<std::vector<std::string> >::const_iterator
 		currentFileSetPtr = _fileSets.begin();
@@ -361,21 +337,20 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 			{
 				for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
 				{
-					ImageSet *imageSet = new ImageSet(_flagger->MakeImageSet(_curChunkEnd-_curChunkStart, nChannels, 8, 0.0f, requiredWidthCapacity));
-					_imageSetBuffers.insert(std::pair<std::pair<size_t,size_t>, ImageSet*>(
-						std::pair<size_t,size_t>(antenna1, antenna2), imageSet
-					));
+					_imageSetBuffers.emplace(
+						std::pair<size_t,size_t>(antenna1, antenna2),
+						_flagger.MakeImageSet(_curChunkEnd-_curChunkStart, nChannels, 8, 0.0f, requiredWidthCapacity)
+					);
 				}
 			}
 		} else {
 			// Resize the buffers, but don't reallocate. I used to reallocate all buffers
 			// here, but this gave awful memory fragmentation issues, since the buffers can have slightly
 			// different sizes during each run. This led to ~2x as much memory usage.
-			for(std::map<std::pair<size_t, size_t>, aoflagger::ImageSet*>::iterator bufPtr=_imageSetBuffers.begin();
-					bufPtr!=_imageSetBuffers.end(); ++bufPtr)
+			for(auto& buffer : _imageSetBuffers)
 			{
-				bufPtr->second->ResizeWithoutReallocation(_curChunkEnd-_curChunkStart);
-				bufPtr->second->Set(0.0f);
+				buffer.second.ResizeWithoutReallocation(_curChunkEnd-_curChunkStart);
+				buffer.second.Set(0.0f);
 			}
 		}
 		
@@ -450,8 +425,8 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 			std::cout << "Flagging extra " << extraSamples << " samples at end.\n";
 		}
 		
-		_fullysetMask = new FlagMask(_flagger->MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), true));
-		_correlatorMask = new FlagMask(_flagger->MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), false));
+		_fullysetMask.reset(new FlagMask(_flagger.MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), true)));
+		_correlatorMask.reset(new FlagMask(_flagger.MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), false)));
 		flagBadCorrelatorSamples(*_correlatorMask);
 		
 		for(size_t antenna1=0;antenna1!=antennaCount;++antenna1)
@@ -462,8 +437,10 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 				
 				// We will put a place holder in the flagbuffer map, so we don't have to write (and lock)
 				// during multi threaded processing.
-				_flagBuffers.insert(std::pair<std::pair<size_t, size_t>, FlagMask*>(
-				std::pair<size_t,size_t>(antenna1, antenna2), nullptr));
+				_flagBuffers.emplace(
+					std::pair<size_t,size_t>(antenna1, antenna2),
+					aoflagger::FlagMask()
+				);
 			}
 		}
 		_baselinesToProcessCount = _baselinesToProcess.size();
@@ -481,8 +458,8 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 			{
 				for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
 				{
-					FlagMask* mask = new FlagMask(_flagger->MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount()));
-					_flagBuffers.find(std::make_pair(antenna1, antenna2))->second = mask;
+					FlagMask& baseline = _flagBuffers.find(std::make_pair(antenna1, antenna2))->second;
+					baseline = _flagger.MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount());
 				}
 			}
 			// Fill the flag masks by reading the files
@@ -494,9 +471,9 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 				{
 					for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
 					{
-						FlagMask* mask = _flagBuffers.find(std::make_pair(antenna1, antenna2))->second;
-						size_t stride = mask->HorizontalStride();
-						bool* bufferPos = mask->Buffer() + (t - _curChunkStart);
+						FlagMask& mask = _flagBuffers.find(std::make_pair(antenna1, antenna2))->second;
+						size_t stride = mask.HorizontalStride();
+						bool* bufferPos = mask.Buffer() + (t - _curChunkStart);
 						_flagReader->Read(t, baselineIndex, bufferPos, stride);
 						++baselineIndex;
 					}
@@ -538,11 +515,9 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 		}
 		else {
 			_progressBar.reset(new ProgressBar("Writing"));
-			_outputFlags = new bool[nChannels*4];
-			if(0 != posix_memalign((void**) &_outputData, 16, nChannels*4*sizeof(std::complex<float>)))
-				throw std::runtime_error("Failed to allocate aligned memory");
-			if(0 != posix_memalign((void**) &_outputWeights, 16, nChannels*4*sizeof(float)))
-				throw std::runtime_error("Failed to allocate aligned memory");
+			_outputFlags.reset(new bool[nChannels*4]);
+			_outputData = make_aligned<std::complex<float>>(nChannels*4, 16);
+			_outputWeights = make_aligned<float>(nChannels*4, 16);
 			for(size_t t=_curChunkStart; t!=_curChunkEnd; ++t)
 			{
 				_progressBar->SetProgress(t-_curChunkStart, _curChunkEnd-_curChunkStart);
@@ -551,32 +526,20 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 				else
 					processAndWriteTimestep(t);
 			}
-			free(_outputData);
-			free(_outputWeights);
-			delete[] _outputFlags;
+			_outputData.reset();
+			_outputWeights.reset();
+			_outputFlags.reset();
 			_progressBar.reset();
 		}
 		
-		for(std::map<std::pair<size_t, size_t>, aoflagger::FlagMask*>::iterator flagBufIter = _flagBuffers.begin();
-				flagBufIter != _flagBuffers.end(); ++flagBufIter)
-		{
-			delete flagBufIter->second;
-		}
 		_flagBuffers.clear();
 		
-		delete _correlatorMask;
-		_correlatorMask = 0;
-		delete _fullysetMask;
-		_fullysetMask = 0;
+		_correlatorMask.reset();
+		_fullysetMask.reset();
 		
 		_writeWatch.Pause();
 	} // end for chunkIndex!=partCount
 	
-	for(std::map<std::pair<size_t, size_t>, aoflagger::ImageSet*>::iterator imgBufIter = _imageSetBuffers.begin();
-			imgBufIter != _imageSetBuffers.end(); ++imgBufIter)
-	{
-		delete imgBufIter->second;
-	}
 	_imageSetBuffers.clear();
 	
 	_writeWatch.Start();
@@ -586,20 +549,19 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	const bool writerSupportsStatistics = _writer->CanWriteStatistics();
 	
 	_writer.reset();
-	delete _reader;
-	_reader = nullptr;
+	_reader.reset();
 	
 	// Necessary to make sure it is reinitialized in the following cont band:
 	_flagReader.reset();
 	
 	if(_collectStatistics && writerSupportsStatistics) {
 		std::cout << "Writing statistics to measurement set...\n";
-		_flagger->WriteStatistics(*_statistics, outputFilename);
+		_flagger.WriteStatistics(*_statistics, outputFilename);
 	}
 	
 	if(_collectStatistics && !_qualityStatisticsFilename.empty()) {
 		std::cout << "Writing statistics to " << _qualityStatisticsFilename << "...\n";
-		_flagger->WriteStatistics(*_statistics, _qualityStatisticsFilename);
+		_flagger.WriteStatistics(*_statistics, _qualityStatisticsFilename);
 	}
 	
 	if(_outputFormat == MSOutputFormat)
@@ -618,8 +580,8 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 
 void Cotter::createReader(const std::vector<std::string>& curFileset)
 {
-	delete _reader; // might be 0, but that's ok.
-	_reader = new GPUFileReader(_mwaConfig.NAntennae(), nChannelsInCurSBRange(), _threadCount, _offlineGPUBoxFormat);
+	_reader.reset();
+	_reader.reset(new GPUFileReader(_mwaConfig.NAntennae(), nChannelsInCurSBRange(), _threadCount, _offlineGPUBoxFormat));
 	_reader->SetHDUOffsetsChangeCallback(std::bind(&Cotter::onHDUOffsetsChange, this, std::placeholders::_1));
 
 	// Add the gpubox files in the right order
@@ -645,7 +607,7 @@ void Cotter::initializeReader()
 	{
 		for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
 		{
-			ImageSet &imageSet = *_imageSetBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
+			ImageSet &imageSet = _imageSetBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
 			BaselineBuffer buffer;
 			for(size_t p=0; p!=4; ++p)
 			{
@@ -688,8 +650,8 @@ void Cotter::processAndWriteTimestep(size_t timeIndex)
 		{
 			if(outputBaseline(antenna1, antenna2))
 			{
-				const ImageSet &imageSet = *_imageSetBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
-				const FlagMask &flagMask = *_flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
+				const ImageSet& imageSet = _imageSetBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
+				const FlagMask& flagMask = _flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
 				
 				const size_t stride = imageSet.HorizontalStride();
 				const size_t flagStride = flagMask.HorizontalStride();
@@ -790,7 +752,7 @@ void Cotter::processAndWriteTimestep(size_t timeIndex)
 				}
 	#endif
 				
-				_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, u, v, w, _mwaConfig.Header().integrationTime, _outputData, _outputFlags, _outputWeights);
+				_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, u, v, w, _mwaConfig.Header().integrationTime, _outputData.get(), _outputFlags.get(), _outputWeights.get());
 			}
 		}
 	}
@@ -811,7 +773,7 @@ void Cotter::processAndWriteTimestepFlagsOnly(size_t timeIndex)
 		{
 			if(outputBaseline(antenna1, antenna2))
 			{
-				const FlagMask &flagMask = *_flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
+				const FlagMask &flagMask = _flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
 				
 				const size_t flagStride = flagMask.HorizontalStride();
 				
@@ -828,7 +790,7 @@ void Cotter::processAndWriteTimestepFlagsOnly(size_t timeIndex)
 					}
 				}
 				
-				_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, 0.0, 0.0, 0.0, _mwaConfig.Header().integrationTime, _outputData, _outputFlags, _outputWeights);
+				_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, 0.0, 0.0, 0.0, _mwaConfig.Header().integrationTime, _outputData.get(), _outputFlags.get(), _outputWeights.get());
 			}
 		}
 	}
@@ -858,7 +820,7 @@ void Cotter::CalculateUVW(double date, size_t antenna1, size_t antenna2, double 
 void Cotter::baselineProcessThreadFunc()
 {
 	QualityStatistics threadStatistics =
-		_flagger->MakeQualityStatistics(&_scanTimes[_curChunkStart], _curChunkEnd-_curChunkStart, &_channelFrequenciesHz[0], _channelFrequenciesHz.size(), 4, _collectHistograms);
+		_flagger.MakeQualityStatistics(&_scanTimes[_curChunkStart], _curChunkEnd-_curChunkStart, &_channelFrequenciesHz[0], _channelFrequenciesHz.size(), 4, _collectHistograms);
 	
 	std::unique_lock<std::mutex> lock(_mutex);
 	while(!_baselinesToProcess.empty())
@@ -874,15 +836,15 @@ void Cotter::baselineProcessThreadFunc()
 	}
 	
 	// Mutex still needs to be locked
-	if(_statistics == nullptr)
-		_statistics = new QualityStatistics(threadStatistics);
+	if(!_statistics)
+		_statistics.reset(new QualityStatistics(threadStatistics));
 	else
 		(*_statistics) += threadStatistics;
 }
 
 void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics &statistics)
 {
-	ImageSet *imageSet = _imageSetBuffers.find(std::pair<size_t,size_t>(antenna1, antenna2))->second;
+	ImageSet& imageSet = _imageSetBuffers.find(std::pair<size_t,size_t>(antenna1, antenna2))->second;
 	const MWAInput
 		&input1X = _mwaConfig.AntennaXInput(antenna1),
 		&input1Y = _mwaConfig.AntennaYInput(antenna1),
@@ -891,23 +853,23 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 		
 	// Correct conjugated baselines
 	if(_reader->IsConjugated(antenna1, antenna2, 0, 0)) {
-		correctConjugated(*imageSet, 1);
+		correctConjugated(imageSet, 1);
 	}
 	if(_reader->IsConjugated(antenna1, antenna2, 0, 1)) {
-		correctConjugated(*imageSet, 3);
+		correctConjugated(imageSet, 3);
 	}
 	if(_reader->IsConjugated(antenna1, antenna2, 1, 0)) {
-		correctConjugated(*imageSet, 5);
+		correctConjugated(imageSet, 5);
 	}
 	if(_reader->IsConjugated(antenna1, antenna2, 1, 1)) {
-		correctConjugated(*imageSet, 7);
+		correctConjugated(imageSet, 7);
 	}
 	
 	// Correct cable delay
-	correctCableLength(*imageSet, 0, input2X.cableLenDelta - input1X.cableLenDelta);
-	correctCableLength(*imageSet, 1, input2Y.cableLenDelta - input1X.cableLenDelta);
-	correctCableLength(*imageSet, 2, input2X.cableLenDelta - input1Y.cableLenDelta);
-	correctCableLength(*imageSet, 3, input2Y.cableLenDelta - input1Y.cableLenDelta);
+	correctCableLength(imageSet, 0, input2X.cableLenDelta - input1X.cableLenDelta);
+	correctCableLength(imageSet, 1, input2Y.cableLenDelta - input1X.cableLenDelta);
+	correctCableLength(imageSet, 2, input2X.cableLenDelta - input1Y.cableLenDelta);
+	correctCableLength(imageSet, 3, input2Y.cableLenDelta - input1Y.cableLenDelta);
 	
 	// Correct passband
 	for(size_t i=0; i!=8; ++i)
@@ -915,16 +877,16 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 		const double* subbandGains1Ptr = (i<4) ? input1X.pfbGains : input1Y.pfbGains;
 		const double* subbandGains2Ptr = (i==0 || i==1 || i==4 || i==5) ? input2X.pfbGains : input2Y.pfbGains;
 		
-		const size_t channelsPerSubband = imageSet->Height()/(_curSbEnd - _curSbStart);
+		const size_t channelsPerSubband = imageSet.Height()/(_curSbEnd - _curSbStart);
 		for(size_t sb=0; sb!=_curSbEnd - _curSbStart; ++sb)
 		{
 			double subbandGainCorrection = 1.0 / (subbandGains1Ptr[sb+_curSbStart] * subbandGains2Ptr[sb+_curSbStart]);
 			
 			for(size_t ch=0; ch!=channelsPerSubband; ++ch)
 			{
-				float *channelPtr = imageSet->ImageBuffer(i) + (ch+sb*channelsPerSubband) * imageSet->HorizontalStride();
+				float *channelPtr = imageSet.ImageBuffer(i) + (ch+sb*channelsPerSubband) * imageSet.HorizontalStride();
 				const float correctionFactor = _subbandCorrectionFactors[i/2][ch] * subbandGainCorrection;
-				for(size_t x=0; x!=imageSet->Width(); ++x)
+				for(size_t x=0; x!=imageSet.Width(); ++x)
 				{
 					*channelPtr *= correctionFactor;
 					++channelPtr;
@@ -933,46 +895,43 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 		}
 	}
 	
-	FlagMask *flagMask, *correlatorMask;
+	FlagMask flagMask, correlatorMask;
 	// Perform RFI detection, if baseline is not flagged.
 	bool skipFlagging = input1X.isFlagged || input1Y.isFlagged || input2X.isFlagged || input2Y.isFlagged || _isAntennaFlaggedMap[antenna1] || _isAntennaFlaggedMap[antenna2];
 	if(skipFlagging)
 	{
 		if(_flagFileTemplate.empty())
-			flagMask = new FlagMask(*_fullysetMask);
+			flagMask = *_fullysetMask;
 		else
 			flagMask = _flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
-		correlatorMask = _fullysetMask;
+		correlatorMask = *_fullysetMask;
 	}
 	else 
 	{
 		if(!_flagFileTemplate.empty())
 		{
-			flagMask = _flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
 			if(antenna1 == antenna2)
-			{
-				delete flagMask;
-				flagMask = new FlagMask(_flagger->MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), false));
-			}
+				flagMask = _flagger.MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), false);
+			else
+				flagMask = _flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
 		}
 		else if(_rfiDetection && (antenna1 != antenna2))
-			flagMask = new FlagMask(_flagger->Run(*_strategy, *imageSet));
+			flagMask = _flagger.Run(*_strategy, imageSet);
 		else
-			flagMask = new FlagMask(_flagger->MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), false));
-		flagBadCorrelatorSamples(*flagMask);
-		correlatorMask = _correlatorMask;
+			flagMask = _flagger.MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), false);
+		flagBadCorrelatorSamples(flagMask);
+		correlatorMask = *_correlatorMask;
 	}
 	
 	// Collect statistics
 	if(_collectStatistics)
-		_flagger->CollectStatistics(statistics, *imageSet, *flagMask, *correlatorMask, antenna1, antenna2);
+		_flagger.CollectStatistics(statistics, imageSet, flagMask, correlatorMask, antenna1, antenna2);
 	
 	// If this is an auto-correlation, it wouldn't have been flagged yet
 	// to allow collecting its statistics. But we want to flag it...
 	if(antenna1 == antenna2 && _flagAutos)
 	{
-		delete flagMask;
-		flagMask = new FlagMask(*_fullysetMask);
+		flagMask = *_fullysetMask;
 	}
 	
 	_flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second = flagMask;
@@ -1028,8 +987,7 @@ void Cotter::writeAntennae()
 	
 	std::vector<MSWriter::AntennaInfo> antennae(_mwaConfig.NAntennae());
 	
-	delete[] _isAntennaFlaggedMap;
-	_isAntennaFlaggedMap = new bool[antennae.size()];
+	_isAntennaFlaggedMap.reset(new bool[antennae.size()]);
 	
 	for(size_t i=0; i!=antennae.size(); ++i)
 		_isAntennaFlaggedMap[i] = false;
@@ -1337,7 +1295,7 @@ void Cotter::flagBadCorrelatorSamples(FlagMask &flagMask) const
 	}
 }
 
-void Cotter::initializeWeights(float* outputWeights)
+void Cotter::initializeWeights(aligned_ptr<float>& outputWeights)
 {
 	// Weights are normalized so that default res of 10 kHz, 1s has weight of "1" per sample
 	// Note that this only holds for numbers in the WEIGHTS_SPECTRUM column; WEIGHTS will hold the sum.
@@ -1402,11 +1360,9 @@ void Cotter::writeAlignmentScans()
 		std::cout << "Nr of timesteps did not match averaging size, last averaged sample will be downweighted" << std::flush;
 		size_t timeIndex = _mwaConfig.Header().nScans;
 		
-		_outputFlags = new bool[nChannels*4];
-		if(0 != posix_memalign((void**) &_outputData, 16, nChannels*4*sizeof(std::complex<float>)))
-			throw std::runtime_error("Failed to allocate aligned memory");
-		if(0 != posix_memalign((void**) &_outputWeights, 16, nChannels*4*sizeof(float)))
-			throw std::runtime_error("Failed to allocate aligned memory");
+		_outputFlags.reset(new bool[nChannels*4]);
+		_outputData = make_aligned<std::complex<float>>(nChannels*4, 16);
+		_outputWeights = make_aligned<float>(nChannels*4, 16);
 		for(size_t ch=0; ch!=nChannels*4; ++ch)
 		{
 			_outputData[ch] = std::complex<float>(0.0, 0.0);
@@ -1423,16 +1379,16 @@ void Cotter::writeAlignmentScans()
 				{
 					if(outputBaseline(antenna1, antenna2))
 					{
-						_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, 0.0, 0.0, 0.0, _mwaConfig.Header().integrationTime, _outputData, _outputFlags, _outputWeights);
+						_writer->WriteRow(dateMJD*86400.0, dateMJD*86400.0, antenna1, antenna2, 0.0, 0.0, 0.0, _mwaConfig.Header().integrationTime, _outputData.get(), _outputFlags.get(), _outputWeights.get());
 					}
 				}
 			}
 			++timeIndex;
 			std::cout << '.' << std::flush;
 		}
-		free(_outputData);
-		free(_outputWeights);
-		delete[] _outputFlags;
+		_outputData.reset();
+		_outputWeights.reset();
+		_outputFlags.reset();
 		std::cout << '\n';
 	}
 }

@@ -1,11 +1,14 @@
 #ifndef COTTER_H
 #define COTTER_H
 
+#include "aligned_ptr.h"
 #include "averagingwriter.h"
 #include "gpufilereader.h"
 #include "mwaconfig.h"
 #include "stopwatch.h"
 #include "progressbar.h"
+
+#include <aoflagger.h>
 
 #include <memory>
 #include <vector>
@@ -89,15 +92,16 @@ class Cotter : private UVWCalculater
 			_dyscoNormalization = normalization;
 		}
 		size_t SubbandCount() const { return _subbandCount; }
+		
 	private:
 		MWAConfig _mwaConfig;
 		std::unique_ptr<Writer> _writer;
-		GPUFileReader *_reader;
-		aoflagger::AOFlagger *_flagger;
-		aoflagger::Strategy *_strategy;
+		std::unique_ptr<GPUFileReader> _reader;
+		aoflagger::AOFlagger _flagger;
+		std::unique_ptr<aoflagger::Strategy> _strategy;
 		
 		std::vector<double> _subbandCorrectionFactors[4];
-		bool *_isAntennaFlaggedMap;
+		std::unique_ptr<bool[]> _isAntennaFlaggedMap;
 		size_t _unflaggedAntennaCount;
 		
 		Stopwatch _readWatch, _processWatch, _writeWatch;
@@ -119,8 +123,8 @@ class Cotter : private UVWCalculater
 		std::vector<size_t> _userFlaggedAntennae;
 		std::set<size_t> _flaggedSubbands;
 		
-		std::map<std::pair<size_t, size_t>, aoflagger::ImageSet*> _imageSetBuffers;
-		std::map<std::pair<size_t, size_t>, aoflagger::FlagMask*> _flagBuffers;
+		std::map<std::pair<size_t, size_t>, aoflagger::ImageSet> _imageSetBuffers;
+		std::map<std::pair<size_t, size_t>, aoflagger::FlagMask> _flagBuffers;
 		std::vector<double> _channelFrequenciesHz;
 		std::vector<double> _scanTimes;
 		std::queue<std::pair<size_t,size_t> > _baselinesToProcess;
@@ -131,12 +135,9 @@ class Cotter : private UVWCalculater
 		std::unique_ptr<class FlagReader> _flagReader;
 		
 		std::mutex _mutex;
-		aoflagger::QualityStatistics *_statistics;
-		aoflagger::FlagMask *_correlatorMask, *_fullysetMask;
+		std::unique_ptr<aoflagger::QualityStatistics> _statistics;
+		std::unique_ptr<aoflagger::FlagMask> _correlatorMask, _fullysetMask;
 		
-		bool *_outputFlags;
-		std::complex<float> *_outputData;
-		float *_outputWeights;
 		bool _disableGeometricCorrections, _removeFlaggedAntennae, _removeAutoCorrelations, _flagAutos;
 		bool _overridePhaseCentre, _doAlign, _doFlagMissingSubbands, _applySBGains, _flagDCChannels, _skipWriting;
 		bool _offlineGPUBoxFormat;
@@ -149,6 +150,10 @@ class Cotter : private UVWCalculater
 		std::string _dyscoDistribution;
 		std::string _dyscoNormalization;
 		double _dyscoDistTruncation;
+		
+		std::unique_ptr<bool[]> _outputFlags;
+		aligned_ptr<std::complex<float>> _outputData;
+		aligned_ptr<float> _outputWeights;
 		
 		void processAllContiguousBands(size_t timeAvgFactor, size_t freqAvgFactor);
 		void processOneContiguousBand(const std::string& outputFilename, size_t timeAvgFactor, size_t freqAvgFactor);
@@ -169,7 +174,7 @@ class Cotter : private UVWCalculater
 		void readSubbandPassbandFile();
 		void initializeSubbandPassband();
 		void flagBadCorrelatorSamples(aoflagger::FlagMask &flagMask) const;
-		void initializeWeights(float *outputWeights);
+		void initializeWeights(aligned_ptr<float>& outputWeights);
 		void initializeSbOrder();
 		void writeAlignmentScans();
 		void writeMWAFieldsToMS(const std::string& outputFilename, size_t flagWindowSize);
