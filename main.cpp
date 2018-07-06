@@ -107,6 +107,10 @@ void usage()
 	"  -offline-gpubox-format Assume the GPU Box do not have an initial HDU for metadata. This is\n"
 	"                     used for offline correlation of VCS observations.\n"
 	"  -skipwrite         Skip the writing step completely: only collect statistics.\n"
+	"  -apply <file>      Apply a solution file after averaging. The solution file should have as many\n"
+	"                     channels as that the observation will have after the given averaging settings.\n"
+	"  -full-apply <file> Apply a solution file before averaging. The solution file should have as many\n"
+	"                     channels as the observation.\n"
 	"  -use-dysco         Compress the Measurement Set using Dysco.\n"
 	"  -dysco-config <data bits> <weight bits> <distribution> <truncation> <normalization>\n"
 	"                     Set advanced Dysco options.\n"
@@ -364,6 +368,16 @@ int cotterMain(int argc, const char* const* argv)
 			else if(param == "offline-gpubox-format")
 			{
 				cotter.SetOfflineGPUBoxFormat(true);
+			}
+			else if(param == "apply")
+			{
+				cotter.SetSolutionFile(argv[argi]);
+				cotter.SetApplyBeforeAveraging(false);
+			}
+			else if(param == "full-apply")
+			{
+				cotter.SetSolutionFile(argv[argi]);
+				cotter.SetApplyBeforeAveraging(true);
 			}
 			else if(param == "use-dysco")
 			{

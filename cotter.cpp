@@ -1,5 +1,6 @@
 #include "cotter.h"
 
+#include "applysolutionswriter.h"
 #include "baselinebuffer.h"
 #include "flagreader.h"
 #include "flagwriter.h"
@@ -254,10 +255,17 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 			_writer.reset(new ThreadedWriter(std::move(msWriter)));
 		} break;
 	}
-	
+	if(!_solutionFilename.empty() && _applySolutionsBeforeAveraging)
+	{
+		_writer.reset(new ApplySolutionsWriter(std::move(_writer), _solutionFilename));
+	}
 	if(freqAvgFactor != 1 || timeAvgFactor != 1)
 	{
 		_writer.reset(new ThreadedWriter(std::unique_ptr<AveragingWriter>(new AveragingWriter(std::move(_writer), timeAvgFactor, freqAvgFactor, *this))));
+	}
+	if(!_solutionFilename.empty() && !_applySolutionsBeforeAveraging)
+	{
+		_writer.reset(new ApplySolutionsWriter(std::move(_writer), _solutionFilename));
 	}
 	writeAntennae();
 	writeSPW();
