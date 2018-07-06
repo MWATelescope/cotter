@@ -53,8 +53,8 @@ void ApplySolutionsWriter::WriteRow(double time, double timeCentroid, size_t ant
 	// Apply solution to averaged data
 	int channelRatio = _nChannels / _nSolutionChannels;
 	
-	const MC2x2* solA = &_solutions[antenna1 * _nChannels];
-	const MC2x2* solB = &_solutions[antenna2 * _nChannels];
+	const MC2x2* solA = &_solutions[antenna1 * _nSolutionChannels];
+	const MC2x2* solB = &_solutions[antenna2 * _nSolutionChannels];
 	MC2x2 scratch;
 	
 	for(size_t ch=0; ch!=_nChannels; ch++)

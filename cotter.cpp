@@ -44,6 +44,7 @@ Cotter::Cotter() :
 	_collectHistograms(false),
 	_usePointingCentre(false),
 	_outputFormat(MSOutputFormat),
+	_applySolutionsBeforeAveraging(false),
 	_disableGeometricCorrections(false),
 	_removeFlaggedAntennae(true),
 	_removeAutoCorrelations(false),
@@ -255,7 +256,7 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 			_writer.reset(new ThreadedWriter(std::move(msWriter)));
 		} break;
 	}
-	if(!_solutionFilename.empty() && _applySolutionsBeforeAveraging)
+	if(!_solutionFilename.empty() && !_applySolutionsBeforeAveraging)
 	{
 		_writer.reset(new ApplySolutionsWriter(std::move(_writer), _solutionFilename));
 	}
@@ -263,7 +264,7 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	{
 		_writer.reset(new ThreadedWriter(std::unique_ptr<AveragingWriter>(new AveragingWriter(std::move(_writer), timeAvgFactor, freqAvgFactor, *this))));
 	}
-	if(!_solutionFilename.empty() && !_applySolutionsBeforeAveraging)
+	if(!_solutionFilename.empty() && _applySolutionsBeforeAveraging)
 	{
 		_writer.reset(new ApplySolutionsWriter(std::move(_writer), _solutionFilename));
 	}
