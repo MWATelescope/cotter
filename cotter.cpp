@@ -439,7 +439,7 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 				// during multi threaded processing.
 				_flagBuffers.emplace(
 					std::pair<size_t,size_t>(antenna1, antenna2),
-					aoflagger::FlagMask()
+					nullptr
 				);
 			}
 		}
@@ -458,8 +458,8 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 			{
 				for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
 				{
-					FlagMask& baseline = _flagBuffers.find(std::make_pair(antenna1, antenna2))->second;
-					baseline = _flagger.MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount());
+					std::unique_ptr<FlagMask>& baseline = _flagBuffers.find(std::make_pair(antenna1, antenna2))->second;
+					baseline.reset(new FlagMask(_flagger.MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount())));
 				}
 			}
 			// Fill the flag masks by reading the files
@@ -471,9 +471,9 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 				{
 					for(size_t antenna2=antenna1; antenna2!=antennaCount; ++antenna2)
 					{
-						FlagMask& mask = _flagBuffers.find(std::make_pair(antenna1, antenna2))->second;
-						size_t stride = mask.HorizontalStride();
-						bool* bufferPos = mask.Buffer() + (t - _curChunkStart);
+						std::unique_ptr<FlagMask>& mask = _flagBuffers.find(std::make_pair(antenna1, antenna2))->second;
+						size_t stride = mask->HorizontalStride();
+						bool* bufferPos = mask->Buffer() + (t - _curChunkStart);
 						_flagReader->Read(t, baselineIndex, bufferPos, stride);
 						++baselineIndex;
 					}
@@ -651,10 +651,10 @@ void Cotter::processAndWriteTimestep(size_t timeIndex)
 			if(outputBaseline(antenna1, antenna2))
 			{
 				const ImageSet& imageSet = _imageSetBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
-				const FlagMask& flagMask = _flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
+				const std::unique_ptr<FlagMask>& flagMask = _flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
 				
 				const size_t stride = imageSet.HorizontalStride();
-				const size_t flagStride = flagMask.HorizontalStride();
+				const size_t flagStride = flagMask->HorizontalStride();
 				double
 					u = antU[antenna1] - antU[antenna2],
 					v = antV[antenna1] - antV[antenna2],
@@ -713,7 +713,7 @@ void Cotter::processAndWriteTimestep(size_t timeIndex)
 					*imagCPtr = imageSet.ImageBuffer(5)+bufferIndex,
 					*realDPtr = imageSet.ImageBuffer(6)+bufferIndex,
 					*imagDPtr = imageSet.ImageBuffer(7)+bufferIndex;
-				const bool *flagPtr = flagMask.Buffer()+bufferIndex;
+				const bool *flagPtr = flagMask->Buffer()+bufferIndex;
 				std::complex<float> *outDataPtr = &_outputData[0];
 				bool *outputFlagPtr = &_outputFlags[0];
 				for(size_t ch=0; ch!=nChannels; ++ch)
@@ -773,14 +773,14 @@ void Cotter::processAndWriteTimestepFlagsOnly(size_t timeIndex)
 		{
 			if(outputBaseline(antenna1, antenna2))
 			{
-				const FlagMask &flagMask = _flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
+				const std::unique_ptr<FlagMask>& flagMask = _flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
 				
-				const size_t flagStride = flagMask.HorizontalStride();
+				const size_t flagStride = flagMask->HorizontalStride();
 				
 				size_t bufferIndex = timeIndex - _curChunkStart;
 				for(size_t p=0; p!=4; ++p)
 				{
-					const bool *flagPtr = flagMask.Buffer()+bufferIndex;
+					const bool *flagPtr = flagMask->Buffer()+bufferIndex;
 					bool *outputFlagPtr = &_outputFlags[p];
 					for(size_t ch=0; ch!=nChannels; ++ch)
 					{
@@ -895,46 +895,48 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 		}
 	}
 	
-	FlagMask flagMask, correlatorMask;
+	std::unique_ptr<FlagMask> flagMask;
+	FlagMask *correlatorMask;
 	// Perform RFI detection, if baseline is not flagged.
 	bool skipFlagging = input1X.isFlagged || input1Y.isFlagged || input2X.isFlagged || input2Y.isFlagged || _isAntennaFlaggedMap[antenna1] || _isAntennaFlaggedMap[antenna2];
 	if(skipFlagging)
 	{
 		if(_flagFileTemplate.empty())
-			flagMask = *_fullysetMask;
+			flagMask.reset(new FlagMask(*_fullysetMask));
 		else
-			flagMask = _flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
-		correlatorMask = *_fullysetMask;
+			flagMask = std::move(_flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second);
+		correlatorMask = _fullysetMask.get();
 	}
 	else 
 	{
 		if(!_flagFileTemplate.empty())
 		{
+			flagMask = std::move(_flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second);
 			if(antenna1 == antenna2)
-				flagMask = _flagger.MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), false);
-			else
-				flagMask = _flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second;
+			{
+				flagMask.reset(new FlagMask(_flagger.MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), false)));
+			}
 		}
 		else if(_rfiDetection && (antenna1 != antenna2))
-			flagMask = _flagger.Run(*_strategy, imageSet);
+			flagMask.reset(new FlagMask(_flagger.Run(*_strategy, imageSet)));
 		else
-			flagMask = _flagger.MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), false);
-		flagBadCorrelatorSamples(flagMask);
-		correlatorMask = *_correlatorMask;
+			flagMask.reset(new FlagMask(_flagger.MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), false)));
+		flagBadCorrelatorSamples(*flagMask);
+		correlatorMask = _correlatorMask.get();
 	}
 	
 	// Collect statistics
 	if(_collectStatistics)
-		_flagger.CollectStatistics(statistics, imageSet, flagMask, correlatorMask, antenna1, antenna2);
+		_flagger.CollectStatistics(statistics, imageSet, *flagMask, *correlatorMask, antenna1, antenna2);
 	
 	// If this is an auto-correlation, it wouldn't have been flagged yet
 	// to allow collecting its statistics. But we want to flag it...
 	if(antenna1 == antenna2 && _flagAutos)
 	{
-		flagMask = *_fullysetMask;
+		flagMask.reset(new FlagMask(*_fullysetMask));
 	}
 	
-	_flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second = flagMask;
+	_flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second = std::move(flagMask);
 }
 
 void Cotter::correctConjugated(ImageSet& imageSet, size_t imgImageIndex) const
