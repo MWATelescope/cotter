@@ -19,6 +19,7 @@ find_package(Boost REQUIRED COMPONENTS date_time system)
 find_library(FFTW3_LIB fftw3 REQUIRED)
 find_package(LibXml2 REQUIRED)
 find_library(LIBPAL_LIB pal REQUIRED)
+find_path(LIBPAL_INCLUDE_DIR NAMES star/pal.h)
 find_library(PNG_LIB png REQUIRED)
 find_library(PTHREAD_LIB pthread REQUIRED)
 

@@ -36,7 +36,7 @@ cd cotter
 mkdir build
 cd build
 # Specifying LIBPAL_INCLUDE_DIR is necessary if LIBPAL header files are in a non-standard place.
-cmake ../ -DLIBPAL_INCLUDE_DIR=/usr/local/include/star
+cmake ../ -DLIBPAL_INCLUDE_DIR=/usr/local/include
 make -j8
 make install
 ```
@@ -102,7 +102,7 @@ RUN git clone "https://github.com/MWATelescope/cotter.git" \
     && mkdir build \
     && cd build \
     && cmake ../ \
-       -DLIBPAL_INCLUDE_DIR=/usr/local/include/star \
+       -DLIBPAL_INCLUDE_DIR=/usr/local/include \
    && make -j8 \
    && make install \
    && cd / \

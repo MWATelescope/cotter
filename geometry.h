@@ -3,7 +3,7 @@
 
 #include <cmath>
 
-#include <pal.h>
+#include <star/pal.h>
 
 #define SPEED_OF_LIGHT 299792458.0        // speed of light in m/s
 

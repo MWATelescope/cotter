@@ -2,7 +2,7 @@
 
 #include <cstdio>
 
-#include <pal.h>
+#include <star/pal.h>
 
 #define VLIGHT 299792458.0  // speed of light in m/s
 
