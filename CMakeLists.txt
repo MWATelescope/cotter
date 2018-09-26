@@ -11,11 +11,13 @@ find_library(CASA_MS_LIB casa_ms REQUIRED)
 find_library(CASA_TABLES_LIB casa_tables REQUIRED)
 find_library(CASA_CASA_LIB casa_casa REQUIRED)
 find_library(CASA_MEASURES_LIB casa_measures REQUIRED)
-set(CASA_LIBS ${CASA_MS_LIB} ${CASA_TABLES_LIB} ${CASA_CASA_LIB} ${CASA_MEASURES_LIB})
+set(CASACORE_LIBS ${CASA_MS_LIB} ${CASA_TABLES_LIB} ${CASA_CASA_LIB} ${CASA_MEASURES_LIB})
 find_path(CASA_INCLUDE_DIR NAMES ms/MeasurementSets/MeasurementSet.h PATHS /usr/local/include/casacore PATH_SUFFIXES casacore)
 enable_language(Fortran OPTIONAL)
 find_package(LAPACK REQUIRED)
-find_package(Boost REQUIRED COMPONENTS date_time system)
+find_package(PythonInterp REQUIRED)
+find_package(PythonLibs 2.7 REQUIRED)
+find_package(Boost REQUIRED COMPONENTS date_time filesystem python signals system)
 find_library(FFTW3_LIB fftw3 REQUIRED)
 find_package(LibXml2 REQUIRED)
 find_library(LIBPAL_LIB pal REQUIRED)
@@ -30,6 +32,7 @@ include_directories(${CASA_INCLUDE_DIR})
 include_directories(${FITSIO_INCLUDE_DIR})
 include_directories(${Boost_INCLUDE_DIR})
 include_directories(${LIBPAL_INCLUDE_DIR})
+include_directories(${PYTHON_INCLUDE_DIRS})
 
 # The following stuff will set the "rpath" correctly, so that
 # LD_LIBRARY_PATH doesn't have to be set.
@@ -53,8 +56,20 @@ add_executable(cotter main.cpp cotter.cpp applysolutionswriter.cpp averagingwrit
 
 add_executable(fixmwams fixmwams.cpp fitsuser.cpp metafitsfile.cpp mwaconfig.cpp mwams.cpp)
 
-target_link_libraries(cotter ${CFITSIO_LIB} ${AOFLAGGER_LIB} ${CASA_LIBS} ${LAPACK_lapack_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${LIBXML2_LIBRARIES} ${FFTW3_LIB} ${LIBPAL_LIB} ${PNG_LIB} ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES} ${PTHREAD_LIB})
+target_link_libraries(cotter
+	${CFITSIO_LIB}
+	${AOFLAGGER_LIB}
+	${CASACORE_LIBS}
+	${LAPACK_lapack_LIBRARY} ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES}
+	${Boost_SYSTEM_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${Boost_PYTHON_LIBRARIES}
+	${LIBXML2_LIBRARIES}
+	${FFTW3_LIB}
+	${LIBPAL_LIB}
+	${PNG_LIB}
+	${PTHREAD_LIB}
+	${PYTHON_LIBRARIES}
+)
 
-target_link_libraries(fixmwams ${CFITSIO_LIB} ${CASA_LIBS} ${LIBPAL_LIB})
+target_link_libraries(fixmwams ${CFITSIO_LIB} ${CASACORE_LIBS} ${LIBPAL_LIB})
 
 install (TARGETS cotter fixmwams DESTINATION bin)
