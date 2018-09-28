@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 2.6)
 
 project(cotter)
 
+find_package(PkgConfig)
+pkg_check_modules(GTKMM gtkmm-3.0>=3.0.0)
+pkg_check_modules(SIGCXX sigc++-2.0)
+
 find_library(AOFLAGGER_LIB aoflagger)
 find_path(AOFLAGGER_INCLUDE_DIR NAMES aoflagger.h)
 find_library(CFITSIO_LIB cfitsio)
@@ -33,6 +37,21 @@ include_directories(${FITSIO_INCLUDE_DIR})
 include_directories(${Boost_INCLUDE_DIR})
 include_directories(${LIBPAL_INCLUDE_DIR})
 include_directories(${PYTHON_INCLUDE_DIRS})
+
+# The GTKMM and Sigc++ libraries are not explicitly used by Cotter, but when AOFlagger
+# found those libraries, it will use those, and some platforms then
+# require those libraries to be linked in here as well
+if(GTKMM_FOUND)
+	message(STATUS "GTKMM found.") 
+	include_directories(${GTKMM_INCLUDE_DIRS})
+	link_directories(${GTKMM_LIBDIR})
+endif(GTKMM_FOUND)
+
+if(SIGCXX_FOUND)
+	message(STATUS "SIGCXX found.") 
+	include_directories(${SIGCXX_INCLUDE_DIRS})
+	link_directories(${SIGCXX_LIBDIR})
+endif(SIGCXX_FOUND)
 
 # The following stuff will set the "rpath" correctly, so that
 # LD_LIBRARY_PATH doesn't have to be set.
@@ -69,6 +88,13 @@ target_link_libraries(cotter
 	${PTHREAD_LIB}
 	${PYTHON_LIBRARIES}
 )
+
+if(GTKMM_FOUND)
+	target_link_libraries(cotter ${GTKMM_LIBRARIES})
+endif(GTKMM_FOUND)
+if(SIGCXX_FOUND)
+	target_link_libraries(cotter ${SIGCXX_LIBRARIES})
+endif(SIGCXX_FOUND)
 
 target_link_libraries(fixmwams ${CFITSIO_LIB} ${CASACORE_LIBS} ${LIBPAL_LIB})
 
