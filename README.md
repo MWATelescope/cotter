@@ -61,52 +61,20 @@ cmake ../ \
       -DLAPACK_LIBRARIES="$MAALI_LAPACK_HOME"/lib64/liblapack.so
 ```
 
-## Dockerfile
-An appropriate Dockerfile for creating a `cotter` container is:
+## Docker
+An appropriate Dockerfile for creating a `cotter` container is provided in Dockerfile in the repo. To build the image, run the following, it will create an image called cotter:latest.
+
 ```
-FROM ubuntu:17.10
-
-RUN apt-get -y update \
-    && apt-get -y install git \
-                          wget \
-                          make \
-                          cmake \
-                          gcc \
-                          g++ \
-                          gfortran \
-                          libopenblas-dev \
-                          libboost-dev \
-                          libboost-date-time-dev \
-                          libboost-system-dev \
-                          libxml++2.6-dev \
-                          libcfitsio-dev \
-                          libfftw3-dev \
-                          libpng-dev \
-                          casacore-dev \
-                          aoflagger-dev \
-                          liberfa-dev \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-RUN cd / \
-    && wget "https://github.com/Starlink/pal/releases/download/v0.9.7/pal-0.9.7.tar.gz" \
-    && tar -xf pal-0.9.7.tar.gz \
-    && cd pal-0.9.7 \
-    && ./configure --prefix=/usr/local --without-starlink \
-    && make \
-    && make install \
-    && cd / \
-    && rm -rf pal-0.9.7
-
-RUN git clone "https://github.com/MWATelescope/cotter.git" \
-    && cd /cotter \
-    && mkdir build \
-    && cd build \
-    && cmake ../ \
-       -DLIBPAL_INCLUDE_DIR=/usr/local/include \
-   && make -j8 \
-   && make install \
-   && cd / \
-   && rm -rf cotter
-
-ENTRYPOINT bash
+docker build -t cotter:latest .
 ```
+
+One way to launch the container is to use docker run, for example:
+```
+docker run --name my_cotter --volume=/data:/data --entrypoint="" --rm=true cotter:latest cotter -allowmissing -initflag 4 -m /data/OBSID_metafits.fits -o /data/OBSID_%%.mwaf /data/*gpubox*.fits 
+```
+
+notes: 
+* This will perform RFI flagging and create .mwaf files for each coarse channel. See cotter -help for other ways to use cotter.
+* This assumes /data is a directory on the machine running docker (host) containing the gpubox files and metafits for an observation 
+* --rm=true means the container will be deleted once it exits (you may or may not want this)
+* OBSID is an MWA observation ID
