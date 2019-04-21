@@ -121,116 +121,132 @@ bool GPUFileReader::Read(size_t &bufferPos, size_t bufferLength) {
 	_availableGPUMatrixBuffers.clear();
 	std::vector<std::vector<std::complex<float> > > gpuMatrixBuffers(_threadCount);
 	std::vector<std::thread> threadGroup;
-	for(size_t i=0; i!=_threadCount; ++i)
+	
+	try
 	{
-		gpuMatrixBuffers[i].resize(gpuMatrixSizePerFile);
-		_availableGPUMatrixBuffers.write(&gpuMatrixBuffers[i][0]);
-		threadGroup.emplace_back(&GPUFileReader::shuffleThreadFunc, this);
-	}
-
-	if(!_isOpen)
-	{
-		openFiles();
 		
-		_currentHDU = _offlineFormat ? 1 : 2; // header to start reading
-		findStopHDU();
-	}
-	
-	initMapping();
-
-	ProgressBar progressBar("Reading GPU files");
-	
-	size_t endingBufferPos = bufferLength;
-	bool moreAvailable = false;
-	for (size_t iFile = 0; iFile != _filenames.size(); ++iFile) {
-		if(!_filenames[iFile].empty())
+		for(size_t i=0; i!=_threadCount; ++i)
 		{
-			size_t
-				fileBufferPos = bufferPos,
-				fileHDU = _currentHDU;
-			
-			if(_doAlign)
-			{
-				// These statements will align a file with the times given in the individual gpubox fits files.
-				if(_hduOffsetsPerFile[iFile] <= (int) bufferPos)
-					fileBufferPos = bufferPos - _hduOffsetsPerFile[iFile];
-				else {
-					fileHDU += _hduOffsetsPerFile[iFile] - bufferPos;
-					fileBufferPos = bufferPos;
-				}
-			}
-			size_t fileStopHDU = _fitsHDUCounts[iFile];
-			size_t hdusAvailable = fileStopHDU - fileHDU + 1;
-			if(endingBufferPos > bufferPos + hdusAvailable) endingBufferPos = bufferPos + hdusAvailable;
-			
-			while (fileHDU <= fileStopHDU && fileBufferPos < bufferLength)
-			{
-				progressBar.SetProgress(fileHDU + iFile*fileStopHDU, fileStopHDU*_filenames.size());
-
-				fitsfile *fptr = _fitsFiles[iFile];
-
-				int status = 0, hduType = 0;
-				fits_movabs_hdu(fptr, fileHDU, &hduType, &status);
-				checkStatus(status);
-				if (hduType == BINARY_TBL) {
-					throw std::runtime_error("GPU file seems not to contain image headers; format not understood.");
-				}
-				else {
-
-					long fpixel = 1;
-					float nullval = 0;
-					int anynull = 0x0;
-					long naxes[2];
-
-					fits_get_img_size(fptr, 2, naxes, &status);
-					checkStatus(status);
-
-					size_t channelsInFile = naxes[1];
-					size_t baselTimesPolInFile = naxes[0];
-
-					if(_nChannelsInTotal != (channelsInFile*_filenames.size())) {
-						std::stringstream s;
-						s << "Number of GPU files (" << _filenames.size() << ") in time range x row count of image chunk in file (" << channelsInFile << ") != "
-						<< "total channels count (" << _nChannelsInTotal << "): are the FITS files the dimension you expected them to be?";
-						throw std::runtime_error(s.str());
-					}
-					// Test the first axis; note that we assert the number of floats, not complex, hence the factor of two.
-					if(baselTimesPolInFile != nBaselines * nPol * 2) {
-						std::stringstream s;
-						s << "Unexpected number of visibilities in axis of GPU file. Expected=" << (nBaselines*nPol*2) << ", actual=" << baselTimesPolInFile;
-						throw std::runtime_error(s.str());
-					}
-
-					std::complex<float> *matrixPtr = 0;
-					_availableGPUMatrixBuffers.read(matrixPtr);
-					fits_read_img(fptr, TFLOAT, fpixel, channelsInFile * baselTimesPolInFile, &nullval, (float *) matrixPtr, &anynull, &status);
-					checkStatus(status);
-					
-					ShuffleTask shuffleTask;
-					shuffleTask.iFile = iFile;
-					shuffleTask.channelsInFile = channelsInFile;
-					shuffleTask.fileBufferPos = fileBufferPos;
-					shuffleTask.gpuMatrix = matrixPtr;
-					_shuffleTasks.write(shuffleTask);
-				}
-				++fileHDU;
-				++fileBufferPos;
-			}
-			if(fileHDU <= fileStopHDU)
-				moreAvailable = true;
+			gpuMatrixBuffers[i].resize(gpuMatrixSizePerFile);
+			_availableGPUMatrixBuffers.write(&gpuMatrixBuffers[i][0]);
+			threadGroup.emplace_back(&GPUFileReader::shuffleThreadFunc, this);
 		}
+
+		if(!_isOpen)
+		{
+			openFiles();
+			
+			_currentHDU = _offlineFormat ? 1 : 2; // header to start reading
+			findStopHDU();
+		}
+		
+		initMapping();
+
+		ProgressBar progressBar("Reading GPU files");
+		
+		size_t endingBufferPos = bufferLength;
+		bool moreAvailable = false;
+		for (size_t iFile = 0; iFile != _filenames.size(); ++iFile) {
+			if(!_filenames[iFile].empty())
+			{
+				size_t
+					fileBufferPos = bufferPos,
+					fileHDU = _currentHDU;
+				
+				if(_doAlign)
+				{
+					// These statements will align a file with the times given in the individual gpubox fits files.
+					if(_hduOffsetsPerFile[iFile] <= (int) bufferPos)
+						fileBufferPos = bufferPos - _hduOffsetsPerFile[iFile];
+					else {
+						fileHDU += _hduOffsetsPerFile[iFile] - bufferPos;
+						fileBufferPos = bufferPos;
+					}
+				}
+				size_t fileStopHDU = _fitsHDUCounts[iFile];
+				size_t hdusAvailable = fileStopHDU - fileHDU + 1;
+				if(endingBufferPos > bufferPos + hdusAvailable) endingBufferPos = bufferPos + hdusAvailable;
+				
+				while (fileHDU <= fileStopHDU && fileBufferPos < bufferLength)
+				{
+					progressBar.SetProgress(fileHDU + iFile*fileStopHDU, fileStopHDU*_filenames.size());
+
+					fitsfile *fptr = _fitsFiles[iFile];
+
+					int status = 0, hduType = 0;
+					fits_movabs_hdu(fptr, fileHDU, &hduType, &status);
+					checkStatus(status);
+					if (hduType == BINARY_TBL) {
+						throw std::runtime_error("GPU file seems not to contain image headers; format not understood.");
+					}
+					else {
+
+						long fpixel = 1;
+						float nullval = 0;
+						int anynull = 0x0;
+						long naxes[2];
+
+						fits_get_img_size(fptr, 2, naxes, &status);
+						checkStatus(status);
+
+						size_t channelsInFile = naxes[1];
+						size_t baselTimesPolInFile = naxes[0];
+
+						if(_nChannelsInTotal != (channelsInFile*_filenames.size())) {
+							std::stringstream s;
+							s << "Number of GPU files (" << _filenames.size() << ") in time range x row count of image chunk in file (" << channelsInFile << ") != "
+							<< "total channels count (" << _nChannelsInTotal << "): are the FITS files the dimension you expected them to be?";
+							throw std::runtime_error(s.str());
+						}
+						// Test the first axis; note that we assert the number of floats, not complex, hence the factor of two.
+						if(baselTimesPolInFile != nBaselines * nPol * 2) {
+							std::stringstream s;
+							s << "Unexpected number of visibilities in axis of GPU file. Expected=" << (nBaselines*nPol*2) << ", actual=" << baselTimesPolInFile;
+							throw std::runtime_error(s.str()); // If we don't join our threads, they will go out of scope, crash, and that will not be good
+						}
+
+						std::complex<float> *matrixPtr = 0;
+						_availableGPUMatrixBuffers.read(matrixPtr);
+						fits_read_img(fptr, TFLOAT, fpixel, channelsInFile * baselTimesPolInFile, &nullval, (float *) matrixPtr, &anynull, &status);
+						checkStatus(status);
+						
+						ShuffleTask shuffleTask;
+						shuffleTask.iFile = iFile;
+						shuffleTask.channelsInFile = channelsInFile;
+						shuffleTask.fileBufferPos = fileBufferPos;
+						shuffleTask.gpuMatrix = matrixPtr;
+						_shuffleTasks.write(shuffleTask);
+					}
+					++fileHDU;
+					++fileBufferPos;
+				}
+				if(fileHDU <= fileStopHDU)
+					moreAvailable = true;
+			}
+		}
+		_shuffleTasks.write_end();
+		for(std::thread& t : threadGroup)
+			t.join();
+		
+		_currentHDU += endingBufferPos - bufferPos;
+		bufferPos = endingBufferPos;
+		
+		if(!moreAvailable)
+			closeFiles();
+		return moreAvailable;
 	}
-	
-	_shuffleTasks.write_end();
-	for(std::thread& t : threadGroup)
-		t.join();
-	
-	_currentHDU += endingBufferPos - bufferPos;
-	bufferPos = endingBufferPos;
-	
-	if(!moreAvailable)
-		closeFiles();
-	return moreAvailable;
+	catch(...)
+	{
+		// Apparently C++ crashes when a std::thread exits scope without a join().
+		// This ensures that an thrown exception will not cause this problem
+		_shuffleTasks.write_end();
+		for(std::thread& t : threadGroup)
+		{
+			if(t.joinable())
+				t.join();
+		}
+		throw;
+	}
 }
 
 void GPUFileReader::shuffleThreadFunc()

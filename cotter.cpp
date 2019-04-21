@@ -509,11 +509,25 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 		_progressBar.reset(new ProgressBar(taskDescription));
 		
 		std::vector<std::thread> threadGroup;
-		for(size_t i=0; i!=_threadCount; ++i)
-			threadGroup.emplace_back(std::bind(&Cotter::baselineProcessThreadFunc, this));
-		for(std::thread& t : threadGroup)
-			t.join();
-		
+		try
+		{
+			for(size_t i=0; i!=_threadCount; ++i)
+				threadGroup.emplace_back(std::bind(&Cotter::baselineProcessThreadFunc, this));
+			for(std::thread& t : threadGroup)
+				t.join();
+		}
+		catch(...)
+		{
+			// Apparently C++ crashes when a std::thread exits scope without a join().
+			// This ensures that an thrown exception will not cause this problem
+			for(std::thread& t : threadGroup)
+			{
+				if(t.joinable())
+					t.join();
+			}
+			throw;
+		}
+			
 		_progressBar.reset();
 		_processWatch.Pause();
 		_writeWatch.Start();
