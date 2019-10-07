@@ -2,11 +2,15 @@
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
+#include <casacore/tables/DataMan/DataManager.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
 #include <casacore/tables/Tables/ArrColDesc.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
 #include <casacore/tables/Tables/SetupNewTab.h>
+#include <casacore/tables/Tables/TableRecord.h>
+
 #include <casacore/casa/Containers/Record.h>
+
 #include <casacore/measures/TableMeasures/TableMeasDesc.h>
 
 #include <casacore/measures/Measures/MFrequency.h>
