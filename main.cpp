@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <vector>
+#include <mpi.h>
 
 bool isDigit(char c)
 {
@@ -122,8 +123,50 @@ void usage()
 
 int cotterMain(int argc, const char* const* argv);
 
+void throw_mpi_err(MPI_Comm * , int * err, ...)
+{
+	char buf[MPI_MAX_ERROR_STRING];
+	int len;
+	MPI_Error_string(*err, buf, &len);
+	throw std::runtime_error(std::string(buf, len));
+}
+
 int main(int argc, char **argv)
 {
+	MPI_Init(&argc, &argv);
+	
+	MPI_Errhandler errhandler;
+
+	MPI_Comm_create_errhandler(throw_mpi_err, &errhandler);
+	MPI_Comm_set_errhandler(MPI_COMM_WORLD, errhandler);
+	
+#ifdef PARALLEL_DEBUG
+	/* Utility to debug MPI with GDB. Run:
+	 * cmake -DCMAKE_CXX_FLAGS='-DPARALLEL_DEBUG' <builddir>
+	 * $ PARALLEL_DEBUG=<num> mpirun -n ... & # for debugging a single process (recommended)
+	 * OR 
+	 * $ PARALLEL_DEBUG='' mpirun -n ... & # for debugging multiple processes
+	 * $ gdb -q <exefile>
+	 * gdb$ !ps
+	 * gdb$ attach <pid>
+	 * gdb$ set one = 2
+	 * gdb$ cont
+	 */
+	{
+		int world_rank;
+		MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+		volatile int one = 1;
+		const char* str = getenv("PARALLEL_DEBUG");
+		if (str != NULL)
+		{
+			char* endptr;
+			long int debug_rank = strtol(str, &endptr, 10);
+			if (endptr == str || debug_rank == world_rank)
+				while (one == 1) sleep(1);
+		}
+	}
+#endif
+	
 	std::cout << "Running Cotter MWA preprocessing pipeline, version " << COTTER_VERSION_STR <<
 		" (" << COTTER_VERSION_DATE << ").\n"
 		"Flagging is performed by AOFlagger " << aoflagger::AOFlagger::GetVersionString() << " (" << aoflagger::AOFlagger::GetVersionDate() << ").\n";
@@ -136,6 +179,7 @@ int main(int argc, char **argv)
 		std::cerr << "\nAn unhandled exception occured while running Cotter:\n" << e.what() << '\n';
 		return -1;
 	}
+	MPI_Finalize();
 	return result;
 }
 

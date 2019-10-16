@@ -12,7 +12,7 @@
 class FlagWriter : public Writer, private FitsUser
 {
 	public:
-		FlagWriter(const std::string &filename, int gpsTime, size_t timestepCount, size_t sbStart, size_t sbEnd, const std::vector<size_t>& subbandToGPUBoxFileIndex);
+		FlagWriter(const std::string &filename, int gpsTime, size_t timestepCount, size_t nSb, size_t nodeSbStart, size_t nodeSbEnd, const std::vector<size_t>& subbandToGPUBoxFileIndex);
 		
 		~FlagWriter();
 		
@@ -90,7 +90,7 @@ class FlagWriter : public Writer, private FitsUser
 		
 		size_t _timestepCount, _antennaCount, _channelCount, _channelsPerGPUBox, _polarizationCount;
 		//size_t _rowStride;
-		size_t _rowsAdded, _rowsWritten, _sbStart, _sbEnd;
+		size_t _rowsAdded, _rowsWritten, _nodeSbStart, _nodeSbEnd, _nSb;
 		int _gpsTime;
 		std::vector<fitsfile*> _files;
 		

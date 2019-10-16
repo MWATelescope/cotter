@@ -96,37 +96,88 @@ class Cotter : private UVWCalculater
 		size_t SubbandCount() const { return _subbandCount; }
 		
 	private:
+		//! Data read from .metafits
 		MWAConfig _mwaConfig;
+		//! Abstract disk file writer
 		std::unique_ptr<Writer> _writer;
+		//! Disk file reader
 		std::unique_ptr<GPUFileReader> _reader;
+		//! Inputs telescope and outputs flagging strategy, as well as managing stats and some classes
 		aoflagger::AOFlagger _flagger;
+		//! Algorithm to perform on data
 		std::unique_ptr<aoflagger::Strategy> _strategy;
-		
+		//! Gain adjust for each coarse channel
 		std::vector<double> _subbandCorrectionFactors[4];
+		//! Override to flag all correlations using antenna
 		std::unique_ptr<bool[]> _isAntennaFlaggedMap;
+		//! Antennas not flagged by one of the overrides
 		size_t _unflaggedAntennaCount;
-		
+		//! Util for progress indicator
 		Stopwatch _readWatch, _processWatch, _writeWatch;
 		
+		//! Data files, sorted by timestep and then coarse channel
 		std::vector<std::vector<std::string> > _fileSets;
+		//! Override threading amount if nonzero
 		size_t _threadCount;
+		/**
+		 * Maximum total elements allowed to hold in memory at once 
+		 * (Per element = One float data, one float buffer, one bool flags)
+		 */
 		size_t _maxBufferSize;
+		//! Number of coarse freq channels (default 24)
 		size_t _subbandCount;
-		size_t _quackInitSampleCount, _quackEndSampleCount;
+		//! Arg -initflag; number of samples to flag at beginning edge (default 4s)
+		size_t _quackInitSampleCount;
+		//! Arg -endflag; number of samples to flag at beginning edge (default 0s)
+		size_t _quackEndSampleCount;
+		//! Arg -edgewidth; flag edges of coarse channels
 		double _subbandEdgeFlagWidthKHz;
+		//! Number of samples to flag at edges of coarse channels
 		size_t _subbandEdgeFlagCount;
+		//! Missing last time steps for some channels; number of end time steps to be flagged
 		size_t _missingEndScans;
-		size_t _curChunkStart, _curChunkEnd, _curSbStart, _curSbEnd;
-		bool _defaultFilename, _rfiDetection, _collectStatistics, _collectHistograms, _usePointingCentre;
+		//! Time steps are broken into chunks to reduce memory requirements where neccessary
+		size_t _curChunkStart, _curChunkEnd;
+		//! Coarse channels/subbands areFlag edges of coarse channels broken up into contiguous sections
+		size_t _curSbStart, _curSbEnd;
+		//! MPI index and size
+		int _nNodes, _nodeRank;
+		//! Override filename with preprocessed.ms (which also implies default OutputFormat)
+		bool _defaultFilename;
+		//! Do AOFlagger strategy (which is mostly RFI)
+		bool _rfiDetection;
+		//! Try to write stats from AOFlagger strat to file if possible
+		bool _collectStatistics;
+		//! Subpart of statistics
+		bool _collectHistograms;
+		bool _usePointingCentre;
+		//! Potential output writers
 		enum OutputFormat _outputFormat;
-		std::string _outputFilename, _commandLine;
-		std::string _metaFilename, _antennaLocationsFilename, _headerFilename, _instrConfigFilename;
-		std::string _subbandPassbandFilename, _flagFileTemplate, _qualityStatisticsFilename;
+		//! Format of data output filename
+		std::string _outputFilename;
+		//! Used in outpput metadata for tracability
+		std::string _commandLine;
+		//! Used for input metadata to set _mwaConfig
+		std::string _metaFilename;
+		//! Overrides antenna locations in _metaFilename
+		std::string _antennaLocationsFilename;
+		//! Overrides key-value pairs in _metaFilename
+		std::string _headerFilename;
+		//! Overrides instrumental configuration values in _metaFilename
+		std::string _instrConfigFilename;
+		//! Use customised fine channel gain adjust rather than theoretical from subbandpassband.cpp
+		std::string _subbandPassbandFilename;
+		//! Format of previous flags file to use instead of RFI detection
+		std::string _flagFileTemplate;
+		//! Output file for stats
+		std::string _qualityStatisticsFilename;
+		//!
 		bool _applySolutionsBeforeAveraging;
 		std::string _solutionFilename;
 		std::vector<size_t> _userFlaggedAntennae;
 		std::set<size_t> _flaggedSubbands;
 		
+		//! The data to be processed, ordered by correlation output/baseline
 		std::map<std::pair<size_t, size_t>, aoflagger::ImageSet> _imageSetBuffers;
 		// This unique_ptr is necessary because FlagMask was not properly nullable in aoflagger 2.11
 		// (due to a bug). Once aoflagger 2.12 is rolled out, it would be neater to remove the unique_ptr wrapper.
@@ -216,10 +267,33 @@ class Cotter : private UVWCalculater
 			}
 			return false;
 		}
+		
+		size_t nodeSbStart() const
+		{
+			return (_curSbEnd - _curSbStart) * _nodeRank / _nNodes + _curSbStart;
+		}
+		size_t nodeSbEnd() const
+		{
+			return (_curSbEnd - _curSbStart) * (_nodeRank + 1) / _nNodes + _curSbStart;
+		}
+		
+		/**
+		 * @brief Get total number of frequency steps per node
+		 */
+		size_t nChannelsInCurNodeSBRange() const
+		{
+			const size_t nNodeSb = nodeSbEnd() - nodeSbStart();
+			const size_t nFineChannels = _mwaConfig.Header().nChannels / _subbandCount;
+			return nFineChannels * nNodeSb;
+		}
+		
+		
 		size_t nChannelsInCurSBRange() const
 		{
-			return _mwaConfig.Header().nChannels * (_curSbEnd - _curSbStart) / _subbandCount;
+			const size_t nFineChannels = _mwaConfig.Header().nChannels / _subbandCount;
+			return nFineChannels * (_curSbEnd - _curSbStart);
 		}
+		
 		static std::string twoDigits(int value)
 		{
 			std::string str("  ");

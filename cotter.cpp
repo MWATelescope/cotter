@@ -26,6 +26,8 @@
 
 #include <xmmintrin.h>
 
+#include <mpi.h>
+
 #define USE_SSE
 
 using namespace aoflagger;
@@ -69,6 +71,8 @@ Cotter::Cotter() :
 	_outputData(empty_aligned<std::complex<float>>()),
 	_outputWeights(empty_aligned<float>())
 {
+	MPI_Comm_rank(MPI_COMM_WORLD, &_nodeRank);
+	MPI_Comm_size(MPI_COMM_WORLD, &_nNodes);
 }
 
 Cotter::~Cotter() { }
@@ -203,7 +207,8 @@ void Cotter::processAllContiguousBands(size_t timeAvgFactor, size_t freqAvgFacto
 			_curSbStart = contiguousSBRanges[bandIndex].first;
 			_curSbEnd = contiguousSBRanges[bandIndex].second;
 			
-			size_t nChannels = nChannelsInCurSBRange(), nChannelPerSb = _mwaConfig.Header().nChannels / _subbandCount;
+			size_t nChannels = nChannelsInCurSBRange();
+			size_t nChannelPerSb = _mwaConfig.Header().nChannels / _subbandCount;
 			_channelFrequenciesHz.resize(nChannels);
 			int
 				chStartNo = _mwaConfig.HeaderExt().subbandNumbers[_curSbStart],
@@ -236,6 +241,7 @@ void Cotter::processAllContiguousBands(size_t timeAvgFactor, size_t freqAvgFacto
 
 void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t timeAvgFactor, size_t freqAvgFactor)
 {
+	const size_t nChannelsPerNode = nChannelsInCurNodeSBRange();
 	switch(_outputFormat)
 	{
 		case FlagsOutputFormat:
@@ -244,12 +250,16 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 				throw std::runtime_error("You have specified time or frequency averaging and outputting only flags: this is incompatible");
 			if(_removeFlaggedAntennae || _removeAutoCorrelations)
 				throw std::runtime_error("Can't prune flagged/auto-correlated antennas when writing flag file");
-			_writer.reset(new FlagWriter(outputFilename, _mwaConfig.HeaderExt().gpsTime, _mwaConfig.Header().nScans, _curSbStart, _curSbEnd, _subbandOrder));
+			_writer.reset(new FlagWriter(outputFilename, _mwaConfig.HeaderExt().gpsTime, _mwaConfig.Header().nScans, _curSbEnd - _curSbStart, nodeSbStart(), nodeSbEnd(), _subbandOrder));
 			break;
 		case FitsOutputFormat:
+			if(_nNodes > 1)
+				throw std::runtime_error("FITS output and MPI is incompatible");
 			_writer.reset(new ThreadedWriter(std::unique_ptr<FitsWriter>(new FitsWriter(outputFilename))));
 			break;
 		case MSOutputFormat: {
+			if(_nNodes > 1)
+				throw std::runtime_error("MS output and MPI is incompatible");
 			std::unique_ptr<MSWriter> msWriter(new MSWriter(outputFilename));
 			if(_useDysco)
 				msWriter->EnableCompression(_dyscoDataBitRate, _dyscoWeightBitRate, _dyscoDistribution, _dyscoDistTruncation, _dyscoNormalization);
@@ -289,10 +299,9 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	}
 	
 	_hduOffsetsPerGPUBox.assign(_subbandCount, 9999);
-	const size_t
-		nChannels = nChannelsInCurSBRange(),
-		antennaCount = _mwaConfig.NAntennae();
-	size_t maxScansPerPart = _maxBufferSize / (nChannels*(antennaCount+1)*antennaCount*2);
+	
+	const size_t antennaCount = _mwaConfig.NAntennae();
+	size_t maxScansPerPart = _maxBufferSize / (nChannelsPerNode*(antennaCount+1)*antennaCount*2);
 	
 	if(maxScansPerPart<1)
 	{
@@ -348,7 +357,7 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 				{
 					_imageSetBuffers.emplace(
 						std::pair<size_t,size_t>(antenna1, antenna2),
-						_flagger.MakeImageSet(_curChunkEnd-_curChunkStart, nChannels, 8, 0.0f, requiredWidthCapacity)
+						_flagger.MakeImageSet(_curChunkEnd-_curChunkStart, nChannelsPerNode, 8, 0.0f, requiredWidthCapacity)
 					);
 				}
 			}
@@ -538,9 +547,9 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 		}
 		else {
 			_progressBar.reset(new ProgressBar("Writing"));
-			_outputFlags.reset(new bool[nChannels*4]);
-			_outputData = make_aligned<std::complex<float>>(nChannels*4, 16);
-			_outputWeights = make_aligned<float>(nChannels*4, 16);
+			_outputFlags.reset(new bool[nChannelsPerNode*4]);
+			_outputData = make_aligned<std::complex<float>>(nChannelsPerNode*4, 16);
+			_outputWeights = make_aligned<float>(nChannelsPerNode*4, 16);
 			for(size_t t=_curChunkStart; t!=_curChunkEnd; ++t)
 			{
 				_progressBar->SetProgress(t-_curChunkStart, _curChunkEnd-_curChunkStart);
@@ -577,25 +586,28 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	// Necessary to make sure it is reinitialized in the following cont band:
 	_flagReader.reset();
 	
-	if(_collectStatistics && writerSupportsStatistics) {
-		std::cout << "Writing statistics to measurement set...\n";
-		_flagger.WriteStatistics(*_statistics, outputFilename);
-	}
-	
-	if(_collectStatistics && !_qualityStatisticsFilename.empty()) {
-		std::cout << "Writing statistics to " << _qualityStatisticsFilename << "...\n";
-		_flagger.WriteStatistics(*_statistics, _qualityStatisticsFilename);
-	}
-	
-	if(_outputFormat == MSOutputFormat)
+	if (_nodeRank == 0)
 	{
-		std::cout << "Writing MWA fields to measurement set...\n";
-		writeMWAFieldsToMS(outputFilename, _mwaConfig.Header().nScans/partCount);
-	}
-	else if(_outputFormat == FitsOutputFormat)
-	{
-		std::cout << "Writing MWA fields to UVFits file...\n";
-		writeMWAFieldsToUVFits(outputFilename);
+		if(_collectStatistics && writerSupportsStatistics) {
+			std::cout << "Writing statistics to measurement set...\n";
+			_flagger.WriteStatistics(*_statistics, outputFilename);
+		}
+		
+		if(_collectStatistics && !_qualityStatisticsFilename.empty()) {
+			std::cout << "Writing statistics to " << _qualityStatisticsFilename << "...\n";
+			_flagger.WriteStatistics(*_statistics, _qualityStatisticsFilename);
+		}
+		
+		if(_outputFormat == MSOutputFormat)
+		{
+			std::cout << "Writing MWA fields to measurement set...\n";
+			writeMWAFieldsToMS(outputFilename, _mwaConfig.Header().nScans/partCount);
+		}
+		else if(_outputFormat == FitsOutputFormat)
+		{
+			std::cout << "Writing MWA fields to UVFits file...\n";
+			writeMWAFieldsToUVFits(outputFilename);
+		}
 	}
 	
 	_writeWatch.Pause();
@@ -604,11 +616,12 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 void Cotter::createReader(const std::vector<std::string>& curFileset)
 {
 	_reader.reset();
-	_reader.reset(new GPUFileReader(_mwaConfig.NAntennae(), nChannelsInCurSBRange(), _threadCount, _offlineGPUBoxFormat));
+	_reader.reset(new GPUFileReader(_mwaConfig.NAntennae(), nChannelsInCurNodeSBRange(), _threadCount, _offlineGPUBoxFormat));
 	_reader->SetHDUOffsetsChangeCallback(std::bind(&Cotter::onHDUOffsetsChange, this, std::placeholders::_1));
-
+	
+	
 	// Add the gpubox files in the right order
-	for(size_t sb=_curSbStart; sb!=_curSbEnd; ++sb)
+	for(size_t sb=nodeSbStart(); sb!=nodeSbEnd(); ++sb)
 	{
 		size_t fileBelongingToSB = _subbandOrder[sb];
 		_reader->AddFile(curFileset[fileBelongingToSB].c_str());
@@ -784,7 +797,7 @@ void Cotter::processAndWriteTimestep(size_t timeIndex)
 void Cotter::processAndWriteTimestepFlagsOnly(size_t timeIndex)
 {
 	const size_t antennaCount = _mwaConfig.NAntennae();
-	const size_t nChannels = nChannelsInCurSBRange();
+	const size_t nChannels = nChannelsInCurNodeSBRange();
 	const double dateMJD = _mwaConfig.Header().dateFirstScanMJD + timeIndex * _mwaConfig.Header().integrationTime/86400.0;
 	
 	_writer->AddRows(rowsPerTimescan());
@@ -932,6 +945,7 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 	}
 	else 
 	{
+		
 		if(!_flagFileTemplate.empty())
 		{
 			flagMask = std::move(_flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second);
@@ -941,7 +955,12 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 			}
 		}
 		else if(_rfiDetection && (antenna1 != antenna2))
+		{
+			// set the correlation task id for syncronisation
+			_flagger.SetCorrelation(_mwaConfig.NAntennae() * antenna1 + antenna2);
+			
 			flagMask.reset(new FlagMask(_flagger.Run(*_strategy, imageSet)));
+		}
 		else
 			flagMask.reset(new FlagMask(_flagger.MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), false)));
 		flagBadCorrelatorSamples(*flagMask);
@@ -1325,7 +1344,7 @@ void Cotter::initializeWeights(aligned_ptr<float>& outputWeights)
 	// Weights are normalized so that default res of 10 kHz, 1s has weight of "1" per sample
 	// Note that this only holds for numbers in the WEIGHTS_SPECTRUM column; WEIGHTS will hold the sum.
 	double weightFactor = _mwaConfig.Header().integrationTime * (100.0*_mwaConfig.Header().bandwidthMHz/_mwaConfig.Header().nChannels);
-	size_t curSBRangeSize = _curSbEnd - _curSbStart;
+	size_t curSBRangeSize = nodeSbEnd() - nodeSbStart();
 	for(size_t sb=0; sb!=curSBRangeSize; ++sb)
 	{
 		size_t channelsPerSubband = _mwaConfig.Header().nChannels / _subbandCount;
@@ -1475,14 +1494,14 @@ void Cotter::writeMWAFieldsToUVFits(const std::string& outputFilename)
 void Cotter::onHDUOffsetsChange(const std::vector<int>& newHDUOffsets)
 {
 	bool isChanged = false;
-	for(size_t sb=_curSbStart; sb!=_curSbEnd; ++sb)
+	for(size_t sb=nodeSbStart(); sb!=nodeSbEnd(); ++sb)
 	{
 		size_t gpuboxIndex = _subbandOrder[sb];
 		if(_hduOffsetsPerGPUBox[gpuboxIndex] == 9999) {
-			_hduOffsetsPerGPUBox[gpuboxIndex] = newHDUOffsets[sb-_curSbStart];
+			_hduOffsetsPerGPUBox[gpuboxIndex] = newHDUOffsets[sb-nodeSbStart()];
 			isChanged = true;
 		}
-		else if(_hduOffsetsPerGPUBox[gpuboxIndex] != newHDUOffsets[sb-_curSbStart])
+		else if(_hduOffsetsPerGPUBox[gpuboxIndex] != newHDUOffsets[sb-nodeSbStart()])
 			std::cout << "WARNING! The HDU offsets change over time, this should never happen!\n";
 	}
 	
