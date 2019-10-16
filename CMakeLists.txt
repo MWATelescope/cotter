@@ -24,6 +24,7 @@ find_package(PythonLibs 3 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS date_time filesystem python3 system)
 find_library(FFTW3_LIB fftw3 REQUIRED)
 find_package(LibXml2 REQUIRED)
+find_package(MPI REQUIRED)
 find_library(LIBPAL_LIB pal REQUIRED)
 find_path(LIBPAL_INCLUDE_DIR NAMES star/pal.h)
 find_library(PNG_LIB png REQUIRED)
@@ -43,6 +44,7 @@ include_directories(${FITSIO_INCLUDE_DIR})
 include_directories(${Boost_INCLUDE_DIR})
 include_directories(${LIBPAL_INCLUDE_DIR})
 include_directories(${PYTHON_INCLUDE_DIRS})
+include_directories(${MPI_CXX_INCLUDE_DIRS})
 
 # The GTKMM and Sigc++ libraries are not explicitly used by Cotter, but when AOFlagger
 # found those libraries, it will use those, and some platforms then
@@ -93,6 +95,7 @@ target_link_libraries(cotter
 	${PNG_LIB}
 	${PTHREAD_LIB}
 	${PYTHON_LIBRARIES}
+	${MPI_CXX_LIBRARIES}
 )
 
 if(GTKMM_FOUND)
