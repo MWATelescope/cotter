@@ -918,6 +918,7 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 	}
 	else 
 	{
+		correlatorMask = _correlatorMask.get();
 		if(!_flagFileTemplate.empty())
 		{
 			flagMask = std::move(_flagBuffers.find(std::pair<size_t, size_t>(antenna1, antenna2))->second);
@@ -927,11 +928,10 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 			}
 		}
 		else if(_rfiDetection && (antenna1 != antenna2))
-			flagMask.reset(new FlagMask(_flagger.Run(*_strategy, imageSet)));
+			flagMask.reset(new FlagMask(_flagger.Run(*_strategy, imageSet, *correlatorMask)));
 		else
 			flagMask.reset(new FlagMask(_flagger.MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), false)));
 		flagBadCorrelatorSamples(*flagMask);
-		correlatorMask = _correlatorMask.get();
 	}
 	
 	// Collect statistics
