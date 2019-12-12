@@ -93,6 +93,7 @@ class Cotter : private UVWCalculater
 		}
 		void SetSolutionFile(const char* solutionFilename) { _solutionFilename = solutionFilename; }
 		void SetApplyBeforeAveraging(bool beforeAvg) { _applySolutionsBeforeAveraging = beforeAvg; }
+		void SetStrategyFile(const std::string& filename) { _strategyFilename = filename; }
 		size_t SubbandCount() const { return _subbandCount; }
 		
 	private:
@@ -124,6 +125,7 @@ class Cotter : private UVWCalculater
 		std::string _subbandPassbandFilename, _flagFileTemplate, _qualityStatisticsFilename;
 		bool _applySolutionsBeforeAveraging;
 		std::string _solutionFilename;
+		std::string _strategyFilename;
 		std::vector<size_t> _userFlaggedAntennae;
 		std::set<size_t> _flaggedSubbands;
 		

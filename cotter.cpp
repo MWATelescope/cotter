@@ -321,7 +321,10 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	params.push_back(paramStr.str());
 	_writer->WriteHistoryItem(_commandLine, "Cotter MWA preprocessor", params);
 	
-	_strategy.reset(new Strategy(_flagger.MakeStrategy(MWA_TELESCOPE)));
+	if(_strategyFilename.empty())
+		_strategy.reset(new Strategy(_flagger.MakeStrategy(MWA_TELESCOPE)));
+	else
+		_strategy.reset(new Strategy(_flagger.LoadStrategy(_strategyFilename)));
 	
 	std::vector<std::vector<std::string> >::const_iterator
 		currentFileSetPtr = _fileSets.begin();
