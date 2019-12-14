@@ -130,9 +130,7 @@ class Cotter : private UVWCalculater
 		std::set<size_t> _flaggedSubbands;
 		
 		std::map<std::pair<size_t, size_t>, aoflagger::ImageSet> _imageSetBuffers;
-		// This unique_ptr is necessary because FlagMask was not properly nullable in aoflagger 2.11
-		// (due to a bug). Once aoflagger 2.12 is rolled out, it would be neater to remove the unique_ptr wrapper.
-		std::map<std::pair<size_t, size_t>, std::unique_ptr<aoflagger::FlagMask>> _flagBuffers;
+		std::map<std::pair<size_t, size_t>, aoflagger::FlagMask> _flagBuffers;
 		std::vector<double> _channelFrequenciesHz;
 		std::vector<double> _scanTimes;
 		std::queue<std::pair<size_t,size_t> > _baselinesToProcess;
@@ -144,7 +142,7 @@ class Cotter : private UVWCalculater
 		
 		std::mutex _mutex;
 		std::unique_ptr<aoflagger::QualityStatistics> _statistics;
-		std::unique_ptr<aoflagger::FlagMask> _correlatorMask, _fullysetMask;
+		aoflagger::FlagMask _correlatorMask, _fullysetMask;
 		
 		bool _disableGeometricCorrections, _removeFlaggedAntennae, _removeAutoCorrelations, _flagAutos;
 		bool _overridePhaseCentre, _doAlign, _doFlagMissingSubbands, _applySBGains, _flagDCChannels, _skipWriting;
