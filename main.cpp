@@ -111,6 +111,7 @@ void usage()
 	"                     channels as that the observation will have after the given averaging settings.\n"
 	"  -full-apply <file> Apply a solution file before averaging. The solution file should have as many\n"
 	"                     channels as the observation.\n"
+	"  -flag-strategy <file> Use the specified aoflagger strategy.\n"
 	"  -use-dysco         Compress the Measurement Set using Dysco.\n"
 	"  -dysco-config <data bits> <weight bits> <distribution> <truncation> <normalization>\n"
 	"                     Set advanced Dysco options.\n"
@@ -380,6 +381,11 @@ int cotterMain(int argc, const char* const* argv)
 				++argi;
 				cotter.SetSolutionFile(argv[argi]);
 				cotter.SetApplyBeforeAveraging(true);
+			}
+			else if(param == "flag-strategy")
+			{
+				++argi;
+				cotter.SetStrategyFile(argv[argi]);
 			}
 			else if(param == "use-dysco")
 			{
