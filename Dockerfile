@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 # tzdata wants to throw up an interactive message requesting input,so just specify your timezone here instead and it wont.
 ENV TZ 'UTC'
@@ -18,6 +18,7 @@ RUN apt-get -y install git \
                           libboost-system-dev \
                           libboost-filesystem-dev \
                           libboost-python-dev \
+                          libboost-numpy-dev \
                           libxml++2.6-dev \
                           libgtkmm-3.0-dev  \ 
                           libcairo2-dev \
@@ -39,8 +40,9 @@ RUN cd / \
     && cd / \
     && rm -rf pal-0.9.7
 
-RUN git clone "https://github.com/MWATelescope/cotter.git" \
-    && cd /cotter \
+RUN git clone "https://github.com/MWATelescope/cotter.git" 
+
+RUN cd /cotter \
     && mkdir build \
     && cd build \
     && cmake ../ \
