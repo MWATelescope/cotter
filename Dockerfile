@@ -4,9 +4,8 @@ FROM ubuntu:20.04
 ENV TZ 'UTC'
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-RUN apt-get -y update
-
-RUN apt-get -y install git \
+RUN apt-get -y update && \
+    apt-get -y install git \
                           wget \
                           build-essential \
                           cmake \
@@ -28,7 +27,9 @@ RUN apt-get -y install git \
                           casacore-dev \
                           liberfa-dev \
                           aoflagger-dev \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    && apt-get autoremove \
+    && apt-get clean
 
 RUN cd / \
     && wget "https://github.com/Starlink/pal/releases/download/v0.9.7/pal-0.9.7.tar.gz" \
