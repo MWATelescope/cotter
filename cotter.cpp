@@ -829,30 +829,42 @@ void Cotter::CalculateUVW(double date, size_t antenna1, size_t antenna2, double 
 
 void Cotter::baselineProcessThreadFunc()
 {
-	QualityStatistics threadStatistics =
-		_flagger.MakeQualityStatistics(&_scanTimes[_curChunkStart], _curChunkEnd-_curChunkStart, &_channelFrequenciesHz[0], _channelFrequenciesHz.size(), 4, _collectHistograms);
-	Strategy strategy;
-	if(_rfiDetection)
-		strategy = _flagger.LoadStrategyFile(_strategyFilename);
-	
-	std::unique_lock<std::mutex> lock(_mutex);
-	while(!_baselinesToProcess.empty())
-	{
-		std::pair<size_t, size_t> baseline = _baselinesToProcess.front();
-		size_t currentTaskCount = _baselinesToProcess.size();
-		_progressBar->SetProgress(_baselinesToProcessCount - currentTaskCount, _baselinesToProcessCount);
-		_baselinesToProcess.pop();
-		lock.unlock();
+	try {
+		QualityStatistics threadStatistics =
+			_flagger.MakeQualityStatistics(&_scanTimes[_curChunkStart], _curChunkEnd-_curChunkStart, &_channelFrequenciesHz[0], _channelFrequenciesHz.size(), 4, _collectHistograms);
+		Strategy strategy;
+		if(_rfiDetection)
+			strategy = _flagger.LoadStrategyFile(_strategyFilename);
 		
-		processBaseline(baseline.first, baseline.second, strategy, threadStatistics);
-		lock.lock();
+		std::unique_lock<std::mutex> lock(_mutex);
+		while(!_baselinesToProcess.empty())
+		{
+			std::pair<size_t, size_t> baseline = _baselinesToProcess.front();
+			size_t currentTaskCount = _baselinesToProcess.size();
+			_progressBar->SetProgress(_baselinesToProcessCount - currentTaskCount, _baselinesToProcessCount);
+			_baselinesToProcess.pop();
+			lock.unlock();
+			
+			processBaseline(baseline.first, baseline.second, strategy, threadStatistics);
+			lock.lock();
+		}
+		
+		// Mutex still needs to be locked
+		if(!_statistics)
+			_statistics.reset(new QualityStatistics(threadStatistics));
+		else
+			(*_statistics) += threadStatistics;
 	}
-	
-	// Mutex still needs to be locked
-	if(!_statistics)
-		_statistics.reset(new QualityStatistics(threadStatistics));
-	else
-		(*_statistics) += threadStatistics;
+	catch(std::exception& exception)
+	{
+		std::cout <<
+			"***\n"
+			"*** Exception occurred while processing the baselines!\n"
+			"***\n"
+			"Error message:\n"
+			<< exception.what();
+		std::terminate();
+	}
 }
 
 void Cotter::processBaseline(size_t antenna1, size_t antenna2, aoflagger::Strategy& strategy, QualityStatistics& statistics)
