@@ -7,7 +7,7 @@ pkg_check_modules(GTKMM gtkmm-3.0>=3.0.0)
 pkg_check_modules(SIGCXX sigc++-2.0)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
-find_package(AOFlagger 2 REQUIRED)
+find_package(AOFlagger 3 REQUIRED)
 include_directories(${AOFLAGGER_INCLUDE_DIR})
 
 find_package(CFITSIO)

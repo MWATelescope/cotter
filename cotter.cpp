@@ -322,10 +322,8 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	_writer->WriteHistoryItem(_commandLine, "Cotter MWA preprocessor", params);
 	
 	if(_strategyFilename.empty())
-		_strategy.reset(new Strategy(_flagger.MakeStrategy(MWA_TELESCOPE)));
-	else
-		_strategy.reset(new Strategy(_flagger.LoadStrategy(_strategyFilename)));
-	
+		_strategyFilename = _flagger.FindStrategyFile(TelescopeId::MWA_TELESCOPE);
+		
 	std::vector<std::vector<std::string> >::const_iterator
 		currentFileSetPtr = _fileSets.begin();
 	createReader(*currentFileSetPtr);
@@ -568,12 +566,12 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	
 	if(_collectStatistics && writerSupportsStatistics) {
 		std::cout << "Writing statistics to measurement set...\n";
-		_flagger.WriteStatistics(*_statistics, outputFilename);
+		_statistics->WriteStatistics(outputFilename);
 	}
 	
 	if(_collectStatistics && !_qualityStatisticsFilename.empty()) {
 		std::cout << "Writing statistics to " << _qualityStatisticsFilename << "...\n";
-		_flagger.WriteStatistics(*_statistics, _qualityStatisticsFilename);
+		_statistics->WriteStatistics(_qualityStatisticsFilename);
 	}
 	
 	if(_outputFormat == MSOutputFormat)
@@ -833,6 +831,9 @@ void Cotter::baselineProcessThreadFunc()
 {
 	QualityStatistics threadStatistics =
 		_flagger.MakeQualityStatistics(&_scanTimes[_curChunkStart], _curChunkEnd-_curChunkStart, &_channelFrequenciesHz[0], _channelFrequenciesHz.size(), 4, _collectHistograms);
+	Strategy strategy;
+	if(_rfiDetection)
+		strategy = _flagger.LoadStrategyFile(_strategyFilename);
 	
 	std::unique_lock<std::mutex> lock(_mutex);
 	while(!_baselinesToProcess.empty())
@@ -843,7 +844,7 @@ void Cotter::baselineProcessThreadFunc()
 		_baselinesToProcess.pop();
 		lock.unlock();
 		
-		processBaseline(baseline.first, baseline.second, threadStatistics);
+		processBaseline(baseline.first, baseline.second, strategy, threadStatistics);
 		lock.lock();
 	}
 	
@@ -854,7 +855,7 @@ void Cotter::baselineProcessThreadFunc()
 		(*_statistics) += threadStatistics;
 }
 
-void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics &statistics)
+void Cotter::processBaseline(size_t antenna1, size_t antenna2, aoflagger::Strategy& strategy, QualityStatistics& statistics)
 {
 	ImageSet& imageSet = _imageSetBuffers.find(std::pair<size_t,size_t>(antenna1, antenna2))->second;
 	const MWAInput
@@ -931,7 +932,7 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 			}
 		}
 		else if(_rfiDetection && (antenna1 != antenna2))
-			flagMask = _flagger.Run(*_strategy, imageSet, *correlatorMask);
+			flagMask = strategy.Run(imageSet, *correlatorMask);
 		else
 			flagMask = _flagger.MakeFlagMask(_curChunkEnd-_curChunkStart, _reader->ChannelCount(), false);
 		flagBadCorrelatorSamples(flagMask);
@@ -939,7 +940,7 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, QualityStatistics
 	
 	// Collect statistics
 	if(_collectStatistics)
-		_flagger.CollectStatistics(statistics, imageSet, flagMask, *correlatorMask, antenna1, antenna2);
+		statistics.CollectStatistics(imageSet, flagMask, *correlatorMask, antenna1, antenna2);
 	
 	// If this is an auto-correlation, it wouldn't have been flagged yet
 	// to allow collecting its statistics. But we want to flag it...
