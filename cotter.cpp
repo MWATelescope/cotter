@@ -258,7 +258,7 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	}
 	if(!_solutionFilename.empty() && !_applySolutionsBeforeAveraging)
 	{
-		_writer.reset(new ApplySolutionsWriter(std::move(_writer), _solutionFilename));
+		_writer.reset(new ApplySolutionsWriter(std::move(_writer), _solutionFilename, ((_curSbStart * _mwaConfig.Header().nChannels) / _subbandCount) / freqAvgFactor, _mwaConfig.Header().nChannels / freqAvgFactor));
 	}
 	if(freqAvgFactor != 1 || timeAvgFactor != 1)
 	{
@@ -266,7 +266,7 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 	}
 	if(!_solutionFilename.empty() && _applySolutionsBeforeAveraging)
 	{
-		_writer.reset(new ApplySolutionsWriter(std::move(_writer), _solutionFilename));
+		_writer.reset(new ApplySolutionsWriter(std::move(_writer), _solutionFilename, (_curSbStart * _mwaConfig.Header().nChannels) / _subbandCount, _mwaConfig.Header().nChannels));
 	}
 	writeAntennae();
 	writeSPW();
