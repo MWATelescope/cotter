@@ -7,10 +7,11 @@ pkg_check_modules(GTKMM gtkmm-3.0>=3.0.0)
 pkg_check_modules(SIGCXX sigc++-2.0)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
+
 find_package(AOFlagger 3 REQUIRED)
 include_directories(${AOFLAGGER_INCLUDE_DIR})
 
-find_package(CFITSIO)
+find_package(CFITSIO REQUIRED)
 
 find_library(CASA_MS_LIB casa_ms REQUIRED)
 find_library(CASA_TABLES_LIB casa_tables REQUIRED)
@@ -42,7 +43,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
 include_directories(${CASA_INCLUDE_DIR})
-include_directories(${FITSIO_INCLUDE_DIR})
+include_directories(${CFITSIO_INCLUDE_DIR})
 include_directories(${Boost_INCLUDE_DIR})
 include_directories(${LIBPAL_INCLUDE_DIR})
 include_directories(${PYTHON_INCLUDE_DIRS})
@@ -70,14 +71,19 @@ add_executable(cotter main.cpp cotter.cpp applysolutionswriter.cpp averagingwrit
 add_executable(fixmwams fixmwams.cpp fitsuser.cpp metafitsfile.cpp mwaconfig.cpp mwams.cpp)
 
 target_link_libraries(cotter
-	${AOFLAGGER_LIB}
 	${CASACORE_LIBS}
+	${AOFLAGGER_LIB}
+	${CFITSIO_LIBRARY}
 	${Boost_SYSTEM_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${Boost_PYTHON_LIBRARIES}
 	${LIBPAL_LIB}
-	${PTHREAD_LIB}
 	${PYTHON_LIBRARIES}
+	${PTHREAD_LIB}
 )
 
-target_link_libraries(fixmwams ${CFITSIO_LIBRARY} ${CASACORE_LIBS} ${LIBPAL_LIB})
+target_link_libraries(fixmwams
+	${CFITSIO_LIBRARY}
+	${CASACORE_LIBS}
+	${LIBPAL_LIB}
+)
 
 install (TARGETS cotter fixmwams DESTINATION bin)
