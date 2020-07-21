@@ -12,41 +12,24 @@ find_package(AOFlagger 3 REQUIRED)
 include_directories(${AOFLAGGER_INCLUDE_DIR})
 
 find_package(CFITSIO REQUIRED)
+include_directories(${CFITSIO_INCLUDE_DIR})
 
-find_library(CASA_MS_LIB casa_ms REQUIRED)
-find_library(CASA_TABLES_LIB casa_tables REQUIRED)
-find_library(CASA_CASA_LIB casa_casa REQUIRED)
-find_library(CASA_MEASURES_LIB casa_measures REQUIRED)
-set(CASACORE_LIBS ${CASA_MS_LIB} ${CASA_TABLES_LIB} ${CASA_CASA_LIB} ${CASA_MEASURES_LIB})
-find_path(CASA_INCLUDE_DIR NAMES ms/MeasurementSets/MeasurementSet.h PATHS /usr/local/include/casacore PATH_SUFFIXES casacore)
-enable_language(Fortran OPTIONAL)
-find_package(LAPACK REQUIRED)
-find_package(PythonLibs 3 REQUIRED)
-find_package(PythonInterp 3 REQUIRED)
-message(STATUS "Using python version ${PYTHON_VERSION_STRING}")
-set(BOOSTPY ${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
-find_package(Boost 1.55.0 REQUIRED COMPONENTS date_time filesystem python${BOOSTPY})
-set(BOOST_PART_LIBRARIES ${Boost_LIBRARIES})
-# Numpy3 is in some versions of Boost part of python3, so don't 'require' it:                                                                                           
-find_package(Boost 1.55.0 COMPONENTS numpy${BOOSTPY})
-set(Boost_LIBRARIES ${BOOST_PART_LIBRARIES} ${Boost_LIBRARIES})
+set(CASACORE_MAKE_REQUIRED_EXTERNALS_OPTIONAL TRUE)
+find_package(Casacore REQUIRED COMPONENTS casa ms tables measures)
+include_directories(${CASACORE_INCLUDE_DIRS})
 
-find_library(FFTW3_LIB fftw3 REQUIRED)
-find_package(LibXml2 REQUIRED)
+find_package(Boost 1.55.0 REQUIRED COMPONENTS date_time filesystem)
+include_directories(${Boost_INCLUDE_DIR})
+
 find_library(LIBPAL_LIB pal REQUIRED)
 find_path(LIBPAL_INCLUDE_DIR NAMES star/pal.h)
-find_library(PNG_LIB png REQUIRED)
+include_directories(${LIBPAL_INCLUDE_DIR})
+
 find_library(PTHREAD_LIB pthread REQUIRED)
 
 add_compile_options(-Wall -Wno-noexcept-type -DNDEBUG -O3 -march=native)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
-
-include_directories(${CASA_INCLUDE_DIR})
-include_directories(${CFITSIO_INCLUDE_DIR})
-include_directories(${Boost_INCLUDE_DIR})
-include_directories(${LIBPAL_INCLUDE_DIR})
-include_directories(${PYTHON_INCLUDE_DIRS})
 
 # The following stuff will set the "rpath" correctly, so that
 # LD_LIBRARY_PATH doesn't have to be set.
@@ -71,18 +54,17 @@ add_executable(cotter main.cpp cotter.cpp applysolutionswriter.cpp averagingwrit
 add_executable(fixmwams fixmwams.cpp fitsuser.cpp metafitsfile.cpp mwaconfig.cpp mwams.cpp)
 
 target_link_libraries(cotter
-	${CASACORE_LIBS}
+	${CASACORE_LIBRARIES}
 	${AOFLAGGER_LIB}
 	${CFITSIO_LIBRARY}
-	${Boost_SYSTEM_LIBRARY} ${Boost_DATE_TIME_LIBRARY} ${Boost_PYTHON_LIBRARIES}
+	${Boost_SYSTEM_LIBRARY} ${Boost_DATE_TIME_LIBRARY}
 	${LIBPAL_LIB}
-	${PYTHON_LIBRARIES}
 	${PTHREAD_LIB}
 )
 
 target_link_libraries(fixmwams
 	${CFITSIO_LIBRARY}
-	${CASACORE_LIBS}
+	${CASACORE_LIBRARIES}
 	${LIBPAL_LIB}
 )
 
