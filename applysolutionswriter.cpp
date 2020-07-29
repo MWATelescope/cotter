@@ -43,35 +43,56 @@ void ApplySolutionsWriter::WriteBandInfo(const std::string &name, const std::vec
 
 	ForwardingWriter::WriteBandInfo(name, channels, refFreq, totalBandwidth, flagRow);
 
-	// We permit situations where the total number of fine channels is > solution channels but only when
-	// the solution channels can be divided into the total number of fine channels evenly.
-	if (_nSolutionChannels < _nTotalFineChannels || (_nSolutionChannels % _nTotalFineChannels) != 0) {
-		std::ostringstream s;
-		s << "The provided solution file has an incorrect number of channels. Observation has " << _nTotalFineChannels << " channels, and solution file has " << _nSolutionChannels << " fine channels.";
-		throw std::runtime_error(s.str());
+	if ( _nSolutionChannels > _nTotalFineChannels ) {
+		// We permit situations where the total solution channels > number of fine channels, but only when
+		// the solution channels can be divided into the total number of fine channels evenly.
+		if ((_nSolutionChannels % _nTotalFineChannels) != 0) {
+			std::ostringstream s;
+			s << "The provided solution file has an incompatible number of channels. Data has " << _nTotalFineChannels << " channels which must evenly divide into " << _nSolutionChannels << " solution file fine channels.";
+			throw std::runtime_error(s.str());
+		}
+	}
+	else if ( _nTotalFineChannels > _nSolutionChannels ) {
+		// We permit situations where the total fine channels > number of solution channels, but only when
+		// the fine channels can be divided into the number of solution channels evenly.
+		if (( _nTotalFineChannels % _nSolutionChannels) != 0) {
+			std::ostringstream s;
+			s << "The provided solution file has an incompatible number of channels. Solution has " << _nSolutionChannels << " channels which must evenly divide into " << _nTotalFineChannels << " data fine channels.";
+			throw std::runtime_error(s.str());
+		}
 	}
 }
 
 void ApplySolutionsWriter::WriteRow(double time, double timeCentroid, size_t antenna1, size_t antenna2, double u, double v, double w, double interval, const std::complex<float> *data, const bool *flags, const float *weights)
 {
-	// Apply solution to averaged data or where resolution of cal solution is higher than the obs you are applying it to
-	int channelRatio = _nSolutionChannels / _nTotalFineChannels;
+	// This method may be called:
+	// 1. Before averaging (if -full-apply specificed), in which case _nTotalFineChannels will be == observation fine channels. OR
+	// 2. After averaging  (if -apply specificed), in which case _nTotalFineChannels will be == observation fine channels / averaging factor.
+	//
+	// If _nSolutionChannels == _nTotalFineChannels then apply solution channels to data fine channels 1:1
+	// If _nSolutionChannels  > _nTotalFineChannels then skip evey N solution channel when applying to each data channel
+	// If _nSolutionChannels  < _nTotalFineChannels then apply the same solution channel to N consecutive data channels	
+	int channelRatio;
+	
+	if ( _nSolutionChannels > _nTotalFineChannels )
+		channelRatio = _nSolutionChannels / _nTotalFineChannels;
+	else
+		channelRatio = _nTotalFineChannels / _nSolutionChannels;
 
 	const MC2x2* solA = &_solutions[antenna1 * _nSolutionChannels];
 	const MC2x2* solB = &_solutions[antenna2 * _nSolutionChannels];
 	MC2x2 scratch;
 	for (size_t ch = 0; ch != _nBandFineChannels; ch++)
-	{
-		// This code might be being called:
-		// 1. Before averaging 
-		// or 
-		// 2. After averaging
-		//
-		// Also, the data we are correcting maybe be in one contiguous 24 coarse channel band or several contiguous bands.
-		// The below line, uses _bandFineChanStart to offset the solution channel (ch) and channelRatio to address the various
-		// combinations of these scenarios.
-		//
-		size_t solChannel = (ch + _bandFineChanStart) * channelRatio;
+	{		
+		// Also, the data we are correcting may be be in one contiguous 24 coarse channel band or N contiguous bands.
+		// So we may be in contiguous band 0..N. The data array is only the data in this contiguous band, but the 
+		// _solutions array is a single array of solution for the whole observation, so we need to use _bandFineChannelStart
+		// and the channelRatio to figure out which solChannel to apply.
+		size_t solChannel;
+		if ( _nSolutionChannels > _nTotalFineChannels )
+			solChannel = (ch + _bandFineChanStart) * channelRatio;
+		else
+			solChannel = (ch + _bandFineChanStart) / channelRatio;
 	
 		MC2x2 dataAsDouble(data[ch * 4], data[ch * 4 +1], data[ch * 4 +2], data[ch * 4 +3]);
 		MC2x2::ATimesB(scratch, solA[solChannel], dataAsDouble);
