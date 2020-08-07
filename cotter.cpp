@@ -574,6 +574,9 @@ void Cotter::processOneContiguousBand(const std::string& outputFilename, size_t 
 		_statistics->WriteStatistics(_qualityStatisticsFilename);
 	}
 	
+	// Reset statistics so that a potentially next subband starts with empty statistics
+	_statistics.reset();
+	
 	if(_outputFormat == MSOutputFormat)
 	{
 		std::cout << "Writing MWA fields to measurement set...\n";
