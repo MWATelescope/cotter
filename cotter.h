@@ -16,14 +16,6 @@
 #include <set>
 #include <string>
 
-namespace aoflagger {
-	class AOFlagger;
-	class FlagMask;
-	class ImageSet;
-	class QualityStatistics;
-	class Strategy;
-}
-
 class GPUFileReader;
 class MSWriter;
 
@@ -101,7 +93,6 @@ class Cotter : private UVWCalculater
 		std::unique_ptr<Writer> _writer;
 		std::unique_ptr<GPUFileReader> _reader;
 		aoflagger::AOFlagger _flagger;
-		std::unique_ptr<aoflagger::Strategy> _strategy;
 		
 		std::vector<double> _subbandCorrectionFactors[4];
 		std::unique_ptr<bool[]> _isAntennaFlaggedMap;
@@ -168,7 +159,7 @@ class Cotter : private UVWCalculater
 		void processAndWriteTimestep(size_t timeIndex);
 		void processAndWriteTimestepFlagsOnly(size_t timeIndex);
 		void baselineProcessThreadFunc();
-		void processBaseline(size_t antenna1, size_t antenna2, aoflagger::QualityStatistics &statistics);
+		void processBaseline(size_t antenna1, size_t antenna2, aoflagger::Strategy& strategy, aoflagger::QualityStatistics& statistics);
 		void correctConjugated(aoflagger::ImageSet& imageSet, size_t imageIndex) const;
 		void correctCableLength(aoflagger::ImageSet& imageSet, size_t polarization, double cableDelay) const;
 		void writeAntennae();
