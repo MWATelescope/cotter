@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM mwatelescope/aoflagger:3.0
 
 # tzdata wants to throw up an interactive message requesting input,so just specify your timezone here instead and it wont.
 ENV TZ 'UTC'
@@ -25,8 +25,7 @@ RUN apt-get -y update && \
                           libfftw3-dev \
                           libpng-dev \
                           casacore-dev \
-                          liberfa-dev \
-                          aoflagger-dev \
+                          liberfa-dev \                          
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
     && apt-get autoremove \
     && apt-get clean
@@ -41,13 +40,13 @@ RUN cd / \
     && cd / \
     && rm -rf pal-0.9.7
 
-RUN git clone "https://github.com/MWATelescope/cotter.git" 
+COPY . /cotter
 
 RUN cd /cotter \
     && mkdir build \
     && cd build \
     && cmake ../ \
-       -DLIBPAL_INCLUDE_DIR=/usr/local/include \
+       -DLIBPAL_INCLUDE_DIR=/usr/local/include \       
    && make -j8 \
    && make install \
    && cd / \
