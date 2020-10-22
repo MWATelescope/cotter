@@ -1,5 +1,5 @@
 # cotter
-André Offringa's cotter pre-processing pipeline
+André Offringa's MWA pre-processing pipeline.
 
 ## Usage
 Once installed, simply run `cotter` to see the list of available options.
@@ -26,8 +26,8 @@ make install
 
 + Note that header files are installed into an unusual place; the following command might be helpful: `ln -s "$PREFIX"/include/star/* "$PREFIX"/include`
 
-### [aoflagger](https://sourceforge.net/projects/aoflagger/)
-As with ERFA, this can be installed in Debian-based distros with the package `aoflagger-dev`. Otherwise, installation instructions can be found [here](https://sourceforge.net/p/aoflagger/wiki/installation_instructions/).
+### [aoflagger](https://gitlab.com/aroffringa/aoflagger)
+As with ERFA, this can be installed in Debian-based distros with the package `aoflagger-dev`. Otherwise, installation instructions can be found [here](https://gitlab.com/aroffringa/aoflagger).
 
 ## Installation
 Once you've cloned `cotter` and installed the dependencies, the rest is easy:
@@ -70,11 +70,20 @@ docker build -t cotter:latest .
 
 One way to launch the container is to use docker run, for example:
 ```
-docker run --name my_cotter --volume=/data:/data --entrypoint="" --rm=true cotter:latest cotter -allowmissing -initflag 4 -m /data/OBSID_metafits.fits -o /data/OBSID_%%.mwaf /data/*gpubox*.fits 
+docker run --name my_cotter --volume=/path/to/host/data:/data --entrypoint="" --rm=true cotter:latest /bin/bash -c "cotter -allowmissing -initflag 4 -m /data/OBSID_metafits.fits -flagfiles /data/OBSID_%%.mwaf -o /path/inside/container/data/OBSID.ms /data/*gpubox*.fits"
 ```
 
-notes: 
+notes:
 * This will perform RFI flagging and create .mwaf files for each coarse channel. See cotter -help for other ways to use cotter.
-* This assumes /data is a directory on the machine running docker (host) containing the gpubox files and metafits for an observation 
+* This assumes /path/to/host/data is a directory on the machine running docker (host) containing the gpubox files and metafits for an observation. Inside the container this is exposed as /data
 * --rm=true means the container will be deleted once it exits (you may or may not want this)
 * OBSID is an MWA observation ID
+
+### Docker troubleshooting
+If you find that cotter terminates unexpectedly or with "illegal instruction", you may be able to resolve this by:
+* Building your own AOFlagger image (gitlab repository is here: [aoflagger](https://gitlab.com/aroffringa/aoflagger).
+* Modify cotter's Dockerfile first line from `FROM mwatelescope/aoflagger:3.0` to `FROM your_aoflagger_image`, then rebuild the cotter image.
+
+## Prebuilt docker images
+* You can find premade Cotter docker images at the [MWATelescope dockerhub](https://hub.docker.com/repository/docker/mwatelescope/cotter).
+* These can be used instead of building images. For example, use: `docker pull mwatelescope/cotter:4.5` instead of building it yourself.
