@@ -1,4 +1,4 @@
-FROM mwatelescope/aoflagger:3.0
+FROM mwatelescope/aoflagger:3.0_portable
 
 # tzdata wants to throw up an interactive message requesting input,so just specify your timezone here instead and it wont.
 ENV TZ 'UTC'
@@ -46,10 +46,9 @@ RUN cd /cotter \
     && mkdir build \
     && cd build \
     && cmake ../ \
-       -DLIBPAL_INCLUDE_DIR=/usr/local/include \       
+       -DLIBPAL_INCLUDE_DIR=/usr/local/include \   
+       -DPORTABLE=ON \  
    && make -j8 \
    && make install \
    && cd / \
    && rm -rf cotter
-
-ENTRYPOINT bash

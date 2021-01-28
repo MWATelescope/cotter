@@ -68,9 +68,14 @@ An appropriate Dockerfile for creating a `cotter` container is provided in Docke
 docker build -t cotter:latest .
 ```
 
+Alternatively you can pull the latest cotter from the mwatelescope DockerHub repository:
+```
+docker pull mwatelescope/cotter:latest
+```
+
 One way to launch the container is to use docker run, for example:
 ```
-docker run --name my_cotter --volume=/path/to/host/data:/data --entrypoint="" --rm=true cotter:latest /bin/bash -c "cotter -allowmissing -initflag 4 -m /data/OBSID_metafits.fits -flagfiles /data/OBSID_%%.mwaf -o /path/inside/container/data/OBSID.ms /data/*gpubox*.fits"
+docker run --name my_cotter --volume=/path/to/host/data:/data --rm=true cotter:latest /bin/bash -c "cotter -allowmissing -initflag 4 -m /data/OBSID_metafits.fits -flagfiles /data/OBSID_%%.mwaf -o /path/inside/container/data/OBSID.ms /data/*gpubox*.fits"
 ```
 
 notes:

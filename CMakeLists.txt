@@ -27,7 +27,14 @@ include_directories(${LIBPAL_INCLUDE_DIR})
 
 find_library(PTHREAD_LIB pthread REQUIRED)
 
-add_compile_options(-Wall -Wno-noexcept-type -DNDEBUG -O3 -march=native)
+option(PORTABLE "Compile for portability" OFF) #OFF by default
+if(PORTABLE)    
+	add_compile_options(-Wall -Wno-noexcept-type -DNDEBUG -O3 -march=x86-64)
+else()    
+	add_compile_options(-Wall -Wno-noexcept-type -DNDEBUG -O3 -march=native)
+endif(PORTABLE)
+unset(PORTABLE CACHE)
+
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
