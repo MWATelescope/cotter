@@ -55,6 +55,7 @@ Cotter::Cotter() :
 	_applySBGains(true),
 	_flagDCChannels(true),
 	_skipWriting(false),
+    _doCorrectCableLength(true),
 	_offlineGPUBoxFormat(false),
 	_customRARad(0.0),
 	_customDecRad(0.0),
@@ -894,10 +895,12 @@ void Cotter::processBaseline(size_t antenna1, size_t antenna2, aoflagger::Strate
 	}
 	
 	// Correct cable delay
+    if(_doCorrectCableLength) {
 	correctCableLength(imageSet, 0, input2X.cableLenDelta - input1X.cableLenDelta);
 	correctCableLength(imageSet, 1, input2Y.cableLenDelta - input1X.cableLenDelta);
 	correctCableLength(imageSet, 2, input2X.cableLenDelta - input1Y.cableLenDelta);
 	correctCableLength(imageSet, 3, input2Y.cableLenDelta - input1Y.cableLenDelta);
+    }
 	
 	// Correct passband
 	for(size_t i=0; i!=8; ++i)

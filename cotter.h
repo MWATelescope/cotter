@@ -55,6 +55,7 @@ class Cotter : private UVWCalculater
 		}
 		void SetDoAlign(bool doAlign) { _doAlign = doAlign; }
 		void SetDoFlagMissingSubbands(bool doFlagMissingSubbands) { _doFlagMissingSubbands = doFlagMissingSubbands; }
+        void SetDoCorrectCableLength(bool doCorrectCableLength) { _doCorrectCableLength = doCorrectCableLength; }
 		void SetSubbandCount(size_t subbandCount) { _subbandCount = subbandCount; }
 		void SetRemoveFlaggedAntennae(bool removeFlaggedAntennae) { _removeFlaggedAntennae = removeFlaggedAntennae; }
 		void SetRemoveAutoCorrelations(bool removeAutoCorrelations) { _removeAutoCorrelations = removeAutoCorrelations; }
@@ -136,7 +137,7 @@ class Cotter : private UVWCalculater
 		aoflagger::FlagMask _correlatorMask, _fullysetMask;
 		
 		bool _disableGeometricCorrections, _removeFlaggedAntennae, _removeAutoCorrelations, _flagAutos;
-		bool _overridePhaseCentre, _doAlign, _doFlagMissingSubbands, _applySBGains, _flagDCChannels, _skipWriting;
+		bool _overridePhaseCentre, _doAlign, _doFlagMissingSubbands, _applySBGains, _flagDCChannels, _skipWriting, _doCorrectCableLength;
 		bool _offlineGPUBoxFormat;
 		long double _customRARad, _customDecRad;
 		double _initDurationToFlag, _endDurationToFlag;
