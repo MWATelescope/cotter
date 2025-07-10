@@ -29,7 +29,7 @@ find_library(PTHREAD_LIB pthread REQUIRED)
 
 option(PORTABLE "Compile for portability" OFF) #OFF by default
 if(PORTABLE)    
-	add_compile_options(-Wall -Wno-noexcept-type -DNDEBUG -O3 -march=x86-64)
+	add_compile_options(-march=x86-64)
 else()    
 	add_compile_options(-march=native)
 endif(PORTABLE)
