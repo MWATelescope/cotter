@@ -221,7 +221,7 @@ class Cotter : private UVWCalculater
 		}
 		
 		// Implementing UVWCalculater
-		virtual void CalculateUVW(double date, size_t antenna1, size_t antenna2, double &u, double &v, double &w);
+		void CalculateUVW(double date, size_t antenna1, size_t antenna2, double &u, double &v, double &w) final;
 
 		Cotter(const Cotter&) = delete;
 		void operator=(const Cotter&) = delete;

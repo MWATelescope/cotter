@@ -9,10 +9,11 @@
 class UVWCalculater
 {
 	public:
+    virtual ~UVWCalculater() = default;
 		virtual void CalculateUVW(double date, size_t antenna1, size_t antenna2, double &u, double &v, double &w) = 0;
 };
 
-class AveragingWriter : public Writer
+class AveragingWriter final : public Writer
 {
 	public:
 		AveragingWriter(std::unique_ptr<Writer>&& writer, size_t timeCount, size_t freqAvgFactor, UVWCalculater& uvwCalculater)
