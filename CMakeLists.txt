@@ -29,13 +29,24 @@ find_library(PTHREAD_LIB pthread REQUIRED)
 
 option(PORTABLE "Compile for portability" OFF) #OFF by default
 if(PORTABLE)    
-	add_compile_options(-Wall -Wno-noexcept-type -DNDEBUG -O3 -march=x86-64)
+	add_compile_options(-march=x86-64)
 else()    
-	add_compile_options(-Wall -Wno-noexcept-type -DNDEBUG -O3 -march=native)
+	add_compile_options(-march=native)
 endif(PORTABLE)
+add_compile_options(
+  -O3
+  -DNDEBUG
+  -Wall
+  -Wno-noexcept-type
+  -Wnon-virtual-dtor
+  -Wduplicated-branches
+  -Wundef
+  -Wpointer-arith
+  -Wextra
+  -Wno-unused-parameter)
 unset(PORTABLE CACHE)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
 # The following stuff will set the "rpath" correctly, so that

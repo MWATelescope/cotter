@@ -149,8 +149,8 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput>& inputs, std::vector<MWAAnten
 	long int nrow;
 	fits_get_num_rows(_fptr, &nrow, &status);
 	checkStatus(status);
-	antennae.resize(nrow/2);
-	inputs.resize(nrow);
+	antennae.reserve(nrow/2);
+	inputs.reserve(nrow);
 	
 	for(long int i=0; i!=nrow; ++i)
 	{
@@ -178,7 +178,12 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput>& inputs, std::vector<MWAAnten
 		if(gainsCol != -1)
 			fits_read_col(_fptr, TINT, gainsCol, i+1, 1, 24, 0, gainValues, 0, &status);
 		checkStatus(status);
-		
+
+    if(antenna >= static_cast<int>(antennae.size()))
+      antennae.resize(antenna+1);
+    if(input >= static_cast<int>(inputs.size()))
+      inputs.resize(input+1);
+
 		if(pol == 'X')
 		{
 			MWAAntenna &ant = antennae[antenna];
@@ -206,12 +211,6 @@ void MetaFitsFile::ReadTiles(std::vector<MWAInput>& inputs, std::vector<MWAAnten
 		
 		length[80] = 0;
 		std::string lengthStr = length;
-		if(input >= nrow)
-		{
-			std::ostringstream errstr;
-			errstr << "Tile " << tile << " has an input with index " << input << ", which is beyond the maximum index of " << (nrow-1);
-			throw std::runtime_error(errstr.str());
-		}
 		inputs[input].inputIndex = input;
 		inputs[input].antennaIndex = antenna;
 		if(lengthStr.substr(0, 3) == "EL_")

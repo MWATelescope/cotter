@@ -72,7 +72,7 @@ Cotter::Cotter() :
 {
 }
 
-Cotter::~Cotter() { }
+Cotter::~Cotter() = default;
 
 void Cotter::Run(double timeRes_s, double freqRes_kHz)
 {

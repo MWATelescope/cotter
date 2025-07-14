@@ -87,10 +87,8 @@ void MWAConfig::ReadMetaFits(const std::string& filename, bool lockPointing)
 	}
 	
 	metaFile.ReadTiles(_inputs, _antennae);
-	for(std::vector<MWAInput>::iterator i=_inputs.begin();
-			i!=_inputs.end(); ++i)
+	for(MWAInput& input : _inputs)
 	{
-		MWAInput &input = *i;
 		if(input.polarizationIndex == 0)
 			_antennaXInputs.insert(std::pair<size_t, MWAInput*>(input.antennaIndex, &input));
 		else
